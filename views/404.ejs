@@ -1,0 +1,9 @@
+<%- include('partials/head', { pageTitle, bodyClass: 'theme-light', includeViewSwitch: false }) %>
+<main class="page-container">
+  <section class="admin-card centered">
+    <h2>404</h2>
+    <p><%= t('notFound.message') %></p>
+    <a class="btn-secondary" href="/"><%= t('notFound.backHome') %></a>
+  </section>
+</main>
+<%- include('partials/footer') %>

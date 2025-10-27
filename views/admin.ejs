@@ -1,0 +1,167 @@
+<%- include('partials/head', { pageTitle, bodyClass: 'theme-light', includeViewSwitch: false }) %>
+<main class="page-container admin">
+  <nav class="admin-tabs" data-default-tab="<%= activeTab %>">
+    <button
+      type="button"
+      class="admin-tab <%= activeTab === 'sites' ? 'is-active' : '' %>"
+      data-tab="sites"
+    >
+      <%= t('admin.tabsSites') %>
+    </button>
+    <button
+      type="button"
+      class="admin-tab <%= activeTab === 'folders' ? 'is-active' : '' %>"
+      data-tab="folders"
+    >
+      <%= t('admin.tabsFolders') %>
+    </button>
+  </nav>
+
+  <section class="admin-panel <%= activeTab === 'sites' ? 'is-active' : '' %>" id="panel-sites">
+    <div class="admin-card">
+      <h2><%= t('admin.addSite') %></h2>
+      <form class="admin-form" method="post" action="/admin/site" enctype="multipart/form-data">
+        <label>
+          <%= t('forms.name') %>
+          <input type="text" name="name" required />
+        </label>
+        <label>
+          <%= t('forms.descriptionOptional') %>
+          <input type="text" name="description" />
+        </label>
+        <label>
+          <%= t('forms.url') %>
+          <input type="url" name="targetUrl" id="create-site-url" placeholder="<%= t('forms.siteUrlPlaceholder') %>" required />
+        </label>
+        <label class="image-field">
+          <%= t('forms.logoUrlOptional') %>
+          <div class="image-field__row">
+            <input type="url" name="imageUrl" id="create-site-image" placeholder="<%= t('forms.siteImagePlaceholder') %>" />
+            <button type="button" class="btn-secondary fetch-favicon" data-source="#create-site-url" data-target="#create-site-image">
+              <%= t('forms.fetchFavicon') %>
+            </button>
+          </div>
+        </label>
+        <div class="image-upload-group">
+          <label class="file-field">
+            <span><%= t('forms.uploadFile') %></span>
+            <input type="file" name="imageFile" accept="image/*" />
+          </label>
+          <p class="form-hint"><%= t('forms.uploadHint') %></p>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn-primary"><%= t('forms.save') %></button>
+        </div>
+      </form>
+    </div>
+
+    <div class="admin-card">
+      <h2><%= t('admin.existingSites') %></h2>
+      <% if (!sites.length) { %>
+        <p class="empty-state"><%= t('admin.emptySites') %></p>
+      <% } %>
+      <% sites.forEach((site) => { %>
+        <details class="admin-item">
+          <summary>
+            <span class="admin-item__title"><%= site.name %></span>
+            <% if (site.description) { %>
+              <span class="admin-item__subtitle">(<%= site.description %>)</span>
+            <% } %>
+          </summary>
+          <form class="admin-form" method="post" action="/admin/site/<%= site.id %>" enctype="multipart/form-data">
+            <label>
+              <%= t('forms.name') %>
+              <input type="text" name="name" value="<%= site.name %>" required />
+            </label>
+            <label>
+              <%= t('forms.descriptionOptional') %>
+              <input type="text" name="description" value="<%= site.description || '' %>" />
+            </label>
+            <label>
+              <%= t('forms.url') %>
+              <input type="url" name="targetUrl" value="<%= site.targetUrl %>" required />
+            </label>
+            <label class="image-field">
+              <%= t('forms.logoUrlOptional') %>
+              <div class="image-field__row">
+                <input type="url" name="imageUrl" value="<%= site.imageUrl %>" />
+                <button type="button" class="btn-secondary fetch-favicon" data-source="input[name='targetUrl']" data-target="input[name='imageUrl']">
+                  <%= t('forms.fetchFavicon') %>
+                </button>
+              </div>
+            </label>
+            <div class="image-upload-group">
+              <label class="file-field">
+                <span><%= t('forms.uploadFile') %></span>
+                <input type="file" name="imageFile" accept="image/*" />
+              </label>
+              <% if (site.imageUrl) { %>
+                <figure class="image-preview">
+                  <img src="<%= site.imageUrl %>" alt="<%= site.name %>" loading="lazy" />
+                  <figcaption><%= t('forms.currentImage') %></figcaption>
+                </figure>
+              <% } %>
+            </div>
+            <p class="form-hint"><%= t('forms.uploadHint') %></p>
+            <div class="form-actions">
+              <button type="submit" class="btn-secondary"><%= t('forms.update') %></button>
+            </div>
+          </form>
+          <form method="post" action="/admin/site/<%= site.id %>/delete" class="delete-form">
+            <button type="submit" class="btn-danger"><%= t('forms.delete') %></button>
+          </form>
+        </details>
+      <% }); %>
+    </div>
+  </section>
+
+  <section class="admin-panel <%= activeTab === 'folders' ? 'is-active' : '' %>" id="panel-folders">
+    <div class="admin-card">
+      <h2><%= t('admin.addFolder') %></h2>
+      <form class="admin-form" method="post" action="/admin/folder">
+        <label>
+          <%= t('forms.name') %>
+          <input type="text" name="name" required />
+        </label>
+        <label>
+          <%= t('forms.networkPath') %>
+          <input type="text" name="networkPath" placeholder="<%= t('forms.networkPathPlaceholder') %>" required />
+        </label>
+        <div class="form-actions">
+          <button type="submit" class="btn-primary"><%= t('forms.save') %></button>
+        </div>
+      </form>
+    </div>
+
+    <div class="admin-card">
+      <h2><%= t('admin.existingFolders') %></h2>
+      <% if (!folders.length) { %>
+        <p class="empty-state"><%= t('admin.emptyFolders') %></p>
+      <% } %>
+      <% folders.forEach((folder) => { %>
+        <details class="admin-item">
+          <summary>
+            <span><%= folder.name %></span>
+          </summary>
+          <form class="admin-form" method="post" action="/admin/folder/<%= folder.id %>">
+            <label>
+              <%= t('forms.name') %>
+              <input type="text" name="name" value="<%= folder.name %>" required />
+            </label>
+            <label>
+              <%= t('forms.networkPath') %>
+              <input type="text" name="networkPath" value="<%= folder.networkPath %>" required />
+            </label>
+            <div class="form-actions">
+              <button type="submit" class="btn-secondary"><%= t('forms.update') %></button>
+            </div>
+          </form>
+          <form method="post" action="/admin/folder/<%= folder.id %>/delete" class="delete-form">
+            <button type="submit" class="btn-danger"><%= t('forms.delete') %></button>
+          </form>
+        </details>
+      <% }); %>
+    </div>
+  </section>
+</main>
+<%- include('partials/footer') %>

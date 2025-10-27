@@ -1,0 +1,23 @@
+<%- include('partials/head', { pageTitle, bodyClass: 'theme-light', includeViewSwitch: false }) %>
+<main class="page-container auth">
+  <section class="admin-card">
+    <h2><%= t('login.adminArea') %></h2>
+    <% if (errorKey) { %>
+      <p class="alert-error"><%= t(errorKey) %></p>
+    <% } %>
+    <form class="admin-form" method="post" action="/admin/login">
+      <label>
+        <%= t('login.username') %>
+        <input type="text" name="username" required />
+      </label>
+      <label>
+        <%= t('login.password') %>
+        <input type="password" name="password" required />
+      </label>
+      <div class="form-actions">
+        <button type="submit" class="btn-primary"><%= t('login.submit') %></button>
+      </div>
+    </form>
+  </section>
+</main>
+<%- include('partials/footer') %>

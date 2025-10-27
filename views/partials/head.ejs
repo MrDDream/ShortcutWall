@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="<%= locale %>">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <% const fullTitle = pageTitle ? `${pageTitle} - ${appName}` : appName; %>
+    <title><%= fullTitle %></title>
+    <link rel="icon" type="image/svg+xml" href="/images/logo.svg" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="<%= bodyClass || '' %>">
+    <header class="page-header">
+      <div class="header-content">
+        <h1 class="page-title">
+          <a href="/">
+            <img class="page-title__icon" src="/images/logo.svg" alt="" aria-hidden="true" />
+            <span><%= appName %></span>
+          </a>
+        </h1>
+        <% const showViewSwitch = typeof includeViewSwitch !== 'undefined' && includeViewSwitch; %>
+        <% if (showViewSwitch) { %>
+          <nav class="view-switch header-switch">
+            <a
+              class="view-switch__button <%= viewMode === 'sites' ? 'is-active' : '' %>"
+              href="/?type=sites"
+              data-view="sites"
+            >
+              <%= t('header.viewSites') %>
+            </a>
+            <a
+              class="view-switch__button <%= viewMode === 'folders' ? 'is-active' : '' %>"
+              href="/?type=folders"
+              data-view="folders"
+            >
+              <%= t('header.viewFolders') %>
+            </a>
+          </nav>
+        <% } %>
+        <div class="header-actions">
+          <button type="button" id="theme-toggle" class="btn-secondary">&#x263E;</button>
+          <% if (languageToggle) { %>
+            <a
+              class="btn-secondary language-toggle"
+              href="/language/<%= languageToggle.next %>"
+              title="<%= languageToggle.title %>"
+              aria-label="<%= languageToggle.title %>"
+            >
+              <% if (languageToggle.currentIcon) { %>
+                <img src="<%= languageToggle.currentIcon %>" alt="<%= languageToggle.currentLabel %>" />
+              <% } else { %>
+                <span><%= languageToggle.currentLabel %></span>
+              <% } %>
+            </a>
+          <% } %>
+          <% if (isAuthenticated) { %>
+            <div class="header-admin-menu">
+              <a class="btn-secondary header-admin-menu__link" href="/admin">Admin</a>
+              <div class="header-admin-menu__dropdown">
+                <form action="/admin/logout" method="post">
+                  <button type="submit" class="btn-secondary header-admin-menu__logout"><%= t('header.logout') %></button>
+                </form>
+              </div>
+            </div>
+          <% } else { %>
+            <a class="btn-secondary" href="/admin"><%= t('header.login') %></a>
+          <% } %>
+        </div>
+      </div>
+    </header>

@@ -1,0 +1,19 @@
+version: "3.9"
+
+services:
+  raccourci:
+    build:
+      context: .
+    container_name: ShortcutWall
+    ports:
+      - "${PORT:-3050}:${PORT:-3050}"
+    environment:
+      PORT: ${PORT:-3050}
+      HOST: ${HOST:-0.0.0.0}
+      ADMIN_USER: ${ADMIN_USER:-admin}
+      ADMIN_PASS: ${ADMIN_PASS:-admin123}
+      SESSION_SECRET: ${SESSION_SECRET:-change-me}
+    volumes:
+      - ./data:/app/data
+      - ./public/uploads:/app/public/uploads
+    restart: unless-stopped

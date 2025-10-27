@@ -1,0 +1,174 @@
+<%- include('partials/head', { pageTitle, bodyClass: 'theme-light', includeViewSwitch: true, viewMode }) %>
+<main class="page-container">
+  <section class="search-bar">
+    <div class="search-bar__group">
+      <label for="search-term"><%= t('search.label') %></label>
+      <input
+        id="search-term"
+        type="search"
+        placeholder="<%= t('search.placeholder') %>"
+        autocomplete="off"
+      />
+    </div>
+    <div class="search-bar__group search-bar__group--actions">
+      <label for="sort-order"><%= t('search.sortLabel') %></label>
+      <div class="search-bar__controls">
+        <select id="sort-order" class="search-bar__select">
+          <option value="alpha"><%= t('search.sortAlphabetical') %></option>
+          <option value="recent"><%= t('search.sortRecent') %></option>
+        </select>
+        <% if (supportEmail || supportPhone) { %>
+          <button class="search-bar__help" type="button" data-help-trigger><%= t('search.helpLink') %></button>
+        <% } %>
+      </div>
+    </div>
+  </section>
+  <% if (supportEmail || supportPhone) { %>
+    <div class="help-modal" id="help-modal" hidden>
+      <div class="help-modal__backdrop" data-help-close></div>
+      <div class="help-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="help-modal-title" tabindex="-1">
+        <button class="help-modal__close" type="button" data-help-close aria-label="<%= t('help.close') %>">
+          &times;
+        </button>
+        <p class="help-modal__title" id="help-modal-title">
+          <span><%= t('help.titlePrefix') %></span>
+          <span class="help-modal__url" data-help-url></span>
+          <span><%= t('help.titleSuffix') %></span>
+        </p>
+        <p class="help-modal__intro"><%= t('help.contactIntro') %></p>
+        <ul class="help-modal__list">
+          <% if (supportPhone) { %>
+            <li>
+              <a class="help-modal__contact" href="tel:<%= supportPhone %>">
+                <span class="help-modal__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M6.6 10.8A15.4 15.4 0 0013.2 17.4l2.4-2.4c.3-.3.7-.4 1.1-.3 1.2.4 2.6.6 4 .6.6 0 1 .4 1 1 0 2.2-1.8 4-4 4C8.9 20.3 3.7 15.1 3.7 8.3c0-2.2 1.8-4 4-4 .6 0 1 .4 1 1 0 1.4.2 2.8.6 4 .1.4 0 .8-.3 1.1l-2.4 2.4z" />
+                  </svg>
+                </span>
+                <span class="help-modal__label"><%= t('help.phoneLabel') %> :</span>
+                <span class="help-modal__value"><%= supportPhone %></span>
+              </a>
+            </li>
+          <% } %>
+          <% if (supportEmail) { %>
+            <li>
+              <a class="help-modal__contact" href="mailto:<%= supportEmail %>">
+                <span class="help-modal__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M3 5h18a1 1 0 011 1v12a1 1 0 01-1 1H3a1 1 0 01-1-1V6a1 1 0 011-1zm9 7.2l9-5.7V7l-9 5.7L3 7v.5l9 4.7z" />
+                  </svg>
+                </span>
+                <span class="help-modal__label"><%= t('help.emailLabel') %> :</span>
+                <span class="help-modal__value"><%= supportEmail %></span>
+              </a>
+            </li>
+          <% } %>
+        </ul>
+      </div>
+    </div>
+  <% } %>
+
+  <section
+    class="shortcut-grid <%= viewMode === 'sites' ? 'is-active' : '' %>"
+    id="sites-grid"
+    data-category="sites"
+  >
+    <% if (!sites.length) { %>
+      <p class="empty-state"><%= t('shortcuts.siteEmpty') %></p>
+    <% } %>
+    <% sites.forEach((shortcut) => { %>
+      <% const sortName = shortcut.name || ''; %>
+      <% const createdValue = shortcut.updatedAt || shortcut.createdAt || ''; %>
+      <article
+        class="shortcut-card"
+        data-name="<%= sortName.toLowerCase() %>"
+        data-sort-name="<%= sortName %>"
+        data-created="<%= createdValue %>"
+        data-description="<%= (shortcut.description || '').toLowerCase() %>"
+      >
+        <div class="shortcut-card__content">
+          <% const hasLogo = shortcut.imageUrl && shortcut.imageUrl.trim(); %>
+          <div class="shortcut-thumb <%= hasLogo ? '' : 'shortcut-thumb--fallback' %>">
+            <% if (hasLogo) { %>
+              <img
+                class="shortcut-thumb__image"
+                src="<%= shortcut.imageUrl %>"
+                alt="<%= shortcut.name %>"
+                loading="lazy"
+                onerror="this.closest('.shortcut-thumb').classList.add('shortcut-thumb--fallback'); this.remove();"
+              />
+            <% } %>
+            <span class="shortcut-thumb__fallback"><%= shortcut.name.charAt(0).toUpperCase() %></span>
+          </div>
+          <h2 class="shortcut-title"><%= shortcut.name %></h2>
+          <% if (shortcut.description) { %>
+            <p class="shortcut-description" title="<%= shortcut.description %>"><%= shortcut.description %></p>
+          <% } %>
+        </div>
+        <div class="shortcut-actions">
+          <a
+            class="icon-button download"
+            href="/site/<%= shortcut.id %>/download"
+            title="<%= t('shortcuts.siteDownloadTitle') %>"
+            aria-label="<%= t('shortcuts.siteDownloadTitle') %>"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 2a1 1 0 0 1 1 1v10.586l3.293-3.293 1.414 1.414L12 17.414l-5.707-5.707 1.414-1.414L11 13.586V3a1 1 0 0 1 1-1zm-7 18h14v2H5z"></path>
+            </svg>
+          </a>
+          <a
+            class="icon-button access"
+            href="<%= shortcut.targetUrl %>"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="<%= t('shortcuts.siteAccessTitle') %>"
+            aria-label="<%= t('shortcuts.siteAccessTitle') %>"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2Zm7.93 9h-2.95a14.8 14.8 0 0 0-.92-5.07A8.023 8.023 0 0 1 19.93 11Zm-9.93 0a12.821 12.821 0 0 1 .84-4.24c.33-.94.72-1.67 1.09-2.19.37.52.76 1.25 1.09 2.19A12.821 12.821 0 0 1 13.93 11Zm4.98 2a12.821 12.821 0 0 1-.84 4.24c-.33.94-.72 1.67-1.09 2.19-.37-.52-.76-1.25-1.09-2.19A12.821 12.821 0 0 1 10.07 13Zm-7.93 0h2.95a14.8 14.8 0 0 0 .92 5.07A8.023 8.023 0 0 1 4.07 13Zm10.12 5.07A14.8 14.8 0 0 0 15.88 13h2.05a8.023 8.023 0 0 1-3.74 5.07Zm-5.38 0A8.023 8.023 0 0 1 4.07 13H6.12a14.8 14.8 0 0 0 .92 5.07ZM17.88 11a12.821 12.821 0 0 1-.84-4.24A8.023 8.023 0 0 1 19.93 11Zm-7.76-6.07A12.821 12.821 0 0 1 10.07 11H6.12A8.023 8.023 0 0 1 10.12 4.93Z"></path>
+            </svg>
+          </a>
+        </div>
+      </article>
+    <% }); %>
+  </section>
+
+  <section
+    class="shortcut-grid <%= viewMode === 'folders' ? 'is-active' : '' %>"
+    id="folders-grid"
+    data-category="folders"
+  >
+    <% if (!folders.length) { %>
+      <p class="empty-state"><%= t('shortcuts.folderEmpty') %></p>
+    <% } %>
+    <% folders.forEach((shortcut) => { %>
+      <% const sortName = shortcut.name || ''; %>
+      <% const createdValue = shortcut.updatedAt || shortcut.createdAt || ''; %>
+      <article
+        class="shortcut-card"
+        data-name="<%= sortName.toLowerCase() %>"
+        data-sort-name="<%= sortName %>"
+        data-created="<%= createdValue %>"
+        data-description="<%= (shortcut.description || '').toLowerCase() %>"
+      >
+        <div class="shortcut-card__content">
+          <div class="shortcut-thumb folder-thumb" aria-hidden="true">&#128193;</div>
+          <h2 class="shortcut-title"><%= shortcut.name %></h2>
+        </div>
+        <div class="shortcut-actions">
+          <a
+            class="icon-button download"
+            href="/folder/<%= shortcut.id %>/download"
+            title="<%= t('shortcuts.siteDownloadTitle') %>"
+            aria-label="<%= t('shortcuts.siteDownloadTitle') %>"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 2a1 1 0 0 1 1 1v10.586l3.293-3.293 1.414 1.414L12 17.414l-5.707-5.707 1.414-1.414L11 13.586V3a1 1 0 0 1 1-1zm-7 18h14v2H5z"></path>
+            </svg>
+          </a>
+        </div>
+      </article>
+    <% }); %>
+  </section>
+</main>
+<%- include('partials/footer') %>
