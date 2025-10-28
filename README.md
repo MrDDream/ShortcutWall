@@ -63,14 +63,12 @@ ShortcutWall allows users to access their favorite websites and network folders 
 
     This command builds the Docker image and starts the application in a container.  The application will be accessible at `http://localhost:3050` (or the configured `PORT`).
 
-4.  Alternatively, install dependencies and run the application in development mode without Docker:
+    *Alternatively, install dependencies and run the application in development mode without Docker:*
 
     ```bash
     npm install
     npm run dev
     ```
-
-    The public interface is available at `http://localhost:3050` by default.
 
 ## Usage
 
@@ -105,14 +103,9 @@ ShortcutWall allows users to access their favorite websites and network folders 
 │       └── head.ejs
 
 ```
-
-## API Documentation
-
-Not applicable, as this is a web application with a graphical interface.
-
 ## Screenshots
-[[Insert screenshot of the public view]](https://github.com/MrDDream/ShortcutWall/blob/main/screenshots/homepage.png)
-[Insert screenshot of the admin area]
+| ![Homepage](screenshots/homepage.png) | ![Admin panel](screenshots/admin.png) |
+|-------------------------------|-------------------------------|
 
 ## Contributing
 
@@ -124,8 +117,6 @@ Contributors are welcome to submit pull requests and issues. Please ensure that 
 
 ## Contact
 
-[Insert author/maintainer information if available]
+* [MrDDream](https://github.com/MrDDream)
 
-## Thanks + Attribution
-This README was generated using [GitRead](https://git-read.vercel.app)
-```
+  
