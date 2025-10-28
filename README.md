@@ -1,8 +1,6 @@
 # <img src="public/images/logo.svg" alt="Mon Logo" style="width: 50px; height: auto;" /> ShortcutWall 
 This documentation is available in [French](README.fr.md) and in [English](README.md)
 
-A Node.js web application for centralizing shortcuts to websites and shared folders, featuring an administration page for managing shortcuts.
-
 ## Overview
 ShortcutWall allows users to access their favorite websites and network folders from a single interface. The application includes an admin area for adding, modifying, and deleting shortcuts, as well as uploading custom logos and generating `.url` files automatically.
 
