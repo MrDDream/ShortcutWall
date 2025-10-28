@@ -111,7 +111,7 @@ ShortcutWall allows users to access their favorite websites and network folders 
 Not applicable, as this is a web application with a graphical interface.
 
 ## Screenshots
-[Insert screenshot of the public view]
+[[Insert screenshot of the public view]](https://github.com/MrDDream/ShortcutWall/blob/main/screenshots/homepage.png)
 [Insert screenshot of the admin area]
 
 ## Contributing
