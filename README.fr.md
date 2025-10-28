@@ -51,12 +51,12 @@ ShortcutWall permet aux utilisateurs d'accéder à leurs sites web et dossiers r
     docker-compose up
     ```
     Cette commande construit l'image Docker et démarre l'application dans un conteneur. L'application sera accessible à `http://localhost:3050` (ou au `PORT` configuré).
-4.  Alternativement, installez les dépendances et exécutez l'application en mode développement sans Docker :
+    
+    *Alternativement, installez les dépendances et exécutez l'application en mode développement sans Docker :*
     ```bash
     npm install
     npm run dev
     ```
-    L'interface publique est disponible à `http://localhost:3050` par défaut.
 
 ## Utilisation
 *   La vue publique affiche les raccourcis stockés dans `data/shortcuts.json` et `data/folders.json`.
@@ -88,21 +88,19 @@ ShortcutWall permet aux utilisateurs d'accéder à leurs sites web et dossiers r
 │ ├── footer.ejs
 │ └── head.ejs
 
-## Documentation de l'API
-Non applicable, car il s'agit d'une application web avec une interface graphique.
-
 ## Captures d'écran
-[Insérer une capture d'écran de la vue publique]  
-[Insérer une capture d'écran de la zone d'administration]
+| ![Homepage](screenshots/homepage.png) | ![Admin panel](screenshots/admin.png) |
+|-------------------------------|-------------------------------|
 
 ## Contribuer
 Les contributeurs sont invités à soumettre des demandes de tirage et des problèmes. Veuillez vous assurer que votre code est bien documenté et respecte le style de codage existant.
 
 ## Licence
-GPL-3.0
+[MIT](https://github.com/MrDDream/ShortcutWall?tab=MIT-1-ov-file)
 
 ## Contact
-[Insérer des informations sur l'auteur/mainteneur si disponibles]
 
-## Remerciements + Attribution
-Ce README a été généré en utilisant [GitRead](https://git-read.vercel.app)
+* [MrDDream](https://github.com/MrDDream)
+
+  
+
