@@ -1,6 +1,5 @@
 # <img src="public/images/logo.svg" alt="Mon Logo" style="width: 50px; height: auto;" /> ShortcutWall
-
-Une application web Node.js pour centraliser les raccourcis vers des sites web et des dossiers partagés, avec une page d'administration pour gérer les raccourcis.
+Cette documentation est disponible en [Français](README.fr.md) et en [Anglais](README.md)
 
 ## Vue d'ensemble
 ShortcutWall permet aux utilisateurs d'accéder à leurs sites web et dossiers réseau préférés à partir d'une interface unique. L'application comprend une zone d'administration pour ajouter, modifier et supprimer des raccourcis, ainsi que pour télécharger des logos personnalisés et générer automatiquement des fichiers `.url`.
