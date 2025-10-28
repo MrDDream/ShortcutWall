@@ -33,7 +33,7 @@ ShortcutWall allows users to access their favorite websites and network folders 
 1.  Clone the repository and navigate to the project directory.
 
     ```bash
-    git clone <repository_url>
+    git clone https://github.com/MrDDream/ShortcutWall.git
     cd ShortcutWall
     ```
 
@@ -58,12 +58,7 @@ ShortcutWall allows users to access their favorite websites and network folders 
 3.  Run the application using Docker Compose. This is the recommended method.
 
     ```bash
-    docker-compose up --build
-    ```
-   or to start in detached mode
-
-    ```bash
-    docker-compose up -d --build
+    docker-compose up
     ```
 
     This command builds the Docker image and starts the application in a container.  The application will be accessible at `http://localhost:3050` (or the configured `PORT`).
