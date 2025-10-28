@@ -13,8 +13,10 @@ ShortcutWall permet aux utilisateurs d'accéder à leurs sites web et dossiers r
 * 🌗 Mode sombre disponible.
 
 ## Captures d'écran
-| ![Homepage](screenshots/homepage.png) | ![Admin panel](screenshots/admin.png) |
+| Homepage      | Admin panel      |
 |-------------------------------|-------------------------------|
+| ![Homepage](screenshots/homepage.png) | ![Admin panel](screenshots/admin.png) |
+
 
 ## Installation et configuration
 ### Prérequis
