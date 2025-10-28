@@ -1,5 +1,5 @@
-# ShortcutWall
-Une application web Node.js pour centraliser les raccourcis vers des sites web et des dossiers partagés, avec une page d'administration pour gérer les raccourcis.
+# <img src="public/images/logo.svg" alt="Mon Logo" style="width: 50px; height: auto;" /> ShortcutWall
+Cette documentation est disponible en [Français](README.fr.md) et en [Anglais](README.md)
 
 ## Vue d'ensemble
 ShortcutWall permet aux utilisateurs d'accéder à leurs sites web et dossiers réseau préférés à partir d'une interface unique. L'application comprend une zone d'administration pour ajouter, modifier et supprimer des raccourcis, ainsi que pour télécharger des logos personnalisés et générer automatiquement des fichiers `.url`.
@@ -10,15 +10,11 @@ ShortcutWall permet aux utilisateurs d'accéder à leurs sites web et dossiers r
 * 🛠️ Gestion des logos via des URL distantes ou des téléchargements locaux.
 * 📦 Exportation automatique de fichiers `.url` pour les raccourcis de sites web.
 * 🌐 Internationalisation intégrée (français et anglais).
+* 🌗 Mode sombre disponible.
 
-## Stack technique
-| Catégorie | Technologies |
-|----------|-------------|
-| Backend  | Node.js, Express |
-| Base de données | Fichiers JSON (data/shortcuts.json, data/folders.json) |
-| Template | Moteur de vue EJS |
-| Utilitaires | Multer pour les téléchargements de fichiers, Dotenv pour les variables d'environnement |
-| Conteneurisation | Docker, Docker Compose |
+## Captures d'écran
+| ![Homepage](screenshots/homepage.png) | ![Admin panel](screenshots/admin.png) |
+|-------------------------------|-------------------------------|
 
 ## Installation et configuration
 ### Prérequis
@@ -63,7 +59,17 @@ ShortcutWall permet aux utilisateurs d'accéder à leurs sites web et dossiers r
 *   La zone d'administration est accessible à `/admin` et nécessite les identifiants configurés dans le fichier `.env`.
 *   Les images téléchargées sont enregistrées dans `public/uploads` ; retirez-les manuellement si nécessaire.
 
+## Stack technique
+| Catégorie | Technologies |
+|----------|-------------|
+| Backend  | Node.js, Express |
+| Base de données | Fichiers JSON (data/shortcuts.json, data/folders.json) |
+| Template | Moteur de vue EJS |
+| Utilitaires | Multer pour les téléchargements de fichiers, Dotenv pour les variables d'environnement |
+| Conteneurisation | Docker, Docker Compose |
+
 ## Structure du projet
+```
 .
 ├── .dockerignore
 ├── .env.example
@@ -88,9 +94,7 @@ ShortcutWall permet aux utilisateurs d'accéder à leurs sites web et dossiers r
 │ ├── footer.ejs
 │ └── head.ejs
 
-## Captures d'écran
-| ![Homepage](screenshots/homepage.png) | ![Admin panel](screenshots/admin.png) |
-|-------------------------------|-------------------------------|
+```
 
 ## Contribuer
 Les contributeurs sont invités à soumettre des demandes de tirage et des problèmes. Veuillez vous assurer que votre code est bien documenté et respecte le style de codage existant.
