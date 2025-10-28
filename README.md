@@ -120,7 +120,7 @@ Contributors are welcome to submit pull requests and issues. Please ensure that 
 
 ## License
 
-GPL-3.0
+[MIT](https://github.com/MrDDream/ShortcutWall?tab=MIT-1-ov-file)
 
 ## Contact
 
