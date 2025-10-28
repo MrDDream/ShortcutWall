@@ -1,15 +1,16 @@
 # ShortcutWall
+
 A Node.js web application for centralizing shortcuts to websites and shared folders, featuring an administration page for managing shortcuts.
 
 ## Overview
-ShortcutWall allows users to access their favorite websites and network folders from a single interface. The application includes an admin area for adding, modifying, and deleting shortcuts, as well as uploading custom logos.
+ShortcutWall allows users to access their favorite websites and network folders from a single interface. The application includes an admin area for adding, modifying, and deleting shortcuts, as well as uploading custom logos and generating `.url` files automatically.
 
 ## Features
-* 🔗 Shortcut wall for both websites and network folders with search capabilities
-* 🔒 Simple admin authentication layer
-* 📸 Logo management via remote URLs or local uploads
-* 📝 Automatic `.url` file export for website shortcuts
-* 🌎 Built-in internationalization (French and English)
+* 🔥 Shortcut wall for both websites and network folders with search capabilities
+* 🚀 Simple admin authentication layer
+* 🛠️ Logo management via remote URLs or local uploads
+* 📦 Automatic `.url` file export for website shortcuts
+* 🌐 Built-in internationalization (French and English)
 
 ## Tech Stack
 | Category | Technologies |
@@ -18,41 +19,81 @@ ShortcutWall allows users to access their favorite websites and network folders 
 | Database | JSON files (data/shortcuts.json, data/folders.json) |
 | Template | EJS view engine |
 | Utilities | Multer for file uploads, Dotenv for environment variables |
+| Containerization | Docker, Docker Compose |
 
 ## Installation & Setup
+
 ### Prerequisites
 * Node.js 18 or newer
 * npm (bundled with Node.js)
-* Docker and Docker Compose (optional)
+* Docker and Docker Compose (optional, but recommended)
 
 ### Step-by-Step Instructions
-1. Clone the repository and navigate to the project directory.
-2. Install dependencies: `npm install`
-3. Copy the environment example and adjust the values: `cp .env.example .env`
-	* `SESSION_SECRET`: a random string for securing sessions
-	* `ADMIN_USER` / `ADMIN_PASS`: credentials for the admin area
-	* `APP_NAME` and `APP_DEFAULT_LOCALE`: custom branding and default language
-4. Start the application in development mode: `npm run dev`
-	* The public interface is available at [http://localhost:3050](http://localhost:3050) by default.
+
+1.  Clone the repository and navigate to the project directory.
+
+    ```bash
+    git clone https://github.com/MrDDream/ShortcutWall.git
+    cd ShortcutWall
+    ```
+
+2.  Copy the environment example and adjust the values.
+
+    ```bash
+    cp .env.example .env
+    ```
+
+    Edit the `.env` file to configure the application:
+
+    *   `PORT`: The port the application will listen on (default: 3050).
+    *   `HOST`: The host the application will bind to (default: 0.0.0.0).
+    *   `SESSION_SECRET`: A random string for securing sessions (required).
+    *   `ADMIN_USER`: Username for the admin area (default: admin).
+    *   `ADMIN_PASS`: Password for the admin area (default: admin123).
+    *   `APP_NAME`: Custom branding for the application.
+    *   `APP_DEFAULT_LOCALE`: Default language for the application (default: en or fr).
+    *   `SUPPORT_EMAIL`: Support email address.
+    *   `SUPPORT_PHONE`: Support phone number.
+
+3.  Run the application using Docker Compose. This is the recommended method.
+
+    ```bash
+    docker-compose up
+    ```
+
+    This command builds the Docker image and starts the application in a container.  The application will be accessible at `http://localhost:3050` (or the configured `PORT`).
+
+4.  Alternatively, install dependencies and run the application in development mode without Docker:
+
+    ```bash
+    npm install
+    npm run dev
+    ```
+
+    The public interface is available at `http://localhost:3050` by default.
 
 ## Usage
-* The public view displays shortcuts stored in `data/shortcuts.json` and `data/folders.json`.
-* The admin area is accessible at `/admin` and requires the credentials configured in `.env`.
-* Uploaded images are saved to `public/uploads`; remove them manually if needed.
+
+*   The public view displays shortcuts stored in `data/shortcuts.json` and `data/folders.json`.
+*   The admin area is accessible at `/admin` and requires the credentials configured in `.env`.
+*   Uploaded images are saved to `public/uploads`; remove them manually if needed.
 
 ## Project Structure
 ```
 .
+├── .dockerignore
+├── .env.example
 ├── data
 │   ├── folders.json
 │   └── shortcuts.json
-├── docker
-│   ├── Dockerfile
-│   └── docker-compose.yml
+├── docker-compose-dev.yml
+├── docker-compose.yml
+├── Dockerfile
+├── LICENSE
+├── package.json
 ├── public
-│   ├── scripts.js
-│   ├── styles.css
-│   └── uploads
+│   └── scripts.js
+├── README.md
 ├── server.js
 ├── views
 │   ├── 404.ejs
@@ -62,14 +103,11 @@ ShortcutWall allows users to access their favorite websites and network folders 
 │   └── partials
 │       ├── footer.ejs
 │       └── head.ejs
-├── .dockerignore
-├── .env.example
-├── LICENSE
-├── package.json
-└── README.md
+
 ```
 
 ## API Documentation
+
 Not applicable, as this is a web application with a graphical interface.
 
 ## Screenshots
@@ -77,13 +115,17 @@ Not applicable, as this is a web application with a graphical interface.
 [Insert screenshot of the admin area]
 
 ## Contributing
+
 Contributors are welcome to submit pull requests and issues. Please ensure that your code is well-documented and follows the existing coding style.
 
 ## License
-MIT License
+
+[MIT](https://github.com/MrDDream/ShortcutWall?tab=MIT-1-ov-file)
 
 ## Contact
+
 [Insert author/maintainer information if available]
 
 ## Thanks + Attribution
 This README was generated using [GitRead](https://git-read.vercel.app)
+```
