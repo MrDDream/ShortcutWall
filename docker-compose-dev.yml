@@ -1,7 +1,9 @@
 version: "3.9"
+
 services:
   raccourci:
-    image: ghcr.io/mrddream/shortcutwall:latest
+    build:
+      context: .
     container_name: ShortcutWall
     ports:
       - "${PORT:-3050}:${PORT:-3050}"
