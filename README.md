@@ -13,10 +13,9 @@ ShortcutWall allows users to access their favorite websites and network folders 
 * 🌗 Dark mode available.
 
 ## Screenshots
-<img src="screenshots/homepage.png" alt="Homepage" style="width: 450px; height: 250px;" /> <img src="screenshots/admin.png" alt="Admin Panel" style="width: 450px; height: 250px;" />
-
-| ![Homepage](screenshots/homepage.png) | ![Admin panel](screenshots/admin.png) |
+| Homepage      | Admin panel      |
 |-------------------------------|-------------------------------|
+| ![Homepage](screenshots/homepage.png) | ![Admin panel](screenshots/admin.png) |
 
 ## Installation & Setup
 
