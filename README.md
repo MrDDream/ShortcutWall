@@ -1,4 +1,4 @@
-# ShortcutWall
+# ShortcutWall ! <img src="public/images/logo.svg" alt="Mon Logo" style="width: 50px; height: auto;" />
 
 A Node.js web application for centralizing shortcuts to websites and shared folders, featuring an administration page for managing shortcuts.
 
@@ -12,14 +12,9 @@ ShortcutWall allows users to access their favorite websites and network folders 
 * 📦 Automatic `.url` file export for website shortcuts
 * 🌐 Built-in internationalization (French and English)
 
-## Tech Stack
-| Category | Technologies |
-|----------|-------------|
-| Backend  | Node.js, Express |
-| Database | JSON files (data/shortcuts.json, data/folders.json) |
-| Template | EJS view engine |
-| Utilities | Multer for file uploads, Dotenv for environment variables |
-| Containerization | Docker, Docker Compose |
+## Screenshots
+| ![Homepage](screenshots/homepage.png) | ![Admin panel](screenshots/admin.png) |
+|-------------------------------|-------------------------------|
 
 ## Installation & Setup
 
@@ -76,6 +71,15 @@ ShortcutWall allows users to access their favorite websites and network folders 
 *   The admin area is accessible at `/admin` and requires the credentials configured in `.env`.
 *   Uploaded images are saved to `public/uploads`; remove them manually if needed.
 
+## Tech Stack
+| Category | Technologies |
+|----------|-------------|
+| Backend  | Node.js, Express |
+| Database | JSON files (data/shortcuts.json, data/folders.json) |
+| Template | EJS view engine |
+| Utilities | Multer for file uploads, Dotenv for environment variables |
+| Containerization | Docker, Docker Compose |
+
 ## Project Structure
 ```
 .
@@ -103,10 +107,6 @@ ShortcutWall allows users to access their favorite websites and network folders 
 │       └── head.ejs
 
 ```
-## Screenshots
-| ![Homepage](screenshots/homepage.png) | ![Admin panel](screenshots/admin.png) |
-|-------------------------------|-------------------------------|
-
 ## Contributing
 
 Contributors are welcome to submit pull requests and issues. Please ensure that your code is well-documented and follows the existing coding style.
