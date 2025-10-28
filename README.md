@@ -1,4 +1,4 @@
-# ShortcutWall ! <img src="public/images/logo.svg" alt="Mon Logo" style="width: 50px; height: auto;" />
+# <img src="public/images/logo.svg" alt="Mon Logo" style="width: 50px; height: auto;" /> ShortcutWall 
 
 A Node.js web application for centralizing shortcuts to websites and shared folders, featuring an administration page for managing shortcuts.
 
@@ -11,6 +11,7 @@ ShortcutWall allows users to access their favorite websites and network folders 
 * 🛠️ Logo management via remote URLs or local uploads
 * 📦 Automatic `.url` file export for website shortcuts
 * 🌐 Built-in internationalization (French and English)
+* 🌗 Dark mode available.
 
 ## Screenshots
 | ![Homepage](screenshots/homepage.png) | ![Admin panel](screenshots/admin.png) |
