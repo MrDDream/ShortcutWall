@@ -15,10 +15,11 @@ const FOLDERS_FILE = path.join(__dirname, 'data', 'folders.json');
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'admin123';
 const SESSION_SECRET = process.env.SESSION_SECRET || 'change-me';
-const APP_NAME = (process.env.APP_NAME && process.env.APP_NAME.trim()) || 'ShorctutWall';
+const APP_NAME = (process.env.APP_NAME && process.env.APP_NAME.trim()) || 'ShortcutWall';
 const SUPPORT_EMAIL = (process.env.SUPPORT_EMAIL && process.env.SUPPORT_EMAIL.trim()) || '';
 const SUPPORT_PHONE = (process.env.SUPPORT_PHONE && process.env.SUPPORT_PHONE.trim()) || '';
 const UPLOAD_DIR = path.join(__dirname, 'public', 'uploads');
+const FAVICON_FETCH_TIMEOUT = 5000;
 
 const SUPPORTED_LOCALES = ['fr', 'en'];
 const DEFAULT_LOCALE = normalizeLocale(process.env.APP_DEFAULT_LOCALE) || 'fr';
@@ -127,11 +128,16 @@ const TRANSLATIONS = {
       backHome: "Retour à l'accueil",
     },
     alerts: {
-      invalidUrl: 'URL invalide. Veuillez saisir une adresse valide avant de récupérer le favicon.',
+        invalidUrl: 'URL invalide. Veuillez saisir une adresse valide avant de récupérer le favicon.',
+        faviconLoading: 'Récupération...',
+        faviconNotFound: 'Aucun favicon trouvé pour ce site.',
+        faviconError: 'Impossible de récupérer le favicon.',
     },
     errors: {
       siteNotFound: 'Site introuvable.',
       folderNotFound: 'Dossier introuvable.',
+      siteUnreachable: 'Le site est inaccessible.',
+      invalidUrl: 'URL invalide.',
       missingSiteFields: "Le nom et l'URL sont obligatoires.",
       missingFolderFields: 'Le nom et le chemin sont obligatoires.',
       shortcutGeneration: 'Impossible de générer le raccourci.',
@@ -217,10 +223,15 @@ const TRANSLATIONS = {
     },
     alerts: {
       invalidUrl: 'Invalid URL. Please enter a valid address before fetching the favicon.',
+      faviconLoading: 'Fetching...',
+      faviconNotFound: 'No favicon found for this website.',
+      faviconError: 'Unable to fetch the favicon.',
     },
     errors: {
       siteNotFound: 'Website not found.',
+      siteUnreachable: 'The website is unreachable.',
       folderNotFound: 'Folder not found.',
+      invalidUrl: 'Invalid URL.',
       missingSiteFields: 'Name and URL are required.',
       missingFolderFields: 'Name and path are required.',
       shortcutGeneration: 'Unable to generate the shortcut.',
@@ -243,6 +254,9 @@ app.use(
     secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
+    cookie: {
+      maxAge: 2 * 60 * 60 * 1000, // 2 hours
+    },
   }),
 );
 
@@ -270,7 +284,10 @@ app.use((req, res, next) => {
   };
   res.locals.clientTranslations = {
     invalidUrl: translate(sessionLocale, 'alerts.invalidUrl'),
-  };
+    faviconLoading: translate(sessionLocale, 'alerts.faviconLoading'),
+    faviconNotFound: translate(sessionLocale, 'alerts.faviconNotFound'),
+    faviconError: translate(sessionLocale, 'alerts.faviconError'),
+};
   next();
 });
 
@@ -318,6 +335,45 @@ app.get('/', (req, res) => {
     viewMode,
     pageTitle: res.locals.t('app.homeTitle'),
   });
+});
+
+// API endpoint for retrieving the favicon for a given URL.
+app.get('/api/favicon', ensureAuthenticated, async (req, res) => {
+  const rawUrl = typeof req.query.url === 'string' ? req.query.url.trim() : '';
+
+  try {
+    const targetUrl = normalizeTargetUrl(rawUrl);
+
+    const reachable = await isUrlReachable(targetUrl);
+
+    if (!reachable) {
+      return res.status(400).json({
+        success: false,
+        message: 'Site inaccessible.',
+      });
+    }
+
+    const faviconUrl = await findFavicon(targetUrl);
+
+    if (!faviconUrl) {
+      return res.status(404).json({
+        success: false,
+        message: 'Aucun favicon trouvé.',
+      });
+    }
+
+    return res.json({
+      success: true,
+      faviconUrl,
+    });
+  } catch (error) {
+    console.error('Erreur lors de la récupération du favicon', error);
+
+    return res.status(400).json({
+      success: false,
+      message: 'Impossible de récupérer le favicon.',
+    });
+  }
 });
 
 app.get('/site/:id/download', ensureSiteExists, (req, res) => {
@@ -377,34 +433,74 @@ app.post('/admin/site', ensureAuthenticated, upload.single('imageFile'), async (
   const uploadedPath = req.file ? buildUploadedPath(req.file.filename) : null;
   try {
     const { name, targetUrl } = req.body;
-    const descriptionInput = typeof req.body.description === 'string' ? req.body.description.trim() : '';
+
+    const descriptionInput =
+      typeof req.body.description === 'string'
+        ? req.body.description.trim()
+        : '';
+
     const imageUrlInput = req.body.imageUrl?.trim();
 
     if (!name || !targetUrl) {
       if (uploadedPath) {
         await deleteUploadedAsset(uploadedPath);
       }
-      return res.status(400).send(res.locals.t('errors.missingSiteFields'));
+
+      return res.status(400).send(
+        res.locals.t('errors.missingSiteFields'),
+      );
+    }
+
+    let normalizedUrl;
+
+    try {
+      normalizedUrl = normalizeTargetUrl(targetUrl);
+    } catch (error) {
+      if (uploadedPath) {
+        await deleteUploadedAsset(uploadedPath);
+      }
+
+      return res.status(400).send(
+        res.locals.t('errors.invalidUrl'),
+      );
+    }
+
+    const reachable = await isUrlReachable(normalizedUrl);
+
+    if (!reachable) {
+      if (uploadedPath) {
+        await deleteUploadedAsset(uploadedPath);
+      }
+
+      return res.status(400).send(
+        res.locals.t('errors.siteUnreachable'),
+      );
     }
 
     const sites = await readJson(SITES_FILE);
+
     sites.push({
       id: uuidv4(),
       name: name.trim(),
-      targetUrl: targetUrl.trim(),
+      targetUrl: normalizedUrl,
       description: descriptionInput,
       imageUrl: uploadedPath || imageUrlInput || '',
       createdAt: new Date().toISOString(),
     });
 
     await writeJson(SITES_FILE, sites);
+
     res.redirect('/admin?tab=sites');
   } catch (error) {
     console.error('Erreur lors de la création du site', error);
+
     if (uploadedPath) {
       await deleteUploadedAsset(uploadedPath);
     }
-    res.status(500).send(res.locals.t('errors.shortcutGeneration'));
+
+    res.status(500).send(
+      res.locals.t('errors.shortcutGeneration'),
+    );
   }
 });
 
@@ -425,6 +521,34 @@ app.post('/admin/site/:id', ensureAuthenticated, upload.single('imageFile'), asy
       return res.status(404).send(res.locals.t('errors.siteNotFound'));
     }
 
+    const nextTargetUrl = targetUrl?.trim() || sites[index].targetUrl;
+
+    let normalizedUrl;
+
+    try {
+      normalizedUrl = normalizeTargetUrl(nextTargetUrl);
+    } catch (error) {
+      if (uploadedPath) {
+        await deleteUploadedAsset(uploadedPath);
+      }
+
+      return res.status(400).send(
+        res.locals.t('errors.invalidUrl'),
+      );
+    }
+
+    const reachable = await isUrlReachable(normalizedUrl);
+
+    if (!reachable) {
+      if (uploadedPath) {
+        await deleteUploadedAsset(uploadedPath);
+      }
+
+      return res.status(400).send(
+        res.locals.t('errors.siteUnreachable'),
+      );
+    }
+
     const previousImage = sites[index].imageUrl;
     let nextImage = previousImage;
     let shouldDeletePrevious = false;
@@ -442,7 +566,7 @@ app.post('/admin/site/:id', ensureAuthenticated, upload.single('imageFile'), asy
     sites[index] = {
       ...sites[index],
       name: name?.trim() || sites[index].name,
-      targetUrl: targetUrl?.trim() || sites[index].targetUrl,
+      targetUrl: normalizedUrl,
       description: typeof descriptionInput === 'undefined' ? sites[index].description || '' : descriptionInput,
       imageUrl: nextImage,
       updatedAt: new Date().toISOString(),
@@ -559,11 +683,106 @@ async function writeJson(filePath, payload) {
   await fs.writeFile(filePath, JSON.stringify(payload, null, 2), 'utf-8');
 }
 
+// Sends requests to websites to verify their reachability.
+// uisng HEAD request first, and falling back to GET if necessary.
+async function isUrlReachable(targetUrl) {
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () => controller.abort(),
+    FAVICON_FETCH_TIMEOUT,
+  );
+
+  const requestOptions = {
+    signal: controller.signal,
+    redirect: 'follow',
+    headers: {
+      'User-Agent': 'Mozilla/5.0 ShortcutWall/1.0',
+    },
+  };
+
+  try {
+    // First, try a HEAD request to check if the resource is reachable without downloading everything.
+    const headResponse = await fetch(targetUrl, {
+      ...requestOptions,
+      method: 'HEAD',
+    });
+
+    if (isReachableStatus(headResponse.status)) {
+      return true;
+    }
+      // If the HEAD request fails, a GET request is attempted to check if the resource is reachable.
+      // Sometimes, HEAD doesn’t work because of security measures on websites
+    const getResponse = await fetch(targetUrl, {
+      ...requestOptions,
+      method: 'GET',
+    });
+
+    return isReachableStatus(getResponse.status);
+  } catch (error) {
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+// Check whether the website is accessible based on its response status.
+// Special case for 401 and 403, which are considered reachable even though they indicate restricted access.
+function isReachableStatus(status) {
+  return status >= 200 && status < 400 || status === 401 || status === 403;
+}
+
 function ensureAuthenticated(req, res, next) {
   if (req.session?.isAuthenticated) {
     return next();
   }
   return res.redirect('/admin/login');
+}
+
+// Attempts to retrieve the favicon using several fallback methods.
+async function findFavicon(targetUrl) {
+  const pageFavicon = await findDeclaredFavicon(targetUrl);
+
+  if (pageFavicon) {
+    return pageFavicon;
+  }
+
+  const defaultFavicon = new URL('/favicon.ico', targetUrl);
+  const defaultFaviconExists = await resourceExists(defaultFavicon);
+
+  if (defaultFaviconExists) {
+    return defaultFavicon.toString();
+  }
+
+  const googleFavicon = buildGoogleFaviconUrl(targetUrl);
+
+  return googleFavicon;
+}
+
+// Attempts to fetch the favicon declared in the HTML of the target URL.
+async function findDeclaredFavicon(targetUrl) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FAVICON_FETCH_TIMEOUT);
+
+  try {
+    const response = await fetch(targetUrl, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 ShortcutWall/1.0',
+      },
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const html = await response.text();
+    const favicon = extractFaviconFromHtml(html, targetUrl);
+
+    return favicon;
+  } catch (error) {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function ensureSiteExists(req, res, next) {
@@ -645,6 +864,48 @@ async function deleteUploadedAsset(value) {
     }
   }
 }
+// Checks if a resource exists by sending a HEAD request, and falls back to GET if necessary.
+async function resourceExists(resourceUrl) {
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () => controller.abort(),
+    FAVICON_FETCH_TIMEOUT,
+  );
+
+  const requestOptions = {
+    signal: controller.signal,
+    redirect: 'follow',
+    headers: {
+      'User-Agent': 'Mozilla/5.0 ShortcutWall/1.0',
+    },
+  };
+
+  try {
+    let response = await fetch(resourceUrl, {
+      ...requestOptions,
+      method: 'HEAD',
+    });
+
+    if (response.status === 405 || response.status === 501) {
+      response = await fetch(resourceUrl, {
+        ...requestOptions,
+        method: 'GET',
+      });
+
+      return response.ok;
+    }
+
+    if (response.ok) {
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 function normalizeLocale(value) {
   if (!value) {
@@ -694,4 +955,63 @@ function sendInternetShortcut(res, filename, payload) {
   res.setHeader('Content-Type', 'application/octet-stream');
   res.setHeader('Content-Length', buffer.length);
   res.send(buffer);
+}
+
+// Checks and normalises the URL entered by the user, throwing an error if it's invalid or unsupported.
+function normalizeTargetUrl(value) {
+  if (!value || !value.trim()) {
+    throw new Error('URL manquante.');
+  }
+
+  const url = new URL(value.trim());
+
+  if (!['http:', 'https:'].includes(url.protocol)) {
+    throw new Error('Protocole non supporté.');
+  }
+
+  return url.toString();
+}
+
+// Extracts the favicon URL from the HTML content of a webpage, if declared in a <link> tag.
+function extractFaviconFromHtml(html, baseUrl) {
+  const linkRegex = /<link\b[^>]*>/gi;
+  const links = html.match(linkRegex) || [];
+
+  for (const link of links) {
+    const relMatch = link.match(/\brel\s*=\s*["']([^"']+)["']/i);
+    const hrefMatch = link.match(/\bhref\s*=\s*["']([^"']+)["']/i);
+
+    if (!relMatch || !hrefMatch) {
+      continue;
+    }
+
+    const relValues = relMatch[1]
+      .toLowerCase()
+      .split(/\s+/);
+
+    const isFavicon =
+      relValues.includes('icon') ||
+      relValues.includes('shortcut') && 
+      relValues.includes('icon');
+
+    if (!isFavicon) {
+      continue;
+    }
+
+    try {
+      return new URL(hrefMatch[1], baseUrl).toString();
+    } catch (error) {
+      continue;
+    }
+  }
+
+  return null;
+}
+// Try retrieving the favicon via Google if the other methods do not work. 
+function buildGoogleFaviconUrl(targetUrl) {
+  const url = new URL(targetUrl);
+
+  return `https://www.google.com/s2/favicons?domain_url=${encodeURIComponent(
+    url.origin,
+  )}&sz=128`;
 }
