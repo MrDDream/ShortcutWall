@@ -82,8 +82,7 @@ function setupViewSwitch() {
     url.searchParams.set("type", view);
     window.history.replaceState({}, "", url);
 
-    applySorting(view);
-    applySearchFilter();
+    applySearchFilter(view);
   }
 
   switchButtons.forEach((btn) => {
@@ -121,11 +120,16 @@ function applySearchFilter(view) {
   }
 
   const cards = Array.from(grid.querySelectorAll(".shortcut-card"));
+
   cards.forEach((card) => {
+    const name = (card.dataset.name || "").toLowerCase();
+    const description = (card.dataset.description || "").toLowerCase();
+
     const matches =
       !term ||
-      card.dataset.name.includes(term) ||
-      (card.dataset.description && card.dataset.description.includes(term));
+      name.includes(term) ||
+      description.includes(term);
+
     card.style.display = matches ? "" : "none";
   });
 }
@@ -148,7 +152,6 @@ function setupSortControl() {
       const nextUrl = new URL(window.location.href);
       nextUrl.searchParams.set("sort", currentSort);
       window.history.replaceState({}, "", nextUrl);
-      applySorting();
       applySearchFilter();
     });
   } else {
@@ -226,12 +229,13 @@ function setupAdminTabs() {
 
 function setupFaviconButtons() {
   const buttons = Array.from(document.querySelectorAll(".fetch-favicon"));
+
   if (!buttons.length) {
     return;
   }
 
   buttons.forEach((button) => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
       const sourceSelector = button.dataset.source;
       const targetSelector = button.dataset.target;
 
@@ -258,16 +262,67 @@ function setupFaviconButtons() {
         return;
       }
 
+      const rawUrl = source.value.trim();
+
+      if (!rawUrl) {
+        alert(
+          clientTranslations.invalidUrl
+        );
+        return;
+      }
+
+      let url;
+
       try {
-        const url = new URL(source.value.trim());
-        const faviconUrl = `https://www.google.com/s2/favicons?domain_url=${encodeURIComponent(
-          url.origin,
-        )}&sz=128`;
-        target.value = faviconUrl;
+        url = new URL(rawUrl);
       } catch (error) {
-        const fallbackMessage =
-          "Invalid URL. Please enter a valid address before fetching the favicon.";
-        alert(clientTranslations.invalidUrl || fallbackMessage);
+        alert(clientTranslations.invalidUrl);
+        return;
+      }
+
+      if (!["http:", "https:"].includes(url.protocol)) {
+        alert(clientTranslations.invalidUrl);
+        return;
+      }
+
+      const originalText = button.textContent;
+
+      button.disabled = true;
+      button.textContent = clientTranslations.faviconLoading;
+
+      try {
+        const response = await fetch(
+          `/api/favicon?url=${encodeURIComponent(url.toString())}`,
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          alert(result.message || clientTranslations.faviconError);
+          return;
+        }
+
+        if (!result.faviconUrl) {
+          alert(clientTranslations.faviconNotFound);
+          return;
+        }
+
+        target.value = result.faviconUrl;
+
+        target.dispatchEvent(
+          new Event("input", {
+            bubbles: true,
+          }),
+        );
+      } catch (error) {
+        console.error("Erreur lors de la récupération du favicon", error);
+
+        alert(
+          clientTranslations.faviconError
+        );
+      } finally {
+        button.disabled = false;
+        button.textContent = originalText;
       }
     });
   });
@@ -276,13 +331,17 @@ function setupFaviconButtons() {
 function setupHelpModal() {
   const trigger = document.querySelector("[data-help-trigger]");
   const modal = document.getElementById("help-modal");
+
   if (!trigger || !modal) {
     return;
   }
 
   const dialog = modal.querySelector(".help-modal__dialog");
   const urlSlot = modal.querySelector("[data-help-url]");
-  const closeElements = Array.from(modal.querySelectorAll("[data-help-close]"));
+  const closeElements = Array.from(
+    modal.querySelectorAll("[data-help-close]"),
+  );
+
   let previousActive = null;
   let bodyOverflow = "";
 
@@ -293,17 +352,22 @@ function setupHelpModal() {
     if (!modal.hidden) {
       return;
     }
+
     previousActive = document.activeElement;
     bodyOverflow = document.body.style.overflow;
+
     if (urlSlot) {
       const baseUrl = `${window.location.origin}${window.location.pathname}`;
       urlSlot.textContent = baseUrl;
     }
+
     modal.hidden = false;
     document.body.style.overflow = "hidden";
+
     requestAnimationFrame(() => {
       dialog?.focus();
     });
+
     document.addEventListener("keydown", handleKeydown);
   }
 
@@ -311,10 +375,16 @@ function setupHelpModal() {
     if (modal.hidden) {
       return;
     }
+
     modal.hidden = true;
     document.body.style.overflow = bodyOverflow;
     document.removeEventListener("keydown", handleKeydown);
-    const target = previousActive && typeof previousActive.focus === "function" ? previousActive : trigger;
+
+    const target =
+      previousActive && typeof previousActive.focus === "function"
+        ? previousActive
+        : trigger;
+
     requestAnimationFrame(() => target.focus());
   }
 
@@ -338,7 +408,10 @@ function setupHelpModal() {
   });
 
   modal.addEventListener("click", (event) => {
-    if (event.target instanceof HTMLElement && event.target.dataset.helpClose !== undefined) {
+    if (
+      event.target instanceof HTMLElement &&
+      event.target.dataset.helpClose !== undefined
+    ) {
       event.preventDefault();
       closeModal();
     }
