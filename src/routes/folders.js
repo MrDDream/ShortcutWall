@@ -5,6 +5,7 @@ const { FOLDERS_FILE } = require('../config');
 const { ensureAuthenticated } = require('../middleware/auth');
 const { verifyCsrfToken } = require('../middleware/csrf');
 const { updateJson, NotFoundError } = require('../lib/store');
+const { stash } = require('../lib/trash');
 
 const router = express.Router();
 
@@ -64,16 +65,21 @@ router.post('/:id', ensureAuthenticated, verifyCsrfToken, async (req, res, next)
 router.post('/:id/delete', ensureAuthenticated, verifyCsrfToken, async (req, res, next) => {
   try {
     const { id } = req.params;
+    let deletedFolder = null;
 
     await updateJson(FOLDERS_FILE, (folders) => {
-      const nextFolders = folders.filter((folder) => folder.id !== id);
-      if (nextFolders.length === folders.length) {
+      const index = folders.findIndex((folder) => folder.id === id);
+      if (index === -1) {
         throw new NotFoundError();
       }
-      return nextFolders;
+      deletedFolder = folders[index];
+      return folders.filter((folder) => folder.id !== id);
     });
 
-    res.redirect('/admin?tab=folders&status=deleted');
+    const undoToken = deletedFolder ? stash({ type: 'folder', item: deletedFolder }) : null;
+    const undoParam = undoToken ? `&undoToken=${encodeURIComponent(undoToken)}` : '';
+
+    res.redirect(`/admin?tab=folders&status=deleted${undoParam}`);
   } catch (error) {
     if (error instanceof NotFoundError) {
       return res.status(404).send(res.locals.t('errors.folderNotFound'));

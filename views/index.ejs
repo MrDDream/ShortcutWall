@@ -95,7 +95,6 @@
                 src="<%= shortcut.imageUrl %>"
                 alt="<%= shortcut.name %>"
                 loading="lazy"
-                onerror="this.closest('.shortcut-thumb').classList.add('shortcut-thumb--fallback'); this.remove();"
               />
             <% } %>
             <span class="shortcut-thumb__fallback"><%= shortcut.name.charAt(0).toUpperCase() %></span>

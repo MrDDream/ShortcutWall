@@ -1,7 +1,15 @@
 <%- include('partials/head', { pageTitle, bodyClass: 'theme-light', includeViewSwitch: false }) %>
 <main class="page-container admin">
+  <% if (typeof usesDefaultCredentials !== 'undefined' && usesDefaultCredentials) { %>
+    <p class="admin-banner admin-banner--warning" role="alert"><%= t('admin.defaultCredentialsWarning') %></p>
+  <% } %>
   <% if (typeof statusKey !== 'undefined' && statusKey) { %>
-    <p class="admin-banner" role="status"><%= t(statusKey) %></p>
+    <p class="admin-banner" role="status">
+      <span><%= t(statusKey) %></span>
+      <% if (typeof undoToken !== 'undefined' && undoToken) { %>
+        <button type="button" class="admin-banner__undo" data-undo-token="<%= undoToken %>"><%= t('admin.undo') %></button>
+      <% } %>
+    </p>
   <% } %>
   <nav class="admin-tabs" data-default-tab="<%= activeTab %>">
     <button
@@ -50,8 +58,12 @@
         <div class="image-upload-group">
           <label class="file-field">
             <span><%= t('forms.uploadFile') %></span>
-            <input type="file" name="imageFile" accept="image/*" />
+            <input type="file" name="imageFile" accept="image/*" data-file-preview-input />
           </label>
+          <figure class="image-preview" data-file-preview hidden>
+            <img data-file-preview-img alt="" />
+            <figcaption><%= t('forms.newImagePreview') %></figcaption>
+          </figure>
           <p class="form-hint"><%= t('forms.uploadHint') %></p>
         </div>
         <div class="form-actions">
@@ -64,7 +76,18 @@
       <h2><%= t('admin.existingSites') %></h2>
       <% if (!sites.length) { %>
         <p class="empty-state"><%= t('admin.emptySites') %></p>
+      <% } else { %>
+        <div class="admin-search">
+          <input
+            type="search"
+            class="admin-search__input"
+            data-admin-search="sites"
+            placeholder="<%= t('search.placeholder') %>"
+            autocomplete="off"
+          />
+        </div>
       <% } %>
+      <div data-admin-list="sites">
       <% sites.forEach((site) => { %>
         <details class="admin-item">
           <summary>
@@ -100,8 +123,12 @@
             <div class="image-upload-group">
               <label class="file-field">
                 <span><%= t('forms.uploadFile') %></span>
-                <input type="file" name="imageFile" accept="image/*" />
+                <input type="file" name="imageFile" accept="image/*" data-file-preview-input />
               </label>
+              <figure class="image-preview" data-file-preview hidden>
+                <img data-file-preview-img alt="" />
+                <figcaption><%= t('forms.newImagePreview') %></figcaption>
+              </figure>
               <% if (site.imageUrl) { %>
                 <figure class="image-preview">
                   <img src="<%= site.imageUrl %>" alt="<%= site.name %>" loading="lazy" />
@@ -120,6 +147,7 @@
           </form>
         </details>
       <% }); %>
+      </div>
     </div>
   </section>
 
@@ -146,7 +174,18 @@
       <h2><%= t('admin.existingFolders') %></h2>
       <% if (!folders.length) { %>
         <p class="empty-state"><%= t('admin.emptyFolders') %></p>
+      <% } else { %>
+        <div class="admin-search">
+          <input
+            type="search"
+            class="admin-search__input"
+            data-admin-search="folders"
+            placeholder="<%= t('search.placeholder') %>"
+            autocomplete="off"
+          />
+        </div>
       <% } %>
+      <div data-admin-list="folders">
       <% folders.forEach((folder) => { %>
         <details class="admin-item">
           <summary>
@@ -172,6 +211,7 @@
           </form>
         </details>
       <% }); %>
+      </div>
     </div>
   </section>
 </main>

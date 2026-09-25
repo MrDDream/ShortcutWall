@@ -123,6 +123,55 @@ describe('ShortcutWall app', () => {
       expect(readData('folders.json')).toHaveLength(0);
     });
 
+    it('restores a deleted folder via its undo token', async () => {
+      const dashboard = await agent.get('/admin?tab=folders');
+      const csrf = extractCsrfToken(dashboard.text);
+
+      await agent.post('/admin/folder').type('form').send({ name: 'Undo Me', networkPath: '\\\\srv\\share', _csrf: csrf });
+
+      const [folder] = readData('folders.json');
+      const deleteDashboard = await agent.get('/admin?tab=folders');
+      const deleteCsrf = extractCsrfToken(deleteDashboard.text);
+
+      const deleteRes = await agent.post(`/admin/folder/${folder.id}/delete`).type('form').send({ _csrf: deleteCsrf });
+      expect(readData('folders.json')).toHaveLength(0);
+
+      const undoToken = new URL(deleteRes.headers.location, 'http://localhost').searchParams.get('undoToken');
+      expect(undoToken).toBeTruthy();
+
+      const bannerPage = await agent.get(deleteRes.headers.location);
+      expect(bannerPage.text).toContain(`data-undo-token="${undoToken}"`);
+      const restoreCsrf = extractCsrfToken(bannerPage.text);
+
+      const restoreRes = await agent
+        .post(`/admin/trash/${undoToken}/restore`)
+        .type('form')
+        .send({ _csrf: restoreCsrf });
+
+      expect(restoreRes.status).toBe(302);
+      expect(restoreRes.headers.location).toBe('/admin?tab=folders&status=restored');
+
+      const restored = readData('folders.json');
+      expect(restored).toHaveLength(1);
+      expect(restored[0].id).toBe(folder.id);
+      expect(restored[0].name).toBe('Undo Me');
+
+      // Clean up so later tests in this file see an empty list again.
+      const cleanupPage = await agent.get('/admin?tab=folders');
+      const cleanupCsrf = extractCsrfToken(cleanupPage.text);
+      await agent.post(`/admin/folder/${folder.id}/delete`).type('form').send({ _csrf: cleanupCsrf });
+    });
+
+    it('restoring an unknown or already-used undo token is a harmless no-op', async () => {
+      const dashboard = await agent.get('/admin');
+      const csrf = extractCsrfToken(dashboard.text);
+
+      const res = await agent.post('/admin/trash/does-not-exist/restore').type('form').send({ _csrf: csrf });
+
+      expect(res.status).toBe(302);
+      expect(res.headers.location).toBe('/admin');
+    });
+
     it('rejects a path traversal attempt through imageUrl on site creation (regression test)', async () => {
       const dashboard = await agent.get('/admin?tab=sites');
       const csrf = extractCsrfToken(dashboard.text);

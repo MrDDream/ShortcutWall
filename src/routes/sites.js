@@ -7,6 +7,7 @@ const { verifyCsrfToken } = require('../middleware/csrf');
 const { readJson, updateJson, NotFoundError } = require('../lib/store');
 const { upload, buildUploadedPath, deleteUploadedAsset } = require('../lib/uploads');
 const { normalizeTargetUrl, normalizeImageUrl, isUrlReachable } = require('../lib/urlUtils');
+const { stash } = require('../lib/trash');
 const logger = require('../lib/logger');
 
 const router = express.Router();
@@ -181,11 +182,18 @@ router.post('/:id/delete', ensureAuthenticated, verifyCsrfToken, async (req, res
       return sites.filter((site) => site.id !== id);
     });
 
-    if (deletedSite) {
-      await deleteUploadedAsset(deletedSite.imageUrl);
-    }
+    // The uploaded asset is only actually removed once the undo window
+    // expires unused, so clicking "Undo" can still show the original image.
+    const undoToken = deletedSite
+      ? stash({ type: 'site', item: deletedSite }, (payload) => {
+          deleteUploadedAsset(payload.item.imageUrl).catch((error) => {
+            logger.error({ err: error }, 'Unable to clean up asset after undo window expired');
+          });
+        })
+      : null;
 
-    res.redirect('/admin?tab=sites&status=deleted');
+    const undoParam = undoToken ? `&undoToken=${encodeURIComponent(undoToken)}` : '';
+    res.redirect(`/admin?tab=sites&status=deleted${undoParam}`);
   } catch (error) {
     if (error instanceof NotFoundError) {
       return res.status(404).send(res.locals.t('errors.siteNotFound'));

@@ -16,12 +16,18 @@ document.addEventListener('DOMContentLoaded', () => {
   setupSortControl();
   setupViewSwitch();
   setupSearchFilter();
+  setupSearchShortcut();
   setupAdminTabs();
   setupAdminMenu();
   setupFaviconButtons();
+  setupFaviconThumbnails();
+  setupImageFilePreview();
   setupHelpModal();
   setupDeleteConfirmation();
   setupFormSubmitFeedback();
+  setupAdminSearch();
+  setupUndoDelete();
+  setupUnsavedChangesWarning();
 });
 
 function initThemeToggle() {
@@ -32,10 +38,14 @@ function initThemeToggle() {
   }
 
   const savedTheme = localStorage.getItem('theme');
-  if (savedTheme === 'theme-dark' || savedTheme === 'theme-light') {
-    body.classList.remove('theme-dark', 'theme-light');
-    body.classList.add(savedTheme);
-  }
+  const hasSavedTheme = savedTheme === 'theme-dark' || savedTheme === 'theme-light';
+  // First visit, no explicit choice yet: follow the OS/browser preference
+  // instead of always defaulting to light.
+  const prefersDark = !hasSavedTheme && window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+  const effectiveTheme = hasSavedTheme ? savedTheme : prefersDark ? 'theme-dark' : 'theme-light';
+
+  body.classList.remove('theme-dark', 'theme-light');
+  body.classList.add(effectiveTheme);
 
   updateThemeIcon(toggle, body.classList.contains('theme-dark'));
 
@@ -116,6 +126,33 @@ function setupSearchFilter() {
   });
 
   applySearchFilter();
+}
+
+// Pressing "/" anywhere on the public page jumps focus to the search box,
+// unless the user is already typing somewhere else.
+function setupSearchShortcut() {
+  const input = document.getElementById('search-term');
+  if (!input) {
+    return;
+  }
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) {
+      return;
+    }
+
+    const active = document.activeElement;
+    const isTyping =
+      active instanceof HTMLElement &&
+      (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable);
+
+    if (isTyping) {
+      return;
+    }
+
+    event.preventDefault();
+    input.focus();
+  });
 }
 
 function applySearchFilter(view) {
@@ -457,6 +494,70 @@ function setupFaviconButtons() {
   });
 }
 
+// Fades each shortcut logo in once it has actually loaded (CSS shows a
+// pulsing placeholder on .shortcut-thumb until then) and falls back to the
+// letter avatar on error. Handled here rather than inline onerror/onload
+// attributes, which the app's Content-Security-Policy (script-src-attr
+// 'none') blocks outright.
+function setupFaviconThumbnails() {
+  const images = Array.from(document.querySelectorAll('.shortcut-thumb__image'));
+
+  images.forEach((img) => {
+    const thumb = img.closest('.shortcut-thumb');
+    if (!thumb) {
+      return;
+    }
+
+    if (img.complete && img.naturalWidth > 0) {
+      thumb.classList.add('is-loaded');
+      return;
+    }
+
+    img.addEventListener('load', () => {
+      thumb.classList.add('is-loaded');
+    });
+
+    img.addEventListener('error', () => {
+      thumb.classList.add('shortcut-thumb--fallback');
+      img.remove();
+    });
+  });
+}
+
+// Shows a live preview of a chosen file before the admin form is submitted.
+function setupImageFilePreview() {
+  const inputs = Array.from(document.querySelectorAll('[data-file-preview-input]'));
+
+  inputs.forEach((input) => {
+    const group = input.closest('.image-upload-group');
+    const preview = group?.querySelector('[data-file-preview]');
+    const previewImg = preview?.querySelector('[data-file-preview-img]');
+    if (!preview || !previewImg) {
+      return;
+    }
+
+    let objectUrl = null;
+
+    input.addEventListener('change', () => {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+        objectUrl = null;
+      }
+
+      const file = input.files?.[0];
+      if (!file) {
+        preview.hidden = true;
+        previewImg.removeAttribute('src');
+        return;
+      }
+
+      objectUrl = URL.createObjectURL(file);
+      previewImg.src = objectUrl;
+      preview.hidden = false;
+    });
+  });
+}
+
 function setupHelpModal() {
   const trigger = document.querySelector('[data-help-trigger]');
   const modal = document.getElementById('help-modal');
@@ -536,5 +637,125 @@ function setupHelpModal() {
       event.preventDefault();
       closeModal();
     }
+  });
+}
+
+// Filters the admin site/folder lists client-side, matching against each
+// item's visible summary (name + description) only — not its full edit form,
+// which would otherwise match on static field labels too.
+function setupAdminSearch() {
+  const inputs = Array.from(document.querySelectorAll('[data-admin-search]'));
+
+  inputs.forEach((input) => {
+    const key = input.dataset.adminSearch;
+    const list = document.querySelector(`[data-admin-list="${key}"]`);
+    if (!list) {
+      return;
+    }
+
+    const items = Array.from(list.querySelectorAll('.admin-item'));
+
+    input.addEventListener('input', () => {
+      const term = input.value.trim().toLowerCase();
+      let visibleCount = 0;
+
+      items.forEach((item) => {
+        const summaryText = item.querySelector('summary')?.textContent.toLowerCase() || '';
+        const matches = !term || summaryText.includes(term);
+        item.style.display = matches ? '' : 'none';
+        if (matches) {
+          visibleCount += 1;
+        }
+      });
+
+      toggleAdminSearchNoResults(list, term.length > 0 && items.length > 0 && visibleCount === 0);
+    });
+  });
+}
+
+function toggleAdminSearchNoResults(list, shouldShow) {
+  let message = list.querySelector('.admin-search-no-results');
+
+  if (shouldShow) {
+    if (!message) {
+      message = document.createElement('p');
+      message.className = 'empty-state small admin-search-no-results';
+      message.textContent = clientTranslations.searchNoResults || '';
+      list.appendChild(message);
+    }
+  } else if (message) {
+    message.remove();
+  }
+}
+
+// Lets the "Undo" button on the post-delete banner restore the item via the
+// short-lived server-side trash, without a full page reload for the click itself.
+function setupUndoDelete() {
+  const button = document.querySelector('[data-undo-token]');
+  if (!button) {
+    return;
+  }
+
+  const UNDO_WINDOW_MS = 15000; // keep in sync with src/lib/trash.js TTL_MS
+  const hideTimer = setTimeout(() => {
+    button.remove();
+  }, UNDO_WINDOW_MS);
+
+  button.addEventListener('click', async () => {
+    clearTimeout(hideTimer);
+
+    const token = button.dataset.undoToken;
+    const csrfToken = document.querySelector('input[name="_csrf"]')?.value;
+    if (!token || !csrfToken) {
+      return;
+    }
+
+    button.disabled = true;
+
+    try {
+      const response = await fetch(`/admin/trash/${encodeURIComponent(token)}/restore`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `_csrf=${encodeURIComponent(csrfToken)}`,
+      });
+
+      if (response.redirected) {
+        window.location.href = response.url;
+      } else if (response.ok) {
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Error while restoring the deleted item', error);
+    } finally {
+      button.disabled = false;
+    }
+  });
+}
+
+// Warns before leaving the admin page if any form field was touched but not
+// yet submitted, so an accidental navigation doesn't silently discard edits.
+function setupUnsavedChangesWarning() {
+  const forms = Array.from(document.querySelectorAll('.admin-form'));
+  if (!forms.length) {
+    return;
+  }
+
+  let dirty = false;
+
+  forms.forEach((form) => {
+    form.addEventListener('input', () => {
+      dirty = true;
+    });
+    form.addEventListener('submit', () => {
+      dirty = false;
+    });
+  });
+
+  window.addEventListener('beforeunload', (event) => {
+    if (!dirty) {
+      return;
+    }
+    event.preventDefault();
+    event.returnValue = '';
   });
 }

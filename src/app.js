@@ -19,6 +19,7 @@ const sitesRouter = require('./routes/sites');
 const foldersRouter = require('./routes/folders');
 const faviconRouter = require('./routes/favicon');
 const healthRouter = require('./routes/health');
+const trashRouter = require('./routes/trash');
 
 // Builds a fresh, fully wired Express app instance. Kept separate from the
 // process entry point (server.js) so tests can exercise it with Supertest
@@ -47,8 +48,9 @@ function createApp() {
           defaultSrc: ["'self'"],
           scriptSrc: ["'self'"],
           styleSrc: ["'self'"],
-          // Shortcut logos are fetched from arbitrary admin-supplied hosts by design.
-          imgSrc: ["'self'", 'data:', 'http:', 'https:'],
+          // Shortcut logos are fetched from arbitrary admin-supplied hosts by
+          // design; blob: is for the client-side file-picker preview.
+          imgSrc: ["'self'", 'data:', 'blob:', 'http:', 'https:'],
           connectSrc: ["'self'"],
           fontSrc: ["'self'"],
           objectSrc: ["'none'"],
@@ -93,6 +95,7 @@ function createApp() {
   app.use('/admin', adminDashboardRouter);
   app.use('/admin/site', sitesRouter);
   app.use('/admin/folder', foldersRouter);
+  app.use('/admin/trash', trashRouter);
   app.use('/api/favicon', faviconRouter);
 
   app.use((req, res) => {

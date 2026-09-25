@@ -42,6 +42,11 @@ const LANGUAGE_FLAGS = {
   en: { icon: '/images/flags/gb.svg' },
 };
 
+// Surfaced in the admin UI itself (not just server logs), since a self-hoster
+// following the Docker quick-start may never see the startup console output.
+const USES_DEFAULT_CREDENTIALS =
+  SESSION_SECRET === DEFAULT_SESSION_SECRET || (ADMIN_USER === DEFAULT_ADMIN_USER && ADMIN_PASS === DEFAULT_ADMIN_PASS);
+
 // Loud, unmissable warnings if the operator never overrode the well-known
 // defaults published in this repo's .env.example — anyone who read the source
 // can log in, or (for SESSION_SECRET) forge a valid admin session cookie.
@@ -79,4 +84,5 @@ module.exports = {
   SUPPORTED_LOCALES,
   DEFAULT_LOCALE_RAW,
   LANGUAGE_FLAGS,
+  USES_DEFAULT_CREDENTIALS,
 };

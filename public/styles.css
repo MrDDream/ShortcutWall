@@ -483,6 +483,28 @@ body,
   width: 100%;
   height: 100%;
   object-fit: contain;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.shortcut-thumb.is-loaded .shortcut-thumb__image {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .shortcut-thumb:not(.is-loaded):not(.shortcut-thumb--fallback) {
+    animation: thumb-pulse 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes thumb-pulse {
+  0%,
+  100% {
+    background-color: var(--bg-thumb);
+  }
+  50% {
+    background-color: var(--border-soft);
+  }
 }
 
 .shortcut-thumb__fallback {
@@ -733,12 +755,45 @@ body.theme-dark .icon-button:hover {
   color: #15803d;
   font-weight: 600;
   font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 body.theme-dark .admin-banner {
   background: rgba(var(--success-rgb), 0.16);
   border-color: rgba(var(--success-rgb), 0.4);
   color: #4ade80;
+}
+
+.admin-banner--warning {
+  --warning-rgb: 217, 119, 6;
+  background: rgba(var(--warning-rgb), 0.12);
+  border-color: rgba(var(--warning-rgb), 0.35);
+  color: #b45309;
+}
+
+body.theme-dark .admin-banner--warning {
+  background: rgba(var(--warning-rgb), 0.18);
+  border-color: rgba(var(--warning-rgb), 0.45);
+  color: #fbbf24;
+}
+
+.admin-banner__undo {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.admin-banner__undo:hover,
+.admin-banner__undo:focus-visible {
+  opacity: 0.8;
 }
 
 .field-feedback {
@@ -864,6 +919,30 @@ body.theme-dark .admin-banner {
   justify-content: flex-end;
 }
 
+.admin-search {
+  margin: -0.25rem 0 0.5rem;
+}
+
+.admin-search__input {
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-panel-subtle);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.95rem;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.admin-search__input:focus {
+  outline: none;
+  border-color: rgba(var(--accent-rgb), 0.6);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
+}
+
 .delete-form {
   display: flex;
   justify-content: flex-end;
@@ -967,5 +1046,19 @@ body.theme-dark .admin-banner {
 
   .image-field__row .btn-secondary {
     width: 100%;
+  }
+
+  .admin-form .form-actions {
+    position: sticky;
+    bottom: 0;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+    background: var(--bg-panel);
+    border-top: 1px solid var(--border-soft);
+    z-index: 5;
+  }
+
+  .admin-item .admin-form .form-actions {
+    background: var(--bg-panel-subtle);
   }
 }

@@ -47,7 +47,10 @@
     "emptyFolders": "Aucun dossier pour le moment.",
     "statusCreated": "Élément ajouté avec succès.",
     "statusUpdated": "Élément mis à jour avec succès.",
-    "statusDeleted": "Élément supprimé avec succès."
+    "statusDeleted": "Élément supprimé avec succès.",
+    "statusRestored": "Élément restauré.",
+    "undo": "Annuler",
+    "defaultCredentialsWarning": "Les identifiants admin ou le secret de session sont encore aux valeurs par défaut du dépôt. Changez ADMIN_PASS et SESSION_SECRET avant toute exposition publique."
   },
   "forms": {
     "name": "Nom",
@@ -65,6 +68,7 @@
     "uploadFile": "Importer une image",
     "uploadHint": "Un fichier téléversé remplace l'URL ci-dessus.",
     "currentImage": "Aperçu actuel",
+    "newImagePreview": "Aperçu du nouveau fichier",
     "confirmDelete": "Voulez-vous vraiment supprimer cet élément ? Cette action est irréversible.",
     "saving": "Enregistrement..."
   },
