@@ -1,5 +1,8 @@
 <%- include('partials/head', { pageTitle, bodyClass: 'theme-light', includeViewSwitch: false }) %>
 <main class="page-container admin">
+  <% if (typeof statusKey !== 'undefined' && statusKey) { %>
+    <p class="admin-banner" role="status"><%= t(statusKey) %></p>
+  <% } %>
   <nav class="admin-tabs" data-default-tab="<%= activeTab %>">
     <button
       type="button"
@@ -41,6 +44,7 @@
               <%= t('forms.fetchFavicon') %>
             </button>
           </div>
+          <p class="field-feedback" data-favicon-feedback hidden></p>
         </label>
         <div class="image-upload-group">
           <label class="file-field">
@@ -89,6 +93,7 @@
                   <%= t('forms.fetchFavicon') %>
                 </button>
               </div>
+              <p class="field-feedback" data-favicon-feedback hidden></p>
             </label>
             <div class="image-upload-group">
               <label class="file-field">

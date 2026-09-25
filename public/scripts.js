@@ -9,8 +9,11 @@ document.addEventListener("DOMContentLoaded", () => {
   setupViewSwitch();
   setupSearchFilter();
   setupAdminTabs();
+  setupAdminMenu();
   setupFaviconButtons();
   setupHelpModal();
+  setupDeleteConfirmation();
+  setupFormSubmitFeedback();
 });
 
 function initThemeToggle() {
@@ -42,7 +45,7 @@ function initThemeToggle() {
 }
 
 function updateThemeIcon(button, isDark) {
-  button.textContent = isDark ? "\u2600" : "\u263E";
+  button.textContent = isDark ? "☀" : "☾";
 }
 
 function setupViewSwitch() {
@@ -120,6 +123,7 @@ function applySearchFilter(view) {
   }
 
   const cards = Array.from(grid.querySelectorAll(".shortcut-card"));
+  let visibleCount = 0;
 
   cards.forEach((card) => {
     const name = (card.dataset.name || "").toLowerCase();
@@ -131,7 +135,27 @@ function applySearchFilter(view) {
       description.includes(term);
 
     card.style.display = matches ? "" : "none";
+    if (matches) {
+      visibleCount += 1;
+    }
   });
+
+  toggleNoResultsMessage(grid, term.length > 0 && cards.length > 0 && visibleCount === 0);
+}
+
+function toggleNoResultsMessage(grid, shouldShow) {
+  let message = grid.querySelector(".search-no-results");
+
+  if (shouldShow) {
+    if (!message) {
+      message = document.createElement("p");
+      message.className = "empty-state search-no-results";
+      message.textContent = clientTranslations.searchNoResults || "";
+      grid.appendChild(message);
+    }
+  } else if (message) {
+    message.remove();
+  }
 }
 
 function setupSortControl() {
@@ -227,6 +251,90 @@ function setupAdminTabs() {
   activate(defaultTab);
 }
 
+function setupAdminMenu() {
+  const menu = document.querySelector(".header-admin-menu");
+  if (!menu) {
+    return;
+  }
+
+  const toggle = menu.querySelector(".header-admin-menu__toggle");
+  const dropdown = menu.querySelector(".header-admin-menu__dropdown");
+  if (!toggle || !dropdown) {
+    return;
+  }
+
+  function closeMenu() {
+    dropdown.hidden = true;
+    toggle.setAttribute("aria-expanded", "false");
+    document.removeEventListener("click", handleOutsideClick);
+    document.removeEventListener("keydown", handleKeydown);
+  }
+
+  function openMenu() {
+    dropdown.hidden = false;
+    toggle.setAttribute("aria-expanded", "true");
+    document.addEventListener("click", handleOutsideClick);
+    document.addEventListener("keydown", handleKeydown);
+  }
+
+  function handleOutsideClick(event) {
+    if (!menu.contains(event.target)) {
+      closeMenu();
+    }
+  }
+
+  function handleKeydown(event) {
+    if (event.key === "Escape") {
+      closeMenu();
+      toggle.focus();
+    }
+  }
+
+  toggle.addEventListener("click", (event) => {
+    event.preventDefault();
+    if (dropdown.hidden) {
+      openMenu();
+    } else {
+      closeMenu();
+    }
+  });
+}
+
+function setupDeleteConfirmation() {
+  const forms = Array.from(document.querySelectorAll(".delete-form"));
+  if (!forms.length) {
+    return;
+  }
+
+  forms.forEach((form) => {
+    form.addEventListener("submit", (event) => {
+      const confirmed = window.confirm(clientTranslations.confirmDelete || "");
+      if (!confirmed) {
+        event.preventDefault();
+      }
+    });
+  });
+}
+
+function setupFormSubmitFeedback() {
+  const forms = Array.from(document.querySelectorAll(".admin-form"));
+  if (!forms.length) {
+    return;
+  }
+
+  forms.forEach((form) => {
+    form.addEventListener("submit", () => {
+      const submitButton = form.querySelector('button[type="submit"]');
+      if (!submitButton || submitButton.disabled) {
+        return;
+      }
+      submitButton.disabled = true;
+      submitButton.classList.add("is-loading");
+      submitButton.textContent = clientTranslations.saving || submitButton.textContent;
+    });
+  });
+}
+
 function setupFaviconButtons() {
   const buttons = Array.from(document.querySelectorAll(".fetch-favicon"));
 
@@ -235,7 +343,27 @@ function setupFaviconButtons() {
   }
 
   buttons.forEach((button) => {
+    const feedback = button.closest(".image-field")?.querySelector("[data-favicon-feedback]");
+
+    const showFeedback = (message) => {
+      if (!feedback) {
+        if (message) {
+          window.alert(message);
+        }
+        return;
+      }
+      if (!message) {
+        feedback.hidden = true;
+        feedback.textContent = "";
+        return;
+      }
+      feedback.hidden = false;
+      feedback.textContent = message;
+    };
+
     button.addEventListener("click", async () => {
+      showFeedback("");
+
       const sourceSelector = button.dataset.source;
       const targetSelector = button.dataset.target;
 
@@ -265,9 +393,7 @@ function setupFaviconButtons() {
       const rawUrl = source.value.trim();
 
       if (!rawUrl) {
-        alert(
-          clientTranslations.invalidUrl
-        );
+        showFeedback(clientTranslations.invalidUrl);
         return;
       }
 
@@ -276,12 +402,12 @@ function setupFaviconButtons() {
       try {
         url = new URL(rawUrl);
       } catch (error) {
-        alert(clientTranslations.invalidUrl);
+        showFeedback(clientTranslations.invalidUrl);
         return;
       }
 
       if (!["http:", "https:"].includes(url.protocol)) {
-        alert(clientTranslations.invalidUrl);
+        showFeedback(clientTranslations.invalidUrl);
         return;
       }
 
@@ -298,12 +424,12 @@ function setupFaviconButtons() {
         const result = await response.json();
 
         if (!response.ok || !result.success) {
-          alert(result.message || clientTranslations.faviconError);
+          showFeedback(result.message || clientTranslations.faviconError);
           return;
         }
 
         if (!result.faviconUrl) {
-          alert(clientTranslations.faviconNotFound);
+          showFeedback(clientTranslations.faviconNotFound);
           return;
         }
 
@@ -315,11 +441,9 @@ function setupFaviconButtons() {
           }),
         );
       } catch (error) {
-        console.error("Erreur lors de la récupération du favicon", error);
+        console.error("Error while fetching the favicon", error);
 
-        alert(
-          clientTranslations.faviconError
-        );
+        showFeedback(clientTranslations.faviconError);
       } finally {
         button.disabled = false;
         button.textContent = originalText;
