@@ -1,4 +1,5 @@
 const { FAVICON_FETCH_TIMEOUT } = require('../config');
+const { assertPublicHost } = require('./ssrfGuard');
 
 // Checks and normalises the URL entered by the user, throwing an error if it's invalid or unsupported.
 function normalizeTargetUrl(value) {
@@ -49,7 +50,14 @@ function isReachableStatus(status) {
 
 // Sends requests to websites to verify their reachability, using a HEAD request
 // first and falling back to GET if necessary (some servers reject HEAD outright).
+// Rejects non-public hosts up front to prevent SSRF (see ssrfGuard.js).
 async function isUrlReachable(targetUrl) {
+  try {
+    await assertPublicHost(targetUrl);
+  } catch (error) {
+    return false;
+  }
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FAVICON_FETCH_TIMEOUT);
 
@@ -84,4 +92,25 @@ async function isUrlReachable(targetUrl) {
   }
 }
 
-module.exports = { normalizeTargetUrl, normalizeNetworkPath, isUrlReachable, isReachableStatus };
+// A previously uploaded asset reference must be exactly one path segment
+// under /uploads/ (no "/" or "\"), which rules out any "../" traversal.
+function isSafeStoredImagePath(value) {
+  return /^\/uploads\/[^/\\]+$/.test(value);
+}
+
+// Validates a user-supplied image reference: either a safe reference to a
+// previously uploaded asset, or a proper http(s) URL. Throws otherwise, so
+// callers can reject anything else (in particular, this is what stops a
+// crafted "/uploads/../../../etc/passwd" value from ever being stored).
+function normalizeImageUrl(value) {
+  const trimmed = (value || '').trim();
+  if (!trimmed) {
+    return '';
+  }
+  if (isSafeStoredImagePath(trimmed)) {
+    return trimmed;
+  }
+  return normalizeTargetUrl(trimmed);
+}
+
+module.exports = { normalizeTargetUrl, normalizeNetworkPath, normalizeImageUrl, isUrlReachable };

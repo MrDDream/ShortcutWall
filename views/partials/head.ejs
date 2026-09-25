@@ -70,6 +70,7 @@
               >&#x25BE;</button>
               <div class="header-admin-menu__dropdown" hidden>
                 <form action="/admin/logout" method="post">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
                   <button type="submit" class="btn-secondary header-admin-menu__logout"><%= t('header.logout') %></button>
                 </form>
               </div>

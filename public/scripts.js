@@ -1,5 +1,13 @@
-const clientTranslations =
-  (typeof window !== "undefined" && window.appTranslations) || {};
+const clientTranslations = readClientTranslations();
+
+function readClientTranslations() {
+  try {
+    const node = document.getElementById("app-translations");
+    return node ? JSON.parse(node.textContent) : {};
+  } catch (error) {
+    return {};
+  }
+}
 
 let currentSort = "alpha";
 

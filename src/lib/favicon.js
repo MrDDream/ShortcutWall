@@ -1,7 +1,17 @@
 const { FAVICON_FETCH_TIMEOUT } = require('../config');
+const { assertPublicHost } = require('./ssrfGuard');
 
 // Checks if a resource exists by sending a HEAD request, and falls back to GET if necessary.
+// Rejects non-public hosts up front to prevent SSRF (see ssrfGuard.js); this is
+// redundant with the reachability check already performed by the caller, kept
+// here as defense in depth so this function stays safe to call on its own.
 async function resourceExists(resourceUrl) {
+  try {
+    await assertPublicHost(resourceUrl.toString());
+  } catch (error) {
+    return false;
+  }
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FAVICON_FETCH_TIMEOUT);
 
@@ -68,6 +78,12 @@ function extractFaviconFromHtml(html, baseUrl) {
 
 // Attempts to fetch the favicon declared in the HTML of the target URL.
 async function findDeclaredFavicon(targetUrl) {
+  try {
+    await assertPublicHost(targetUrl);
+  } catch (error) {
+    return null;
+  }
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FAVICON_FETCH_TIMEOUT);
 

@@ -16,6 +16,26 @@ router.get('/', (req, res) => {
   });
 });
 
+// Only redirects back to a same-origin path: trusting a client-controlled
+// Referer header for the redirect target would otherwise allow an open redirect.
+function resolveSameOriginRedirect(req) {
+  const referer = req.get('Referer');
+  if (!referer) {
+    return '/';
+  }
+
+  try {
+    const refererUrl = new URL(referer);
+    const currentOrigin = `${req.protocol}://${req.get('host')}`;
+    if (refererUrl.origin !== currentOrigin) {
+      return '/';
+    }
+    return `${refererUrl.pathname}${refererUrl.search}`;
+  } catch (error) {
+    return '/';
+  }
+}
+
 router.get('/language/:locale', (req, res) => {
   const locale = normalizeLocale(req.params.locale);
   if (!locale) {
@@ -24,8 +44,7 @@ router.get('/language/:locale', (req, res) => {
   if (req.session) {
     req.session.locale = locale;
   }
-  const redirectTarget = req.get('Referer') || '/';
-  return res.redirect(redirectTarget);
+  return res.redirect(resolveSameOriginRedirect(req));
 });
 
 module.exports = router;

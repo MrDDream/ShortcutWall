@@ -95,7 +95,12 @@
     "shortcutGeneration": "Impossible de générer le raccourci.",
     "languageNotSupported": "Langue non prise en charge.",
     "faviconNotFound": "Aucun favicon trouvé.",
-    "faviconFetchFailed": "Impossible de récupérer le favicon."
+    "faviconFetchFailed": "Impossible de récupérer le favicon.",
+    "invalidCsrfToken": "Session expirée ou requête invalide. Veuillez rafraîchir la page et réessayer.",
+    "tooManyAttempts": "Trop de tentatives. Veuillez réessayer dans quelques minutes.",
+    "sessionError": "Impossible de créer la session. Veuillez réessayer.",
+    "unexpected": "Une erreur inattendue est survenue. Veuillez réessayer.",
+    "unsupportedFileType": "Seuls les fichiers image (png, jpg, gif, webp) sont autorisés."
   },
   "language": {
     "name": { "fr": "Français", "en": "Anglais" },

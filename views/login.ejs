@@ -6,6 +6,7 @@
       <p class="alert-error"><%= t(errorKey) %></p>
     <% } %>
     <form class="admin-form" method="post" action="/admin/login">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
       <label>
         <%= t('login.username') %>
         <input type="text" name="username" required />
