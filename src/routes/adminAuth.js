@@ -5,6 +5,7 @@ const rateLimit = require('express-rate-limit');
 const { ADMIN_USER, ADMIN_PASS } = require('../config');
 const { ensureAuthenticated } = require('../middleware/auth');
 const { verifyCsrfToken } = require('../middleware/csrf');
+const logger = require('../lib/logger');
 
 const router = express.Router();
 
@@ -50,7 +51,7 @@ router.post('/login', loginLimiter, verifyCsrfToken, (req, res) => {
     // Regenerated on every successful login to prevent session fixation.
     return req.session.regenerate((error) => {
       if (error) {
-        console.error('Unable to regenerate session', error);
+        logger.error({ err: error }, 'Unable to regenerate session');
         return res.status(500).send(res.locals.t('errors.sessionError'));
       }
       req.session.isAuthenticated = true;

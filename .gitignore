@@ -9,6 +9,9 @@ node_modules/
 # User uploaded files
 public/uploads/
 
+# Persisted session store
+data/sessions/
+
 # Logs
 *.log
 npm-debug.log*

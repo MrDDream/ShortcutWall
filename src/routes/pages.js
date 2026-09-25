@@ -31,7 +31,7 @@ function resolveSameOriginRedirect(req) {
       return '/';
     }
     return `${refererUrl.pathname}${refererUrl.search}`;
-  } catch (error) {
+  } catch {
     return '/';
   }
 }

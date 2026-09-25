@@ -8,7 +8,7 @@ const { assertPublicHost } = require('./ssrfGuard');
 async function resourceExists(resourceUrl) {
   try {
     await assertPublicHost(resourceUrl.toString());
-  } catch (error) {
+  } catch {
     return false;
   }
 
@@ -39,7 +39,7 @@ async function resourceExists(resourceUrl) {
     }
 
     return response.ok;
-  } catch (error) {
+  } catch {
     return false;
   } finally {
     clearTimeout(timeout);
@@ -60,7 +60,7 @@ function extractFaviconFromHtml(html, baseUrl) {
     }
 
     const relValues = relMatch[1].toLowerCase().split(/\s+/);
-    const isFavicon = relValues.includes('icon') || relValues.includes('shortcut') && relValues.includes('icon');
+    const isFavicon = relValues.includes('icon') || (relValues.includes('shortcut') && relValues.includes('icon'));
 
     if (!isFavicon) {
       continue;
@@ -68,7 +68,7 @@ function extractFaviconFromHtml(html, baseUrl) {
 
     try {
       return new URL(hrefMatch[1], baseUrl).toString();
-    } catch (error) {
+    } catch {
       continue;
     }
   }
@@ -80,7 +80,7 @@ function extractFaviconFromHtml(html, baseUrl) {
 async function findDeclaredFavicon(targetUrl) {
   try {
     await assertPublicHost(targetUrl);
-  } catch (error) {
+  } catch {
     return null;
   }
 
@@ -101,7 +101,7 @@ async function findDeclaredFavicon(targetUrl) {
 
     const html = await response.text();
     return extractFaviconFromHtml(html, targetUrl);
-  } catch (error) {
+  } catch {
     return null;
   } finally {
     clearTimeout(timeout);

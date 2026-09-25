@@ -3,6 +3,7 @@ const express = require('express');
 const { ensureAuthenticated } = require('../middleware/auth');
 const { normalizeTargetUrl, isUrlReachable } = require('../lib/urlUtils');
 const { findFavicon } = require('../lib/favicon');
+const logger = require('../lib/logger');
 
 const router = express.Router();
 
@@ -36,7 +37,7 @@ router.get('/', ensureAuthenticated, async (req, res) => {
       faviconUrl,
     });
   } catch (error) {
-    console.error('Erreur lors de la récupération du favicon', error);
+    logger.error({ err: error }, 'Favicon fetch failed');
 
     return res.status(400).json({
       success: false,

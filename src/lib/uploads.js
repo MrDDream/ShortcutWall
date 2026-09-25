@@ -4,9 +4,10 @@ const multer = require('multer');
 
 const { UPLOAD_DIR } = require('../config');
 const { sanitizeFilename } = require('./filenames');
+const logger = require('./logger');
 
 fs.mkdir(UPLOAD_DIR, { recursive: true }).catch((error) => {
-  console.error('Unable to ensure upload directory', error);
+  logger.error({ err: error }, 'Unable to ensure upload directory');
 });
 
 // Raster formats only: SVG is deliberately excluded because it can embed
@@ -75,7 +76,7 @@ async function deleteUploadedAsset(value) {
     await fs.unlink(absolutePath);
   } catch (error) {
     if (error?.code !== 'ENOENT') {
-      console.error('Unable to delete uploaded asset', absolutePath, error);
+      logger.error({ err: error, path: absolutePath }, 'Unable to delete uploaded asset');
     }
   }
 }

@@ -2,16 +2,16 @@ const clientTranslations = readClientTranslations();
 
 function readClientTranslations() {
   try {
-    const node = document.getElementById("app-translations");
+    const node = document.getElementById('app-translations');
     return node ? JSON.parse(node.textContent) : {};
-  } catch (error) {
+  } catch {
     return {};
   }
 }
 
-let currentSort = "alpha";
+let currentSort = 'alpha';
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener('DOMContentLoaded', () => {
   initThemeToggle();
   setupSortControl();
   setupViewSwitch();
@@ -26,49 +26,48 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function initThemeToggle() {
   const body = document.body;
-  const toggle = document.getElementById("theme-toggle");
+  const toggle = document.getElementById('theme-toggle');
   if (!toggle) {
     return;
   }
 
-  const savedTheme = localStorage.getItem("theme");
-  if (savedTheme === "theme-dark" || savedTheme === "theme-light") {
-    body.classList.remove("theme-dark", "theme-light");
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'theme-dark' || savedTheme === 'theme-light') {
+    body.classList.remove('theme-dark', 'theme-light');
     body.classList.add(savedTheme);
   }
 
-  updateThemeIcon(toggle, body.classList.contains("theme-dark"));
+  updateThemeIcon(toggle, body.classList.contains('theme-dark'));
 
-  toggle.addEventListener("click", () => {
-    const isDark = body.classList.toggle("theme-dark");
+  toggle.addEventListener('click', () => {
+    const isDark = body.classList.toggle('theme-dark');
     if (!isDark) {
-      body.classList.add("theme-light");
+      body.classList.add('theme-light');
     } else {
-      body.classList.remove("theme-light");
+      body.classList.remove('theme-light');
     }
 
-    localStorage.setItem("theme", isDark ? "theme-dark" : "theme-light");
+    localStorage.setItem('theme', isDark ? 'theme-dark' : 'theme-light');
     updateThemeIcon(toggle, isDark);
   });
 }
 
 function updateThemeIcon(button, isDark) {
-  button.textContent = isDark ? "☀" : "☾";
+  button.textContent = isDark ? '☀' : '☾';
 }
 
 function setupViewSwitch() {
-  const switchButtons = Array.from(document.querySelectorAll(".view-switch__button"));
+  const switchButtons = Array.from(document.querySelectorAll('.view-switch__button'));
   if (!switchButtons.length) {
     return;
   }
 
   const grids = {
-    sites: document.getElementById("sites-grid"),
-    folders: document.getElementById("folders-grid"),
+    sites: document.getElementById('sites-grid'),
+    folders: document.getElementById('folders-grid'),
   };
 
-  let currentView =
-    switchButtons.find((btn) => btn.classList.contains("is-active"))?.dataset.view || "sites";
+  let currentView = switchButtons.find((btn) => btn.classList.contains('is-active'))?.dataset.view || 'sites';
   document.body.dataset.view = currentView;
 
   function activate(view) {
@@ -82,22 +81,22 @@ function setupViewSwitch() {
       if (!section) {
         return;
       }
-      section.classList.toggle("is-active", key === view);
+      section.classList.toggle('is-active', key === view);
     });
 
     switchButtons.forEach((btn) => {
-      btn.classList.toggle("is-active", btn.dataset.view === view);
+      btn.classList.toggle('is-active', btn.dataset.view === view);
     });
 
     const url = new URL(window.location.href);
-    url.searchParams.set("type", view);
-    window.history.replaceState({}, "", url);
+    url.searchParams.set('type', view);
+    window.history.replaceState({}, '', url);
 
     applySearchFilter(view);
   }
 
   switchButtons.forEach((btn) => {
-    btn.addEventListener("click", (event) => {
+    btn.addEventListener('click', (event) => {
       event.preventDefault();
       activate(btn.dataset.view);
     });
@@ -107,12 +106,12 @@ function setupViewSwitch() {
 }
 
 function setupSearchFilter() {
-  const input = document.getElementById("search-term");
+  const input = document.getElementById('search-term');
   if (!input) {
     return;
   }
 
-  input.addEventListener("input", () => {
+  input.addEventListener('input', () => {
     applySearchFilter();
   });
 
@@ -121,28 +120,28 @@ function setupSearchFilter() {
 
 function applySearchFilter(view) {
   const targetView =
-    view || document.body.dataset.view || document.querySelector(".view-switch__button.is-active")?.dataset.view || "sites";
+    view ||
+    document.body.dataset.view ||
+    document.querySelector('.view-switch__button.is-active')?.dataset.view ||
+    'sites';
   applySorting(targetView);
 
-  const term = document.getElementById("search-term")?.value.trim().toLowerCase() || "";
+  const term = document.getElementById('search-term')?.value.trim().toLowerCase() || '';
   const grid = document.getElementById(`${targetView}-grid`);
   if (!grid) {
     return;
   }
 
-  const cards = Array.from(grid.querySelectorAll(".shortcut-card"));
+  const cards = Array.from(grid.querySelectorAll('.shortcut-card'));
   let visibleCount = 0;
 
   cards.forEach((card) => {
-    const name = (card.dataset.name || "").toLowerCase();
-    const description = (card.dataset.description || "").toLowerCase();
+    const name = (card.dataset.name || '').toLowerCase();
+    const description = (card.dataset.description || '').toLowerCase();
 
-    const matches =
-      !term ||
-      name.includes(term) ||
-      description.includes(term);
+    const matches = !term || name.includes(term) || description.includes(term);
 
-    card.style.display = matches ? "" : "none";
+    card.style.display = matches ? '' : 'none';
     if (matches) {
       visibleCount += 1;
     }
@@ -152,13 +151,13 @@ function applySearchFilter(view) {
 }
 
 function toggleNoResultsMessage(grid, shouldShow) {
-  let message = grid.querySelector(".search-no-results");
+  let message = grid.querySelector('.search-no-results');
 
   if (shouldShow) {
     if (!message) {
-      message = document.createElement("p");
-      message.className = "empty-state search-no-results";
-      message.textContent = clientTranslations.searchNoResults || "";
+      message = document.createElement('p');
+      message.className = 'empty-state search-no-results';
+      message.textContent = clientTranslations.searchNoResults || '';
       grid.appendChild(message);
     }
   } else if (message) {
@@ -167,70 +166,70 @@ function toggleNoResultsMessage(grid, shouldShow) {
 }
 
 function setupSortControl() {
-  const select = document.getElementById("sort-order");
+  const select = document.getElementById('sort-order');
 
-  const allowedValues = new Set(["alpha", "recent"]);
+  const allowedValues = new Set(['alpha', 'recent']);
   if (select) {
     const url = new URL(window.location.href);
-    const urlSort = url.searchParams.get("sort");
+    const urlSort = url.searchParams.get('sort');
     if (urlSort && allowedValues.has(urlSort)) {
       select.value = urlSort;
     }
 
     currentSort = select.value;
 
-    select.addEventListener("change", () => {
-      currentSort = allowedValues.has(select.value) ? select.value : "alpha";
+    select.addEventListener('change', () => {
+      currentSort = allowedValues.has(select.value) ? select.value : 'alpha';
       const nextUrl = new URL(window.location.href);
-      nextUrl.searchParams.set("sort", currentSort);
-      window.history.replaceState({}, "", nextUrl);
+      nextUrl.searchParams.set('sort', currentSort);
+      window.history.replaceState({}, '', nextUrl);
       applySearchFilter();
     });
   } else {
-    currentSort = "alpha";
+    currentSort = 'alpha';
   }
 
   applySorting();
 }
 
 function applySorting(view) {
-  const views = view ? [view] : ["sites", "folders"];
+  const views = view ? [view] : ['sites', 'folders'];
   views.forEach((targetView) => {
     const grid = document.getElementById(`${targetView}-grid`);
     if (!grid) {
       return;
     }
 
-    const cards = Array.from(grid.querySelectorAll(".shortcut-card"));
+    const cards = Array.from(grid.querySelectorAll('.shortcut-card'));
     cards.sort((cardA, cardB) => compareCards(cardA, cardB, currentSort));
     cards.forEach((card) => grid.appendChild(card));
   });
 }
 
 function compareCards(cardA, cardB, sortType) {
-  if (sortType === "recent") {
-    const timeA = Date.parse(cardA.dataset.created || "") || 0;
-    const timeB = Date.parse(cardB.dataset.created || "") || 0;
+  if (sortType === 'recent') {
+    const timeA = Date.parse(cardA.dataset.created || '') || 0;
+    const timeB = Date.parse(cardB.dataset.created || '') || 0;
     const diff = timeB - timeA;
     if (diff !== 0) {
       return diff;
     }
   }
 
-  const nameA = (cardA.dataset.sortName || cardA.dataset.name || "").toString();
-  const nameB = (cardB.dataset.sortName || cardB.dataset.name || "").toString();
-  return nameA.localeCompare(nameB, undefined, { sensitivity: "base" });
+  const nameA = (cardA.dataset.sortName || cardA.dataset.name || '').toString();
+  const nameB = (cardB.dataset.sortName || cardB.dataset.name || '').toString();
+  return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
 }
 
 function setupAdminTabs() {
-  const tabsContainer = document.querySelector(".admin-tabs");
+  const tabsContainer = document.querySelector('.admin-tabs');
   if (!tabsContainer) {
     return;
   }
 
-  const buttons = Array.from(tabsContainer.querySelectorAll(".admin-tab"));
-  const panels = Array.from(document.querySelectorAll(".admin-panel"));
-  const defaultTab = tabsContainer.dataset.defaultTab || "sites";
+  const buttons = Array.from(tabsContainer.querySelectorAll('.admin-tab'));
+  const panels = Array.from(document.querySelectorAll('.admin-panel'));
+  const defaultTab = tabsContainer.dataset.defaultTab || 'sites';
 
   function activate(tabId) {
     const targetPanel = panels.find((panel) => panel.id === `panel-${tabId}`);
@@ -244,45 +243,45 @@ function setupAdminTabs() {
       return;
     }
 
-    panels.forEach((panel) => panel.classList.toggle("is-active", panel === targetPanel));
-    buttons.forEach((button) => button.classList.toggle("is-active", button === targetButton));
+    panels.forEach((panel) => panel.classList.toggle('is-active', panel === targetPanel));
+    buttons.forEach((button) => button.classList.toggle('is-active', button === targetButton));
 
     const url = new URL(window.location.href);
-    url.searchParams.set("tab", tabId);
-    window.history.replaceState({}, "", url);
+    url.searchParams.set('tab', tabId);
+    window.history.replaceState({}, '', url);
   }
 
   buttons.forEach((button) => {
-    button.addEventListener("click", () => activate(button.dataset.tab));
+    button.addEventListener('click', () => activate(button.dataset.tab));
   });
 
   activate(defaultTab);
 }
 
 function setupAdminMenu() {
-  const menu = document.querySelector(".header-admin-menu");
+  const menu = document.querySelector('.header-admin-menu');
   if (!menu) {
     return;
   }
 
-  const toggle = menu.querySelector(".header-admin-menu__toggle");
-  const dropdown = menu.querySelector(".header-admin-menu__dropdown");
+  const toggle = menu.querySelector('.header-admin-menu__toggle');
+  const dropdown = menu.querySelector('.header-admin-menu__dropdown');
   if (!toggle || !dropdown) {
     return;
   }
 
   function closeMenu() {
     dropdown.hidden = true;
-    toggle.setAttribute("aria-expanded", "false");
-    document.removeEventListener("click", handleOutsideClick);
-    document.removeEventListener("keydown", handleKeydown);
+    toggle.setAttribute('aria-expanded', 'false');
+    document.removeEventListener('click', handleOutsideClick);
+    document.removeEventListener('keydown', handleKeydown);
   }
 
   function openMenu() {
     dropdown.hidden = false;
-    toggle.setAttribute("aria-expanded", "true");
-    document.addEventListener("click", handleOutsideClick);
-    document.addEventListener("keydown", handleKeydown);
+    toggle.setAttribute('aria-expanded', 'true');
+    document.addEventListener('click', handleOutsideClick);
+    document.addEventListener('keydown', handleKeydown);
   }
 
   function handleOutsideClick(event) {
@@ -292,13 +291,13 @@ function setupAdminMenu() {
   }
 
   function handleKeydown(event) {
-    if (event.key === "Escape") {
+    if (event.key === 'Escape') {
       closeMenu();
       toggle.focus();
     }
   }
 
-  toggle.addEventListener("click", (event) => {
+  toggle.addEventListener('click', (event) => {
     event.preventDefault();
     if (dropdown.hidden) {
       openMenu();
@@ -309,14 +308,14 @@ function setupAdminMenu() {
 }
 
 function setupDeleteConfirmation() {
-  const forms = Array.from(document.querySelectorAll(".delete-form"));
+  const forms = Array.from(document.querySelectorAll('.delete-form'));
   if (!forms.length) {
     return;
   }
 
   forms.forEach((form) => {
-    form.addEventListener("submit", (event) => {
-      const confirmed = window.confirm(clientTranslations.confirmDelete || "");
+    form.addEventListener('submit', (event) => {
+      const confirmed = window.confirm(clientTranslations.confirmDelete || '');
       if (!confirmed) {
         event.preventDefault();
       }
@@ -325,33 +324,33 @@ function setupDeleteConfirmation() {
 }
 
 function setupFormSubmitFeedback() {
-  const forms = Array.from(document.querySelectorAll(".admin-form"));
+  const forms = Array.from(document.querySelectorAll('.admin-form'));
   if (!forms.length) {
     return;
   }
 
   forms.forEach((form) => {
-    form.addEventListener("submit", () => {
+    form.addEventListener('submit', () => {
       const submitButton = form.querySelector('button[type="submit"]');
       if (!submitButton || submitButton.disabled) {
         return;
       }
       submitButton.disabled = true;
-      submitButton.classList.add("is-loading");
+      submitButton.classList.add('is-loading');
       submitButton.textContent = clientTranslations.saving || submitButton.textContent;
     });
   });
 }
 
 function setupFaviconButtons() {
-  const buttons = Array.from(document.querySelectorAll(".fetch-favicon"));
+  const buttons = Array.from(document.querySelectorAll('.fetch-favicon'));
 
   if (!buttons.length) {
     return;
   }
 
   buttons.forEach((button) => {
-    const feedback = button.closest(".image-field")?.querySelector("[data-favicon-feedback]");
+    const feedback = button.closest('.image-field')?.querySelector('[data-favicon-feedback]');
 
     const showFeedback = (message) => {
       if (!feedback) {
@@ -362,15 +361,15 @@ function setupFaviconButtons() {
       }
       if (!message) {
         feedback.hidden = true;
-        feedback.textContent = "";
+        feedback.textContent = '';
         return;
       }
       feedback.hidden = false;
       feedback.textContent = message;
     };
 
-    button.addEventListener("click", async () => {
-      showFeedback("");
+    button.addEventListener('click', async () => {
+      showFeedback('');
 
       const sourceSelector = button.dataset.source;
       const targetSelector = button.dataset.target;
@@ -382,16 +381,16 @@ function setupFaviconButtons() {
       let source;
       let target;
 
-      if (sourceSelector.startsWith("#")) {
+      if (sourceSelector.startsWith('#')) {
         source = document.querySelector(sourceSelector);
       } else {
-        source = button.closest("form")?.querySelector(sourceSelector);
+        source = button.closest('form')?.querySelector(sourceSelector);
       }
 
-      if (targetSelector.startsWith("#")) {
+      if (targetSelector.startsWith('#')) {
         target = document.querySelector(targetSelector);
       } else {
-        target = button.closest("form")?.querySelector(targetSelector);
+        target = button.closest('form')?.querySelector(targetSelector);
       }
 
       if (!source || !target) {
@@ -409,12 +408,12 @@ function setupFaviconButtons() {
 
       try {
         url = new URL(rawUrl);
-      } catch (error) {
+      } catch {
         showFeedback(clientTranslations.invalidUrl);
         return;
       }
 
-      if (!["http:", "https:"].includes(url.protocol)) {
+      if (!['http:', 'https:'].includes(url.protocol)) {
         showFeedback(clientTranslations.invalidUrl);
         return;
       }
@@ -425,9 +424,7 @@ function setupFaviconButtons() {
       button.textContent = clientTranslations.faviconLoading;
 
       try {
-        const response = await fetch(
-          `/api/favicon?url=${encodeURIComponent(url.toString())}`,
-        );
+        const response = await fetch(`/api/favicon?url=${encodeURIComponent(url.toString())}`);
 
         const result = await response.json();
 
@@ -444,12 +441,12 @@ function setupFaviconButtons() {
         target.value = result.faviconUrl;
 
         target.dispatchEvent(
-          new Event("input", {
+          new Event('input', {
             bubbles: true,
           }),
         );
       } catch (error) {
-        console.error("Error while fetching the favicon", error);
+        console.error('Error while fetching the favicon', error);
 
         showFeedback(clientTranslations.faviconError);
       } finally {
@@ -461,24 +458,22 @@ function setupFaviconButtons() {
 }
 
 function setupHelpModal() {
-  const trigger = document.querySelector("[data-help-trigger]");
-  const modal = document.getElementById("help-modal");
+  const trigger = document.querySelector('[data-help-trigger]');
+  const modal = document.getElementById('help-modal');
 
   if (!trigger || !modal) {
     return;
   }
 
-  const dialog = modal.querySelector(".help-modal__dialog");
-  const urlSlot = modal.querySelector("[data-help-url]");
-  const closeElements = Array.from(
-    modal.querySelectorAll("[data-help-close]"),
-  );
+  const dialog = modal.querySelector('.help-modal__dialog');
+  const urlSlot = modal.querySelector('[data-help-url]');
+  const closeElements = Array.from(modal.querySelectorAll('[data-help-close]'));
 
   let previousActive = null;
-  let bodyOverflow = "";
+  let bodyOverflow = '';
 
-  trigger.setAttribute("aria-haspopup", "dialog");
-  trigger.setAttribute("aria-controls", "help-modal");
+  trigger.setAttribute('aria-haspopup', 'dialog');
+  trigger.setAttribute('aria-controls', 'help-modal');
 
   function openModal() {
     if (!modal.hidden) {
@@ -494,13 +489,13 @@ function setupHelpModal() {
     }
 
     modal.hidden = false;
-    document.body.style.overflow = "hidden";
+    document.body.style.overflow = 'hidden';
 
     requestAnimationFrame(() => {
       dialog?.focus();
     });
 
-    document.addEventListener("keydown", handleKeydown);
+    document.addEventListener('keydown', handleKeydown);
   }
 
   function closeModal() {
@@ -510,40 +505,34 @@ function setupHelpModal() {
 
     modal.hidden = true;
     document.body.style.overflow = bodyOverflow;
-    document.removeEventListener("keydown", handleKeydown);
+    document.removeEventListener('keydown', handleKeydown);
 
-    const target =
-      previousActive && typeof previousActive.focus === "function"
-        ? previousActive
-        : trigger;
+    const target = previousActive && typeof previousActive.focus === 'function' ? previousActive : trigger;
 
     requestAnimationFrame(() => target.focus());
   }
 
   function handleKeydown(event) {
-    if (event.key === "Escape") {
+    if (event.key === 'Escape') {
       event.preventDefault();
       closeModal();
     }
   }
 
-  trigger.addEventListener("click", (event) => {
+  trigger.addEventListener('click', (event) => {
     event.preventDefault();
     openModal();
   });
 
   closeElements.forEach((element) => {
-    element.addEventListener("click", (event) => {
+    element.addEventListener('click', (event) => {
       event.preventDefault();
       closeModal();
     });
   });
 
-  modal.addEventListener("click", (event) => {
-    if (
-      event.target instanceof HTMLElement &&
-      event.target.dataset.helpClose !== undefined
-    ) {
+  modal.addEventListener('click', (event) => {
+    if (event.target instanceof HTMLElement && event.target.dataset.helpClose !== undefined) {
       event.preventDefault();
       closeModal();
     }

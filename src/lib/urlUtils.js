@@ -54,7 +54,7 @@ function isReachableStatus(status) {
 async function isUrlReachable(targetUrl) {
   try {
     await assertPublicHost(targetUrl);
-  } catch (error) {
+  } catch {
     return false;
   }
 
@@ -85,7 +85,7 @@ async function isUrlReachable(targetUrl) {
     });
 
     return isReachableStatus(getResponse.status);
-  } catch (error) {
+  } catch {
     return false;
   } finally {
     clearTimeout(timeout);

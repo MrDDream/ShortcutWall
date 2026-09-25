@@ -1,5 +1,6 @@
 const { SITES_FILE, FOLDERS_FILE } = require('../config');
 const { readJson } = require('../lib/store');
+const logger = require('../lib/logger');
 
 async function loadShortcuts(req, res, next) {
   try {
@@ -13,7 +14,7 @@ async function loadShortcuts(req, res, next) {
       : [];
     res.locals.folders = folders;
   } catch (error) {
-    console.error('Unable to load data files', error);
+    logger.error({ err: error }, 'Unable to load data files');
     res.locals.sites = [];
     res.locals.folders = [];
   }

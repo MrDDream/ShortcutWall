@@ -14,8 +14,11 @@ const TRUST_PROXY = process.env.TRUST_PROXY === 'true';
 const VIEWS_DIR = path.join(ROOT_DIR, 'views');
 const PUBLIC_DIR = path.join(ROOT_DIR, 'public');
 const UPLOAD_DIR = path.join(PUBLIC_DIR, 'uploads');
-const SITES_FILE = path.join(ROOT_DIR, 'data', 'shortcuts.json');
-const FOLDERS_FILE = path.join(ROOT_DIR, 'data', 'folders.json');
+// Overridable so tests (and operators who want to relocate storage) can point
+// at an isolated directory instead of the real data/ used in production.
+const DATA_DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(ROOT_DIR, 'data');
+const SITES_FILE = path.join(DATA_DIR, 'shortcuts.json');
+const FOLDERS_FILE = path.join(DATA_DIR, 'folders.json');
 
 const DEFAULT_ADMIN_USER = 'admin';
 const DEFAULT_ADMIN_PASS = 'admin123';
@@ -58,6 +61,7 @@ module.exports = {
   VIEWS_DIR,
   PUBLIC_DIR,
   UPLOAD_DIR,
+  DATA_DIR,
   SITES_FILE,
   FOLDERS_FILE,
   NODE_ENV,

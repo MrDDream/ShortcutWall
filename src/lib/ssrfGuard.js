@@ -64,7 +64,7 @@ async function assertPublicHost(targetUrl) {
   let addresses;
   try {
     addresses = await dns.lookup(hostname, { all: true, verbatim: true });
-  } catch (error) {
+  } catch {
     throw new BlockedHostError('DNS resolution failed.');
   }
 

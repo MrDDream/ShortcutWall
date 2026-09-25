@@ -1,0 +1,9 @@
+node_modules
+data
+public/uploads
+package-lock.json
+
+# Hand-authored prose/config left to their authors' own formatting choices;
+# Prettier here targets the codebase (JS/JSON/CSS), not docs or Compose files.
+*.md
+docker-compose*.yml

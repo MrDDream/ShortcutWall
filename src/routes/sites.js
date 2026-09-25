@@ -7,6 +7,7 @@ const { verifyCsrfToken } = require('../middleware/csrf');
 const { readJson, updateJson, NotFoundError } = require('../lib/store');
 const { upload, buildUploadedPath, deleteUploadedAsset } = require('../lib/uploads');
 const { normalizeTargetUrl, normalizeImageUrl, isUrlReachable } = require('../lib/urlUtils');
+const logger = require('../lib/logger');
 
 const router = express.Router();
 
@@ -31,7 +32,7 @@ router.post('/', ensureAuthenticated, upload.single('imageFile'), verifyCsrfToke
     try {
       normalizedUrl = normalizeTargetUrl(targetUrl);
       normalizedImageUrl = uploadedPath || normalizeImageUrl(req.body.imageUrl);
-    } catch (error) {
+    } catch {
       if (uploadedPath) {
         await deleteUploadedAsset(uploadedPath);
       }
@@ -63,7 +64,7 @@ router.post('/', ensureAuthenticated, upload.single('imageFile'), verifyCsrfToke
 
     res.redirect('/admin?tab=sites&status=created');
   } catch (error) {
-    console.error('Erreur lors de la création du site', error);
+    logger.error({ err: error }, 'Site creation failed');
 
     if (uploadedPath) {
       await deleteUploadedAsset(uploadedPath);
@@ -110,7 +111,7 @@ router.post('/:id', ensureAuthenticated, upload.single('imageFile'), verifyCsrfT
           shouldDeletePrevious = true;
         }
       }
-    } catch (error) {
+    } catch {
       if (uploadedPath) {
         await deleteUploadedAsset(uploadedPath);
       }
@@ -160,7 +161,7 @@ router.post('/:id', ensureAuthenticated, upload.single('imageFile'), verifyCsrfT
       return res.status(404).send(res.locals.t('errors.siteNotFound'));
     }
 
-    console.error('Erreur lors de la mise à jour du site', error);
+    logger.error({ err: error }, 'Site update failed');
     res.status(500).send(res.locals.t('errors.shortcutGeneration'));
   }
 });
