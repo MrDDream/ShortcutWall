@@ -4,7 +4,16 @@ ENV NODE_ENV=production
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci --omit=dev
+# npm ci can occasionally exit 0 after an internal failure ("Exit handler
+# never called!", a known npm bug) while leaving node_modules truncated.
+# Verify a core dependency actually loads and retry from a clean slate if not.
+RUN for attempt in 1 2 3 4 5; do \
+      rm -rf node_modules && \
+      npm ci --omit=dev --no-audit --no-fund && \
+      node -e "require('express')" && exit 0; \
+      echo "npm ci attempt $attempt produced a broken install, retrying..."; \
+    done; \
+    echo "npm ci failed to produce a working install after 5 attempts" >&2; exit 1
 
 COPY . .
 
