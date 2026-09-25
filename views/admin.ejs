@@ -1,5 +1,8 @@
 <%- include('partials/head', { pageTitle, bodyClass: 'theme-light', includeViewSwitch: false }) %>
 <main class="page-container admin">
+  <% if (typeof statusKey !== 'undefined' && statusKey) { %>
+    <p class="admin-banner" role="status"><%= t(statusKey) %></p>
+  <% } %>
   <nav class="admin-tabs" data-default-tab="<%= activeTab %>">
     <button
       type="button"
@@ -21,6 +24,7 @@
     <div class="admin-card">
       <h2><%= t('admin.addSite') %></h2>
       <form class="admin-form" method="post" action="/admin/site" enctype="multipart/form-data">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
         <label>
           <%= t('forms.name') %>
           <input type="text" name="name" required />
@@ -41,6 +45,7 @@
               <%= t('forms.fetchFavicon') %>
             </button>
           </div>
+          <p class="field-feedback" data-favicon-feedback hidden></p>
         </label>
         <div class="image-upload-group">
           <label class="file-field">
@@ -69,6 +74,7 @@
             <% } %>
           </summary>
           <form class="admin-form" method="post" action="/admin/site/<%= site.id %>" enctype="multipart/form-data">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
             <label>
               <%= t('forms.name') %>
               <input type="text" name="name" value="<%= site.name %>" required />
@@ -89,6 +95,7 @@
                   <%= t('forms.fetchFavicon') %>
                 </button>
               </div>
+              <p class="field-feedback" data-favicon-feedback hidden></p>
             </label>
             <div class="image-upload-group">
               <label class="file-field">
@@ -108,6 +115,7 @@
             </div>
           </form>
           <form method="post" action="/admin/site/<%= site.id %>/delete" class="delete-form">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
             <button type="submit" class="btn-danger"><%= t('forms.delete') %></button>
           </form>
         </details>
@@ -119,6 +127,7 @@
     <div class="admin-card">
       <h2><%= t('admin.addFolder') %></h2>
       <form class="admin-form" method="post" action="/admin/folder">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
         <label>
           <%= t('forms.name') %>
           <input type="text" name="name" required />
@@ -144,6 +153,7 @@
             <span><%= folder.name %></span>
           </summary>
           <form class="admin-form" method="post" action="/admin/folder/<%= folder.id %>">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
             <label>
               <%= t('forms.name') %>
               <input type="text" name="name" value="<%= folder.name %>" required />
@@ -157,6 +167,7 @@
             </div>
           </form>
           <form method="post" action="/admin/folder/<%= folder.id %>/delete" class="delete-form">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
             <button type="submit" class="btn-danger"><%= t('forms.delete') %></button>
           </form>
         </details>

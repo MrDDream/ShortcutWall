@@ -1,0 +1,109 @@
+{
+  "app": {
+    "homeTitle": "Home",
+    "adminTitle": "Administration",
+    "loginTitle": "Sign in",
+    "notFoundTitle": "Page not found"
+  },
+  "header": {
+    "viewSites": "Website Shortcuts",
+    "viewFolders": "Folder Shortcuts",
+    "login": "Sign in",
+    "logout": "Sign out",
+    "adminLink": "Admin",
+    "themeToggle": "Toggle theme"
+  },
+  "search": {
+    "label": "Search",
+    "placeholder": "Search a shortcut...",
+    "sortLabel": "Sort",
+    "sortAlphabetical": "Alphabetical",
+    "sortRecent": "Recently added",
+    "helpLink": "Need help?",
+    "noResults": "No results for this search."
+  },
+  "help": {
+    "titlePrefix": "Having trouble with",
+    "titleSuffix": "?",
+    "contactIntro": "You can reach us via:",
+    "phoneLabel": "Phone",
+    "emailLabel": "Email",
+    "close": "Close"
+  },
+  "shortcuts": {
+    "siteEmpty": "No website shortcuts yet.",
+    "folderEmpty": "No folder shortcuts yet.",
+    "siteDownloadTitle": "Download",
+    "siteAccessTitle": "Open site"
+  },
+  "admin": {
+    "tabsSites": "Website management",
+    "tabsFolders": "Folder management",
+    "addSite": "Add a website",
+    "existingSites": "Existing websites",
+    "addFolder": "Add a folder",
+    "existingFolders": "Existing folders",
+    "emptySites": "No websites yet.",
+    "emptyFolders": "No folders yet.",
+    "statusCreated": "Item added successfully.",
+    "statusUpdated": "Item updated successfully.",
+    "statusDeleted": "Item deleted successfully."
+  },
+  "forms": {
+    "name": "Name",
+    "descriptionOptional": "Description (optional)",
+    "url": "URL",
+    "networkPath": "Network path",
+    "logoUrlOptional": "Logo URL (optional)",
+    "siteUrlPlaceholder": "https://example.com",
+    "siteImagePlaceholder": "https://example.com/logo.png",
+    "networkPathPlaceholder": "\\\\server\\share",
+    "save": "Save",
+    "update": "Update",
+    "delete": "Delete",
+    "fetchFavicon": "Fetch favicon",
+    "uploadFile": "Upload an image",
+    "uploadHint": "An uploaded file replaces the URL above.",
+    "currentImage": "Current preview",
+    "confirmDelete": "Are you sure you want to delete this item? This action cannot be undone.",
+    "saving": "Saving..."
+  },
+  "login": {
+    "adminArea": "Administrator area",
+    "username": "Username",
+    "password": "Password",
+    "submit": "Sign in",
+    "invalidCredentials": "Invalid credentials"
+  },
+  "notFound": {
+    "message": "The requested resource could not be found.",
+    "backHome": "Back to home"
+  },
+  "alerts": {
+    "invalidUrl": "Invalid URL. Please enter a valid address before fetching the favicon.",
+    "faviconLoading": "Fetching...",
+    "faviconNotFound": "No favicon found for this website.",
+    "faviconError": "Unable to fetch the favicon."
+  },
+  "errors": {
+    "siteNotFound": "Website not found.",
+    "siteUnreachable": "The website is unreachable.",
+    "folderNotFound": "Folder not found.",
+    "invalidUrl": "Invalid URL.",
+    "missingSiteFields": "Name and URL are required.",
+    "missingFolderFields": "Name and path are required.",
+    "shortcutGeneration": "Unable to generate the shortcut.",
+    "languageNotSupported": "Unsupported language.",
+    "faviconNotFound": "No favicon found.",
+    "faviconFetchFailed": "Unable to fetch the favicon.",
+    "invalidCsrfToken": "Session expired or invalid request. Please refresh the page and try again.",
+    "tooManyAttempts": "Too many attempts. Please try again in a few minutes.",
+    "sessionError": "Unable to create the session. Please try again.",
+    "unexpected": "An unexpected error occurred. Please try again.",
+    "unsupportedFileType": "Only image files (png, jpg, gif, webp) are allowed."
+  },
+  "language": {
+    "name": { "fr": "French", "en": "English" },
+    "switch": "Switch to {language}"
+  }
+}

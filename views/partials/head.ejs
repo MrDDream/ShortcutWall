@@ -37,7 +37,13 @@
           </nav>
         <% } %>
         <div class="header-actions">
-          <button type="button" id="theme-toggle" class="btn-secondary">&#x263E;</button>
+          <button
+            type="button"
+            id="theme-toggle"
+            class="btn-secondary"
+            aria-label="<%= t('header.themeToggle') %>"
+            title="<%= t('header.themeToggle') %>"
+          >&#x263E;</button>
           <% if (languageToggle) { %>
             <a
               class="btn-secondary language-toggle"
@@ -54,9 +60,17 @@
           <% } %>
           <% if (isAuthenticated) { %>
             <div class="header-admin-menu">
-              <a class="btn-secondary header-admin-menu__link" href="/admin">Admin</a>
-              <div class="header-admin-menu__dropdown">
+              <a class="btn-secondary header-admin-menu__link" href="/admin"><%= t('header.adminLink') %></a>
+              <button
+                type="button"
+                class="btn-secondary header-admin-menu__toggle"
+                aria-haspopup="true"
+                aria-expanded="false"
+                aria-label="<%= t('header.logout') %>"
+              >&#x25BE;</button>
+              <div class="header-admin-menu__dropdown" hidden>
                 <form action="/admin/logout" method="post">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
                   <button type="submit" class="btn-secondary header-admin-menu__logout"><%= t('header.logout') %></button>
                 </form>
               </div>

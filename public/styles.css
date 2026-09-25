@@ -1,6 +1,7 @@
 :root {
   color-scheme: light;
   font-family: "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+  line-height: 1.5;
   --bg-body: #f4f5f9;
   --bg-header: rgba(255, 255, 255, 0.92);
   --bg-panel: #ffffff;
@@ -14,6 +15,16 @@
   --shadow-strong: 0 16px 32px rgba(28, 30, 46, 0.18);
   --accent-gradient: linear-gradient(135deg, #6570ff, #8f9bff);
   --danger-gradient: linear-gradient(135deg, #ff4f6d, #ff7a7a);
+  --accent-rgb: 101, 112, 255;
+  --danger-rgb: 255, 79, 109;
+  --success-rgb: 34, 197, 94;
+  --focus-ring: 0 0 0 3px rgba(var(--accent-rgb), 0.35);
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
 }
 
 body.theme-dark {
@@ -42,6 +53,19 @@ body {
   min-height: 100vh;
   background: var(--bg-body);
   color: var(--text-primary);
+  transition: color 0.25s ease;
+}
+
+body,
+.page-header,
+.shortcut-card,
+.admin-card,
+.admin-item,
+.help-modal__dialog,
+.view-switch,
+.admin-tabs,
+.header-admin-menu__dropdown {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .page-header {
@@ -100,6 +124,15 @@ body {
 
 .header-admin-menu {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.header-admin-menu__toggle {
+  padding: 0.45rem 0.6rem;
+  font-size: 0.75rem;
+  line-height: 1;
 }
 
 .header-admin-menu__dropdown {
@@ -111,9 +144,12 @@ body {
   border-radius: 12px;
   padding: 0.4rem;
   box-shadow: var(--shadow-soft);
-  display: none;
   min-width: 140px;
   z-index: 20;
+}
+
+.header-admin-menu__dropdown[hidden] {
+  display: none;
 }
 
 .header-admin-menu__dropdown form {
@@ -123,11 +159,6 @@ body {
 .header-admin-menu__logout {
   width: 100%;
   justify-content: center;
-}
-
-.header-admin-menu:hover .header-admin-menu__dropdown,
-.header-admin-menu:focus-within .header-admin-menu__dropdown {
-  display: block;
 }
 
 .view-switch {
@@ -194,11 +225,11 @@ body {
 .search-bar__help:hover,
 .search-bar__help:focus {
   transform: translateY(-1px);
-  box-shadow: 0 12px 24px rgba(101, 112, 255, 0.25);
+  box-shadow: 0 12px 24px rgba(var(--accent-rgb), 0.25);
 }
 
 .search-bar__help:focus {
-  outline: 2px solid rgba(101, 112, 255, 0.55);
+  outline: 2px solid rgba(var(--accent-rgb), 0.55);
   outline-offset: 2px;
 }
 
@@ -303,8 +334,8 @@ body {
 
 .help-modal__contact:hover,
 .help-modal__contact:focus {
-  border-color: rgba(101, 112, 255, 0.5);
-  background: rgba(101, 112, 255, 0.08);
+  border-color: rgba(var(--accent-rgb), 0.5);
+  background: rgba(var(--accent-rgb), 0.08);
   transform: translateY(-1px);
   text-decoration: none;
 }
@@ -316,7 +347,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(101, 112, 255, 0.12);
+  background: rgba(var(--accent-rgb), 0.12);
   color: #5f6bff;
 }
 
@@ -357,8 +388,8 @@ body {
 .search-bar input:focus,
 .search-bar__select:focus {
   outline: none;
-  border-color: rgba(101, 112, 255, 0.6);
-  box-shadow: 0 0 0 3px rgba(101, 112, 255, 0.18);
+  border-color: rgba(var(--accent-rgb), 0.6);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
 }
 
 .search-bar__select {
@@ -396,7 +427,7 @@ body {
 
 .shortcut-card:hover {
   transform: translateY(-4px);
-  border-color: rgba(101, 112, 255, 0.35);
+  border-color: rgba(var(--accent-rgb), 0.35);
   box-shadow: var(--shadow-strong);
 }
 
@@ -423,7 +454,7 @@ body {
   overflow: hidden;
   font-weight: 600;
   font-size: 2rem;
-  color: rgba(101, 112, 255, 0.9);
+  color: rgba(var(--accent-rgb), 0.9);
 }
 
 .shortcut-thumb__image {
@@ -441,7 +472,7 @@ body {
   height: 100%;
   font-size: 2.6rem;
   font-weight: 700;
-  color: rgba(101, 112, 255, 0.9);
+  color: rgba(var(--accent-rgb), 0.9);
   text-transform: uppercase;
 }
 
@@ -505,7 +536,7 @@ body {
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(101, 112, 255, 0.28);
+  box-shadow: 0 10px 20px rgba(var(--accent-rgb), 0.28);
 }
 
 .btn-secondary {
@@ -600,7 +631,7 @@ body.theme-dark .btn-secondary:hover {
 
 .btn-danger:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 22px rgba(255, 79, 109, 0.28);
+  box-shadow: 0 12px 22px rgba(var(--danger-rgb), 0.28);
 }
 
 .icon-button {
@@ -640,25 +671,57 @@ body.theme-dark .icon-button:hover {
   background: rgba(255, 255, 255, 0.08);
 }
 
-.btn-icon.download:hover {
-  box-shadow: 0 10px 20px rgba(101, 112, 255, 0.28);
-}
-
-.btn-danger {
-  background: var(--danger-gradient);
-  color: #101318;
-}
-
-.btn-danger:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 22px rgba(255, 79, 109, 0.28);
-}
-
 .empty-state {
   grid-column: 1 / -1;
   text-align: center;
   color: var(--text-muted);
   font-size: 0.95rem;
+}
+
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible,
+.btn-danger:focus-visible,
+.icon-button:focus-visible,
+.admin-tab:focus-visible,
+.view-switch__button:focus-visible,
+.header-admin-menu__toggle:focus-visible,
+.help-modal__close:focus-visible {
+  outline: 2px solid rgba(var(--accent-rgb), 0.65);
+  outline-offset: 2px;
+}
+
+.btn-primary.is-loading,
+.btn-secondary.is-loading,
+.btn-danger.is-loading {
+  opacity: 0.75;
+  cursor: progress;
+}
+
+.admin-banner {
+  margin: 0;
+  padding: 0.85rem 1.1rem;
+  border-radius: 12px;
+  background: rgba(var(--success-rgb), 0.12);
+  border: 1px solid rgba(var(--success-rgb), 0.35);
+  color: #15803d;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+body.theme-dark .admin-banner {
+  background: rgba(var(--success-rgb), 0.16);
+  border-color: rgba(var(--success-rgb), 0.4);
+  color: #4ade80;
+}
+
+.field-feedback {
+  margin: 0.3rem 0 0;
+  font-size: 0.8rem;
+  color: #ff4f6d;
+}
+
+.field-feedback[hidden] {
+  display: none;
 }
 
 .admin {
@@ -694,7 +757,7 @@ body.theme-dark .icon-button:hover {
 .admin-tab.is-active {
   background: var(--accent-gradient);
   color: #101318;
-  box-shadow: 0 10px 20px rgba(101, 112, 255, 0.25);
+  box-shadow: 0 10px 20px rgba(var(--accent-rgb), 0.25);
 }
 
 .admin-panel {
@@ -745,8 +808,8 @@ body.theme-dark .icon-button:hover {
 .admin-form input[type="text"]:focus,
 .admin-form input[type="url"]:focus {
   outline: none;
-  border-color: rgba(101, 112, 255, 0.65);
-  box-shadow: 0 0 0 3px rgba(101, 112, 255, 0.2);
+  border-color: rgba(var(--accent-rgb), 0.65);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.2);
 }
 
 .image-field__row {
