@@ -1,3 +1,4 @@
+const compression = require('compression');
 const express = require('express');
 const session = require('express-session');
 const helmet = require('helmet');
@@ -69,6 +70,9 @@ function createApp() {
     }),
   );
 
+  // gzip/brotli for text responses (CSS, JS, HTML, JSON); images are skipped.
+  app.use(compression());
+
   // Lightweight and unauthenticated on purpose: container orchestrators poll
   // this frequently and it must stay cheap (no session/locale/data-loading).
   app.use('/healthz', healthRouter);
@@ -76,7 +80,9 @@ function createApp() {
   // Flat key=value forms only: nested objects and name[]= arrays are never
   // expected, and a field that arrives as an array is rejected by the routes.
   app.use(express.urlencoded({ extended: false, limit: '100kb' }));
-  app.use('/uploads', express.static(UPLOAD_DIR));
+  // Logo files get a unique name when stored and are never rewritten (a new
+  // logo is a new file), so browsers may keep them for a year without asking.
+  app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '365d', immutable: true }));
   app.use(express.static(PUBLIC_DIR));
   app.use(
     session({

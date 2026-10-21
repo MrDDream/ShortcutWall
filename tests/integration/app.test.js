@@ -124,6 +124,18 @@ describe('ShortcutWall app', () => {
     expect(res.headers['content-security-policy']).not.toContain('upgrade-insecure-requests');
   });
 
+  it('compresses text responses', async () => {
+    const res = await request(app).get('/styles.css').set('Accept-Encoding', 'gzip');
+    expect(res.headers['content-encoding']).toBe('gzip');
+  });
+
+  it('lets browsers cache uploaded logos for a year (their names never change)', async () => {
+    fs.writeFileSync(path.join(process.env.UPLOAD_DIR, 'cache-test.png'), Buffer.from('x'));
+    const res = await request(app).get('/uploads/cache-test.png');
+    expect(res.headers['cache-control']).toBe('public, max-age=31536000, immutable');
+    fs.rmSync(path.join(process.env.UPLOAD_DIR, 'cache-test.png'), { force: true });
+  });
+
   it('answers the health check without requiring auth', async () => {
     const res = await agent.get('/healthz');
     expect(res.status).toBe(200);
