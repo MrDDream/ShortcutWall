@@ -20,6 +20,24 @@ function readData(filename) {
   return JSON.parse(fs.readFileSync(path.join(tmpDataDir, filename), 'utf-8'));
 }
 
+function writeData(filename, data) {
+  fs.writeFileSync(path.join(tmpDataDir, filename), JSON.stringify(data, null, 2), 'utf-8');
+}
+
+// A stored site, written straight to the data file: deleting/restoring never
+// checks reachability, so these tests need no network access.
+function seededSite(overrides = {}) {
+  return {
+    id: 'site-1',
+    name: 'Site',
+    description: '',
+    targetUrl: 'https://example.com/',
+    imageUrl: '',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
 function extractCsrfToken(html) {
   const match = html.match(/name="_csrf" value="([^"]+)"/);
   return match ? match[1] : null;
@@ -115,44 +133,23 @@ describe('ShortcutWall app', () => {
   });
 
   describe('once authenticated', () => {
-    it('creates, lists and deletes a folder', async () => {
-      const dashboard = await agent.get('/admin?tab=folders');
-      const csrf = extractCsrfToken(dashboard.text);
+    it('deletes a site', async () => {
+      writeData('shortcuts.json', [seededSite({ id: 'delete-me', name: 'Delete Me' })]);
+      const csrf = extractCsrfToken((await agent.get('/admin')).text);
 
-      const createRes = await agent
-        .post('/admin/folder')
-        .type('form')
-        .send({ name: 'Test Folder', networkPath: '\\\\server\\share', _csrf: csrf });
+      const res = await agent.post('/admin/site/delete-me/delete').type('form').send({ _csrf: csrf });
 
-      expect(createRes.status).toBe(302);
-      expect(createRes.headers.location).toBe('/admin?tab=folders&status=created');
-      expect(readData('folders.json')).toHaveLength(1);
-
-      const [folder] = readData('folders.json');
-      const deleteDashboard = await agent.get('/admin?tab=folders');
-      const deleteCsrf = extractCsrfToken(deleteDashboard.text);
-
-      const deleteRes = await agent.post(`/admin/folder/${folder.id}/delete`).type('form').send({ _csrf: deleteCsrf });
-
-      expect(deleteRes.status).toBe(302);
-      expect(readData('folders.json')).toHaveLength(0);
+      expect(res.status).toBe(302);
+      expect(res.headers.location).toMatch(/^\/admin\?status=deleted&undoToken=/);
+      expect(readData('shortcuts.json')).toHaveLength(0);
     });
 
-    it('restores a deleted folder via its undo token', async () => {
-      const dashboard = await agent.get('/admin?tab=folders');
-      const csrf = extractCsrfToken(dashboard.text);
+    it('restores a deleted site via its undo token', async () => {
+      writeData('shortcuts.json', [seededSite({ id: 'undo-me', name: 'Undo Me' })]);
+      const csrf = extractCsrfToken((await agent.get('/admin')).text);
 
-      await agent
-        .post('/admin/folder')
-        .type('form')
-        .send({ name: 'Undo Me', networkPath: '\\\\srv\\share', _csrf: csrf });
-
-      const [folder] = readData('folders.json');
-      const deleteDashboard = await agent.get('/admin?tab=folders');
-      const deleteCsrf = extractCsrfToken(deleteDashboard.text);
-
-      const deleteRes = await agent.post(`/admin/folder/${folder.id}/delete`).type('form').send({ _csrf: deleteCsrf });
-      expect(readData('folders.json')).toHaveLength(0);
+      const deleteRes = await agent.post('/admin/site/undo-me/delete').type('form').send({ _csrf: csrf });
+      expect(readData('shortcuts.json')).toHaveLength(0);
 
       const undoToken = new URL(deleteRes.headers.location, 'http://localhost').searchParams.get('undoToken');
       expect(undoToken).toBeTruthy();
@@ -167,17 +164,15 @@ describe('ShortcutWall app', () => {
         .send({ _csrf: restoreCsrf });
 
       expect(restoreRes.status).toBe(302);
-      expect(restoreRes.headers.location).toBe('/admin?tab=folders&status=restored');
+      expect(restoreRes.headers.location).toBe('/admin?status=restored');
 
-      const restored = readData('folders.json');
+      const restored = readData('shortcuts.json');
       expect(restored).toHaveLength(1);
-      expect(restored[0].id).toBe(folder.id);
+      expect(restored[0].id).toBe('undo-me');
       expect(restored[0].name).toBe('Undo Me');
 
       // Clean up so later tests in this file see an empty list again.
-      const cleanupPage = await agent.get('/admin?tab=folders');
-      const cleanupCsrf = extractCsrfToken(cleanupPage.text);
-      await agent.post(`/admin/folder/${folder.id}/delete`).type('form').send({ _csrf: cleanupCsrf });
+      writeData('shortcuts.json', []);
     });
 
     it('restoring an unknown or already-used undo token is a harmless no-op', async () => {
@@ -191,7 +186,7 @@ describe('ShortcutWall app', () => {
     });
 
     it('rejects a path traversal attempt through imageUrl on site creation (regression test)', async () => {
-      const dashboard = await agent.get('/admin?tab=sites');
+      const dashboard = await agent.get('/admin');
       const csrf = extractCsrfToken(dashboard.text);
 
       const res = await agent.post('/admin/site').type('form').send({
@@ -206,7 +201,7 @@ describe('ShortcutWall app', () => {
     });
 
     it('rejects an SSRF attempt through targetUrl on site creation', async () => {
-      const dashboard = await agent.get('/admin?tab=sites');
+      const dashboard = await agent.get('/admin');
       const csrf = extractCsrfToken(dashboard.text);
 
       const res = await agent.post('/admin/site').type('form').send({
@@ -220,7 +215,7 @@ describe('ShortcutWall app', () => {
     });
 
     it('creates a real reachable site end to end', async () => {
-      const dashboard = await agent.get('/admin?tab=sites');
+      const dashboard = await agent.get('/admin');
       const csrf = extractCsrfToken(dashboard.text);
 
       const res = await agent.post('/admin/site').type('form').send({

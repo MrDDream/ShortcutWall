@@ -80,7 +80,7 @@ router.post('/', ensureAuthenticated, upload.single('imageFile'), verifyCsrfToke
       return sites;
     });
 
-    res.redirect('/admin?tab=sites&status=created');
+    res.redirect('/admin?status=created');
   } catch (error) {
     logger.error({ err: error }, 'Site creation failed');
 
@@ -186,7 +186,7 @@ router.post('/:id', ensureAuthenticated, upload.single('imageFile'), verifyCsrfT
       await deleteUploadedAsset(previousImage);
     }
 
-    res.redirect('/admin?tab=sites&status=updated');
+    res.redirect('/admin?status=updated');
   } catch (error) {
     if (uploadedPath) {
       await deleteUploadedAsset(uploadedPath);
@@ -230,7 +230,7 @@ router.post('/:id/delete', ensureAuthenticated, verifyCsrfToken, async (req, res
       : null;
 
     const undoParam = undoToken ? `&undoToken=${encodeURIComponent(undoToken)}` : '';
-    res.redirect(`/admin?tab=sites&status=deleted${undoParam}`);
+    res.redirect(`/admin?status=deleted${undoParam}`);
   } catch (error) {
     if (error instanceof NotFoundError) {
       return res.status(404).send(res.locals.t('errors.siteNotFound'));

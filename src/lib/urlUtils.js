@@ -16,33 +16,6 @@ function normalizeTargetUrl(value) {
   return url.toString();
 }
 
-function toDosPath(input) {
-  return input
-    .replace(/^\s+|\s+$/g, '')
-    .replace(/\//g, '\\')
-    .replace(/\\\\+/g, '\\\\');
-}
-
-function normalizeNetworkPath(value = '') {
-  if (!value) {
-    return '';
-  }
-  const target = value.trim();
-  if (!target) {
-    return '';
-  }
-  if (target.startsWith('file://')) {
-    return target;
-  }
-  if (target.startsWith('\\\\')) {
-    return toDosPath(target);
-  }
-  if (/^[a-zA-Z]:[\\/]/.test(target)) {
-    return toDosPath(target);
-  }
-  return target;
-}
-
 // Special case for 401 and 403, which are considered reachable even though they indicate restricted access.
 function isReachableStatus(status) {
   return (status >= 200 && status < 400) || status === 401 || status === 403;
@@ -113,4 +86,4 @@ function normalizeImageUrl(value) {
   return normalizeTargetUrl(trimmed);
 }
 
-module.exports = { normalizeTargetUrl, normalizeNetworkPath, normalizeImageUrl, isUrlReachable };
+module.exports = { normalizeTargetUrl, normalizeImageUrl, isUrlReachable };

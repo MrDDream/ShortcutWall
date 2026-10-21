@@ -16,9 +16,4 @@ function sanitizeFilename(name) {
   );
 }
 
-function buildDownloadFilename(name, fallback) {
-  const base = sanitizeFilename(name) || fallback;
-  return base.replace(/[\s']+/g, '_');
-}
-
-module.exports = { sanitizeFilename, buildDownloadFilename };
+module.exports = { sanitizeFilename };

@@ -18,7 +18,6 @@ const UPLOAD_DIR = path.join(PUBLIC_DIR, 'uploads');
 // at an isolated directory instead of the real data/ used in production.
 const DATA_DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(ROOT_DIR, 'data');
 const SITES_FILE = path.join(DATA_DIR, 'shortcuts.json');
-const FOLDERS_FILE = path.join(DATA_DIR, 'folders.json');
 
 const DEFAULT_ADMIN_USER = 'admin';
 const DEFAULT_ADMIN_PASS = 'admin123';
@@ -71,7 +70,6 @@ module.exports = {
   UPLOAD_DIR,
   DATA_DIR,
   SITES_FILE,
-  FOLDERS_FILE,
   NODE_ENV,
   IS_PRODUCTION,
   PORT,

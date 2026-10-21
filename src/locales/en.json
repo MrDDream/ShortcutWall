@@ -95,10 +95,8 @@
   "errors": {
     "siteNotFound": "Website not found.",
     "siteUnreachable": "The website is unreachable.",
-    "folderNotFound": "Folder not found.",
     "invalidUrl": "Invalid URL.",
     "missingSiteFields": "Name and URL are required.",
-    "missingFolderFields": "Name and path are required.",
     "shortcutGeneration": "Unable to generate the shortcut.",
     "languageNotSupported": "Unsupported language.",
     "faviconNotFound": "No favicon found.",

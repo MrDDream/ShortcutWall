@@ -1,6 +1,6 @@
 const express = require('express');
 
-const { SITES_FILE, FOLDERS_FILE } = require('../config');
+const { SITES_FILE } = require('../config');
 const { ensureAuthenticated } = require('../middleware/auth');
 const { verifyCsrfToken } = require('../middleware/csrf');
 const { updateJson } = require('../lib/store');
@@ -8,8 +8,7 @@ const { pop } = require('../lib/trash');
 
 const router = express.Router();
 
-const FILE_BY_TYPE = { site: SITES_FILE, folder: FOLDERS_FILE };
-const TAB_BY_TYPE = { site: 'sites', folder: 'folders' };
+const FILE_BY_TYPE = { site: SITES_FILE };
 
 router.post('/:token/restore', ensureAuthenticated, verifyCsrfToken, async (req, res, next) => {
   try {
@@ -25,7 +24,7 @@ router.post('/:token/restore', ensureAuthenticated, verifyCsrfToken, async (req,
       return items;
     });
 
-    res.redirect(`/admin?tab=${TAB_BY_TYPE[payload.type]}&status=restored`);
+    res.redirect('/admin?status=restored');
   } catch (error) {
     next(error);
   }

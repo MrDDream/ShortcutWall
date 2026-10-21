@@ -12,11 +12,9 @@ const { attachCsrfToken } = require('./middleware/csrf');
 const { InvalidFileError } = require('./lib/uploads');
 
 const pagesRouter = require('./routes/pages');
-const downloadsRouter = require('./routes/downloads');
 const adminAuthRouter = require('./routes/adminAuth');
 const adminDashboardRouter = require('./routes/adminDashboard');
 const sitesRouter = require('./routes/sites');
-const foldersRouter = require('./routes/folders');
 const faviconRouter = require('./routes/favicon');
 const healthRouter = require('./routes/health');
 const trashRouter = require('./routes/trash');
@@ -94,11 +92,9 @@ function createApp() {
   app.use(loadShortcuts);
 
   app.use('/', pagesRouter);
-  app.use('/', downloadsRouter);
   app.use('/admin', adminAuthRouter);
   app.use('/admin', adminDashboardRouter);
   app.use('/admin/site', sitesRouter);
-  app.use('/admin/folder', foldersRouter);
   app.use('/admin/trash', trashRouter);
   app.use('/api/favicon', faviconRouter);
 

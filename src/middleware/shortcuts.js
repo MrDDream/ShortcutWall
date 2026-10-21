@@ -1,10 +1,10 @@
-const { SITES_FILE, FOLDERS_FILE } = require('../config');
+const { SITES_FILE } = require('../config');
 const { readJson } = require('../lib/store');
 const logger = require('../lib/logger');
 
 async function loadShortcuts(req, res, next) {
   try {
-    const [sites, folders] = await Promise.all([readJson(SITES_FILE), readJson(FOLDERS_FILE)]);
+    const sites = await readJson(SITES_FILE);
     res.locals.sites = Array.isArray(sites)
       ? [...sites].sort((a, b) => {
           const nameA = (a?.name || '').toString();
@@ -12,32 +12,12 @@ async function loadShortcuts(req, res, next) {
           return nameA.localeCompare(nameB, res.locals.locale, { sensitivity: 'base' });
         })
       : [];
-    res.locals.folders = folders;
   } catch (error) {
     logger.error({ err: error }, 'Unable to load data files');
     res.locals.sites = [];
-    res.locals.folders = [];
   }
   res.locals.isAuthenticated = req.session?.isAuthenticated;
   next();
 }
 
-function ensureSiteExists(req, res, next) {
-  const site = res.locals.sites.find((item) => item.id === req.params.id);
-  if (!site) {
-    return res.status(404).send(res.locals.t('errors.siteNotFound'));
-  }
-  res.locals.site = site;
-  next();
-}
-
-function ensureFolderExists(req, res, next) {
-  const folder = res.locals.folders.find((item) => item.id === req.params.id);
-  if (!folder) {
-    return res.status(404).send(res.locals.t('errors.folderNotFound'));
-  }
-  res.locals.folder = folder;
-  next();
-}
-
-module.exports = { loadShortcuts, ensureSiteExists, ensureFolderExists };
+module.exports = { loadShortcuts };

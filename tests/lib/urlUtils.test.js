@@ -4,7 +4,7 @@ vi.mock('../../src/lib/ssrfGuard.js', () => ({
   assertPublicHost: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { normalizeTargetUrl, normalizeImageUrl, normalizeNetworkPath } from '../../src/lib/urlUtils.js';
+import { normalizeTargetUrl, normalizeImageUrl } from '../../src/lib/urlUtils.js';
 
 describe('normalizeTargetUrl', () => {
   it('accepts http(s) URLs', () => {
@@ -56,28 +56,5 @@ describe('normalizeImageUrl', () => {
 
   it('rejects a javascript: URL', () => {
     expect(() => normalizeImageUrl('javascript:alert(1)')).toThrow();
-  });
-});
-
-describe('normalizeNetworkPath', () => {
-  it('converts a backslash-prefixed path with mixed slashes to a pure UNC path', () => {
-    expect(normalizeNetworkPath('\\\\server/share/sub')).toBe('\\\\server\\share\\sub');
-  });
-
-  it('leaves a plain forward-slash path untouched (not backslash-prefixed)', () => {
-    expect(normalizeNetworkPath('//server/share')).toBe('//server/share');
-  });
-
-  it('passes through an existing file:// URL unchanged', () => {
-    expect(normalizeNetworkPath('file:///C:/data')).toBe('file:///C:/data');
-  });
-
-  it('passes through an already backslash-style UNC path', () => {
-    expect(normalizeNetworkPath('\\\\server\\share')).toBe('\\\\server\\share');
-  });
-
-  it('returns an empty string for empty input', () => {
-    expect(normalizeNetworkPath('')).toBe('');
-    expect(normalizeNetworkPath('   ')).toBe('');
   });
 });

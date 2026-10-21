@@ -94,11 +94,9 @@
   },
   "errors": {
     "siteNotFound": "Site introuvable.",
-    "folderNotFound": "Dossier introuvable.",
     "siteUnreachable": "Le site est inaccessible.",
     "invalidUrl": "URL invalide.",
     "missingSiteFields": "Le nom et l'URL sont obligatoires.",
-    "missingFolderFields": "Le nom et le chemin sont obligatoires.",
     "shortcutGeneration": "Impossible de générer le raccourci.",
     "languageNotSupported": "Langue non prise en charge.",
     "faviconNotFound": "Aucun favicon trouvé.",

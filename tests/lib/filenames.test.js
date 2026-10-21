@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { sanitizeFilename, buildDownloadFilename } from '../../src/lib/filenames.js';
+import { sanitizeFilename } from '../../src/lib/filenames.js';
 
 describe('sanitizeFilename', () => {
   it('returns an empty string for empty input', () => {
@@ -24,17 +24,5 @@ describe('sanitizeFilename', () => {
 
   it('leaves an ordinary name untouched', () => {
     expect(sanitizeFilename('logo-2024')).toBe('logo-2024');
-  });
-});
-
-describe('buildDownloadFilename', () => {
-  it('replaces spaces and apostrophes with underscores', () => {
-    expect(buildDownloadFilename("L'entreprise du coin", 'site')).toBe('L_entreprise_du_coin');
-  });
-
-  it('falls back when the name sanitizes down to nothing', () => {
-    // Trailing dots are stripped entirely (not replaced), so this sanitizes to ''.
-    expect(buildDownloadFilename('...', 'site')).toBe('site');
-    expect(buildDownloadFilename('', 'site')).toBe('site');
   });
 });
