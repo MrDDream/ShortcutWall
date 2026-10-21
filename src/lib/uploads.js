@@ -1,3 +1,4 @@
+const fsSync = require('fs');
 const fs = require('fs').promises;
 const path = require('path');
 const multer = require('multer');
@@ -7,9 +8,8 @@ const { sanitizeFilename } = require('./filenames');
 const { shrinkLogo } = require('./imageResize');
 const logger = require('./logger');
 
-fs.mkdir(UPLOAD_DIR, { recursive: true }).catch((error) => {
-  logger.error({ err: error }, 'Unable to ensure upload directory');
-});
+// Synchronous so the directory exists before any request (or test) writes to it.
+fsSync.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 // Raster formats only: SVG is deliberately excluded because it can embed
 // <script> and would be served as-is from /uploads (stored XSS if opened directly).

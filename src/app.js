@@ -3,7 +3,7 @@ const session = require('express-session');
 const helmet = require('helmet');
 const pinoHttp = require('pino-http');
 
-const { SESSION_SECRET, VIEWS_DIR, PUBLIC_DIR, TRUST_PROXY } = require('./config');
+const { SESSION_SECRET, VIEWS_DIR, PUBLIC_DIR, UPLOAD_DIR, TRUST_PROXY } = require('./config');
 const logger = require('./lib/logger');
 const sessionStore = require('./lib/sessionStore');
 const localeMiddleware = require('./middleware/locale');
@@ -69,6 +69,7 @@ function createApp() {
   app.use('/healthz', healthRouter);
 
   app.use(express.urlencoded({ extended: true }));
+  app.use('/uploads', express.static(UPLOAD_DIR));
   app.use(express.static(PUBLIC_DIR));
   app.use(
     session({

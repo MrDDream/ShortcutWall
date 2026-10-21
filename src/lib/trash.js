@@ -34,4 +34,9 @@ function pop(token) {
   return entry.payload;
 }
 
-module.exports = { stash, pop, TTL_MS };
+// Payloads still waiting in their undo window (their assets must be kept).
+function pendingPayloads() {
+  return Array.from(entries.values(), (entry) => entry.payload);
+}
+
+module.exports = { stash, pop, pendingPayloads, TTL_MS };

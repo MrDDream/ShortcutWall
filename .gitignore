@@ -9,7 +9,8 @@ node_modules/
 # User uploaded files
 public/uploads/
 
-# Persisted session store
+# Runtime data (shortcuts, sessions): user content, not source
+data/*.json
 data/sessions/
 
 # Logs

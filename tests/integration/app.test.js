@@ -73,6 +73,24 @@ describe('ShortcutWall app', () => {
     expect(res.text).toContain('href="https://github.com/MrDDream/ShortcutWall"');
   });
 
+  it('never creates a server session for an anonymous visitor', async () => {
+    const res = await request(app).get('/');
+    const cookies = res.headers['set-cookie'] || [];
+    expect(cookies.some((cookie) => cookie.startsWith('connect.sid='))).toBe(false);
+  });
+
+  it('remembers the chosen language in a cookie, without a session', async () => {
+    const switchRes = await request(app).get('/language/fr');
+    expect(switchRes.status).toBe(302);
+    const cookies = switchRes.headers['set-cookie'] || [];
+    const langCookie = cookies.find((cookie) => cookie.startsWith('lang=fr'));
+    expect(langCookie).toMatch(/HttpOnly/i);
+    expect(cookies.some((cookie) => cookie.startsWith('connect.sid='))).toBe(false);
+
+    const page = await request(app).get('/').set('Cookie', 'lang=fr');
+    expect(page.text).toContain('<html lang="fr">');
+  });
+
   it('does not force assets to https, so plain-HTTP LAN deployments still load CSS/JS', async () => {
     const res = await agent.get('/');
     expect(res.headers['content-security-policy']).not.toContain('upgrade-insecure-requests');

@@ -13,7 +13,9 @@ const TRUST_PROXY = process.env.TRUST_PROXY === 'true';
 
 const VIEWS_DIR = path.join(ROOT_DIR, 'views');
 const PUBLIC_DIR = path.join(ROOT_DIR, 'public');
-const UPLOAD_DIR = path.join(PUBLIC_DIR, 'uploads');
+// Overridable like DATA_DIR, so tests and throwaway instances never read,
+// write or clean up the real uploaded logos. Served at /uploads (see app.js).
+const UPLOAD_DIR = process.env.UPLOAD_DIR ? path.resolve(process.env.UPLOAD_DIR) : path.join(PUBLIC_DIR, 'uploads');
 // Overridable so tests (and operators who want to relocate storage) can point
 // at an isolated directory instead of the real data/ used in production.
 const DATA_DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(ROOT_DIR, 'data');
@@ -34,6 +36,8 @@ const SUPPORT_PHONE = (process.env.SUPPORT_PHONE && process.env.SUPPORT_PHONE.tr
 const FAVICON_FETCH_TIMEOUT = 5000;
 
 const SUPPORTED_LOCALES = ['fr', 'en'];
+// Remembers the visitor's language choice without creating a server session.
+const LANGUAGE_COOKIE = 'lang';
 
 // Linked from the header's GitHub button.
 const PROJECT_URL = 'https://github.com/MrDDream/ShortcutWall';
@@ -86,5 +90,6 @@ module.exports = {
   DEFAULT_LOCALE_RAW,
   LANGUAGE_FLAGS,
   PROJECT_URL,
+  LANGUAGE_COOKIE,
   USES_DEFAULT_CREDENTIALS,
 };

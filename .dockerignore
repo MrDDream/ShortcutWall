@@ -3,3 +3,10 @@ npm-debug.log
 Dockerfile
 .dockerignore
 .git
+# Secrets and runtime data must never be baked into the image: they come in
+# through the environment and the mounted volumes (see docker-compose.yml).
+.env
+.env.*
+data
+public/uploads
+coverage

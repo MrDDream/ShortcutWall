@@ -1,6 +1,9 @@
 const express = require('express');
 
 const { normalizeLocale } = require('../lib/i18n');
+const { LANGUAGE_COOKIE } = require('../config');
+
+const LANGUAGE_COOKIE_MAX_AGE = 365 * 24 * 60 * 60 * 1000;
 
 const router = express.Router();
 
@@ -36,9 +39,12 @@ router.get('/language/:locale', (req, res) => {
   if (!locale) {
     return res.status(400).send(res.locals.t('errors.languageNotSupported'));
   }
-  if (req.session) {
-    req.session.locale = locale;
-  }
+  res.cookie(LANGUAGE_COOKIE, locale, {
+    maxAge: LANGUAGE_COOKIE_MAX_AGE,
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: req.secure,
+  });
   return res.redirect(resolveSameOriginRedirect(req));
 });
 
