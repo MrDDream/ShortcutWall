@@ -5,7 +5,11 @@ services:
     container_name: ShortcutWall
     ports:
       - "${PORT:-3050}:${PORT:-3050}"
+    env_file:
+      - path: .env
+        required: false
     environment:
+      NODE_ENV: production
       PORT: ${PORT:-3050}
       HOST: ${HOST:-0.0.0.0}
       ADMIN_USER: ${ADMIN_USER:-admin}

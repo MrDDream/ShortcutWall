@@ -1,123 +1,164 @@
-# <img src="public/images/logo.svg" alt="Mon Logo" style="width: 50px; height: auto;" /> ShortcutWall 
-This documentation is available in [French](README.fr.md) and in [English](README.md)
+# <img src="public/images/logo.svg" alt="ShortcutWall logo" style="width: 50px; height: auto;" /> ShortcutWall
+
+This documentation is available in [French](README.fr.md) and in [English](README.md).
 
 ## Overview
-ShortcutWall allows users to access their favorite websites and network folders from a single interface. The application includes an admin area for adding, modifying, and deleting shortcuts, as well as uploading custom logos and generating `.url` files automatically.
+
+ShortcutWall is a self-hosted wall of website shortcuts: one page where you and your users find every
+useful site, each with its logo, plus an admin area to manage them. It runs as a single Node.js app
+(or Docker container) with no database.
 
 ## Features
-* 🔥 Shortcut wall for both websites and network folders with search capabilities
-* 🚀 Simple admin authentication layer
-* 🛠️ Logo management via remote URLs or local uploads
-* 📦 Automatic `.url` file export for website shortcuts
-* 🌐 Built-in internationalization (French and English)
-* 🌗 Dark mode available.
+
+- 🧱 **Shortcut wall** — large cards with logo, name and description; one click opens the site.
+- 🔎 **Search and sort** — instant search (press <kbd>/</kbd>) on names, descriptions and domains;
+  alphabetical or most recent order.
+- 🖼️ **Automatic logos** — "Fetch favicon" finds the best icon a site offers (SVG or largest PNG,
+  checked to really be an image). Logos are **stored by the app** and **downsized to 256 px**, so a
+  site's hotlink protection or `Cross-Origin-Resource-Policy` header can't break the wall. Manual
+  uploads (PNG, JPG, GIF, WebP) work too.
+- 🛠️ **Admin in dialogs** — add, edit and delete websites without leaving the list; server errors
+  (unreachable site, invalid URL…) appear in the dialog without losing what you typed; deletion can be
+  undone for 15 seconds.
+- 💾 **Export / import** — one JSON file with every shortcut and its logos, to back up or move an
+  install; import can merge or replace.
+- 🌗 **Light and dark themes** — follows the system, can be switched by hand.
+- 🌐 **French and English** — language picker in the header.
+- 🔒 **Security** — CSRF protection, CSP and security headers, login rate limiting, SSRF guard on every
+  outgoing request, logo uploads limited to raster formats.
 
 ## Screenshots
-| Homepage      | Admin panel      |
-|-------------------------------|-------------------------------|
-| ![Homepage](screenshots/homepage.png) | ![Admin panel](screenshots/admin.png) |
 
-## Installation & Setup
+| Wall | Administration |
+|------|----------------|
+| ![Shortcut wall](screenshots/homepage.png) | ![Administration](screenshots/admin.png) |
 
-### Prerequisites
-* Node.js 18 or newer
-* npm (bundled with Node.js)
-* Docker and Docker Compose (optional, but recommended)
+![Shortcut wall, dark theme](screenshots/homepage-dark.png)
 
-### Step-by-Step Instructions
+## Installation
 
-1.  Clone the repository and navigate to the project directory.
+### With Docker (recommended)
 
-    ```bash
-    git clone https://github.com/MrDDream/ShortcutWall.git
-    cd ShortcutWall
-    ```
+1. Get the `docker-compose.yml` file and create a `.env` next to it from
+   [`.env.example`](.env.example). At least change `SESSION_SECRET`, `ADMIN_USER` and `ADMIN_PASS`:
 
-2.  Copy the environment example and adjust the values.
+   ```bash
+   cp .env.example .env
+   ```
 
-    ```bash
-    cp .env.example .env
-    ```
+2. Start the published image:
 
-    Edit the `.env` file to configure the application:
+   ```bash
+   docker compose up -d
+   ```
 
-    *   `PORT`: The port the application will listen on (default: 3050).
-    *   `HOST`: The host the application will bind to (default: 0.0.0.0).
-    *   `SESSION_SECRET`: A random string for securing sessions (required).
-    *   `ADMIN_USER`: Username for the admin area (default: admin).
-    *   `ADMIN_PASS`: Password for the admin area (default: admin123).
-    *   `APP_NAME`: Custom branding for the application.
-    *   `APP_DEFAULT_LOCALE`: Default language for the application (default: en or fr).
-    *   `SUPPORT_EMAIL`: Support email address.
-    *   `SUPPORT_PHONE`: Support phone number.
+The wall is available at `http://localhost:3050` and the admin area at `/admin`.
+Data lives in `./data` (shortcuts, sessions) and logos in `./public/uploads`, both mounted as volumes.
 
-3.  Run the application using Docker Compose. This is the recommended method.
+To build the image from the sources instead (e.g. after modifying the code), use
+`docker-compose-dev.yml`:
 
-    ```bash
-    docker-compose up
-    ```
+```bash
+docker compose -f docker-compose-dev.yml up -d --build
+```
 
-    This command builds the Docker image and starts the application in a container.  The application will be accessible at `http://localhost:3050` (or the configured `PORT`).
+### Without Docker
 
-    *Alternatively, install dependencies and run the application in development mode without Docker:*
+Requires **Node.js 26** or newer (see [`.nvmrc`](.nvmrc)).
 
-    ```bash
-    npm install
-    npm run dev
-    ```
+```bash
+git clone https://github.com/MrDDream/ShortcutWall.git
+cd ShortcutWall
+cp .env.example .env
+npm ci
+npm start
+```
+
+## Configuration
+
+Everything is set through environment variables, usually in `.env`.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SESSION_SECRET` | `change-me` | Secret signing the admin session. **Change it.** |
+| `ADMIN_USER` / `ADMIN_PASS` | `admin` / `admin123` | Admin credentials. **Change them.** |
+| `PORT` / `HOST` | `3050` / `0.0.0.0` | Listening port and address. |
+| `TRUST_PROXY` | `false` | Set to `true` behind a reverse proxy (HTTPS, client IP). |
+| `APP_NAME` | `ShortcutWall` | Name shown in the header and page titles. |
+| `APP_DEFAULT_LOCALE` | `fr` | Default language (`fr` or `en`). |
+| `SUPPORT_EMAIL` / `SUPPORT_PHONE` | — | Contacts shown in the "Need help?" dialog (hidden if empty). |
+| `LOG_LEVEL` | `info` (`debug` in development) | `fatal`, `error`, `warn`, `info`, `debug` or `trace`. |
+| `DATA_DIR` | `./data` | Folder for shortcuts and sessions. |
+| `UPLOAD_DIR` | `./public/uploads` | Folder for logos (served at `/uploads`). |
+
+The admin area shows a warning as long as the default credentials or secret are in use.
 
 ## Usage
 
-*   The public view displays shortcuts stored in `data/shortcuts.json` and `data/folders.json`.
-*   The admin area is accessible at `/admin` and requires the credentials configured in `.env`.
-*   Uploaded images are saved to `public/uploads`; remove them manually if needed.
+- **Wall**: `/` — public, no account needed.
+- **Admin**: `/admin` — add a website, fetch its favicon, edit or delete it.
+- **Backup**: in the admin, *Export* downloads `shortcutwall-YYYY-MM-DD.json`; *Import* restores such
+  a file, either merging it (sites whose URL already exists are skipped) or replacing every site.
+- Logos that no longer belong to any site (e.g. a fetched favicon whose dialog was cancelled) are
+  removed automatically, at startup and once a day.
 
-## Tech Stack
+### Known limitation
+
+To prevent SSRF, the server refuses to contact private network addresses (`192.168.x.x`, `10.x.x.x`,
+`localhost`…). Websites hosted on your local network therefore can't be added for now.
+
+## Development
+
+```bash
+npm ci
+npm run dev          # restarts on change (nodemon)
+npm test             # Vitest
+npm run lint         # ESLint
+npm run format:check # Prettier
+```
+
+The CI runs lint, formatting, tests and `npm audit` on every push.
+
+## Tech stack
+
 | Category | Technologies |
-|----------|-------------|
-| Backend  | Node.js, Express |
-| Database | JSON files (data/shortcuts.json, data/folders.json) |
-| Template | EJS view engine |
-| Utilities | Multer for file uploads, Dotenv for environment variables |
-| Containerization | Docker, Docker Compose |
+|----------|--------------|
+| Backend | Node.js 26, Express 5 |
+| Views | EJS, vanilla CSS and JavaScript (no build step) |
+| Storage | JSON files, file-based sessions |
+| Images | sharp (resizing), Multer (uploads) |
+| Security | Helmet, express-rate-limit, CSRF tokens, SSRF guard |
+| Tests | Vitest, Supertest |
+| Containers | Docker, Docker Compose |
 
-## Project Structure
+## Project structure
+
 ```
 .
-├── .dockerignore
-├── .env.example
-├── data
-│   ├── folders.json
-│   └── shortcuts.json
-├── docker-compose-dev.yml
-├── docker-compose.yml
-├── Dockerfile
-├── LICENSE
-├── package.json
-├── public
-│   └── scripts.js
-├── README.md
-├── server.js
-├── views
-│   ├── 404.ejs
-│   ├── admin.ejs
-│   ├── index.ejs
-│   ├── login.ejs
-│   └── partials
-│       ├── footer.ejs
-│       └── head.ejs
-
+├── server.js              # entry point
+├── src/
+│   ├── app.js             # Express app (middleware, routes)
+│   ├── config.js          # environment variables
+│   ├── lib/               # favicon, logo import/resize, SSRF guard, storage…
+│   ├── locales/           # fr.json, en.json
+│   ├── middleware/
+│   └── routes/            # pages, admin, sites, backup, favicon…
+├── views/                 # EJS templates and partials
+├── public/                # styles.css, scripts.js, theme.js, images
+├── tests/                 # unit and integration tests
+├── data/                  # shortcuts and sessions (created at runtime)
+└── docker-compose.yml     # published image; docker-compose-dev.yml builds it
 ```
+
 ## Contributing
 
-Contributors are welcome to submit pull requests and issues. Please ensure that your code is well-documented and follows the existing coding style.
+Issues and pull requests are welcome. Please keep the existing code style and make sure
+`npm run lint`, `npm run format:check` and `npm test` pass.
 
 ## License
 
-[MIT](https://github.com/MrDDream/ShortcutWall?tab=MIT-1-ov-file)
+[MIT](LICENSE)
 
 ## Contact
 
-* [MrDDream](https://github.com/MrDDream)
-
-  
+- [MrDDream](https://github.com/MrDDream)
