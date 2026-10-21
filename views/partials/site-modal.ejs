@@ -52,7 +52,10 @@
       <div class="field__row">
         <input
           class="input"
-          type="url"
+          type="text"
+          inputmode="url"
+          spellcheck="false"
+          autocomplete="off"
           name="imageUrl"
           id="<%= prefix %>-image"
           value="<%= isNew ? '' : site.imageUrl || '' %>"

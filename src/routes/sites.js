@@ -5,7 +5,13 @@ const { SITES_FILE } = require('../config');
 const { ensureAuthenticated } = require('../middleware/auth');
 const { verifyCsrfToken } = require('../middleware/csrf');
 const { readJson, updateJson, NotFoundError } = require('../lib/store');
-const { upload, buildUploadedPath, isUploadedAsset, deleteUploadedAsset } = require('../lib/uploads');
+const {
+  upload,
+  buildUploadedPath,
+  shrinkUploadedLogo,
+  isUploadedAsset,
+  deleteUploadedAsset,
+} = require('../lib/uploads');
 const { importRemoteImage } = require('../lib/remoteImage');
 const { normalizeTargetUrl, normalizeImageUrl, isUrlReachable } = require('../lib/urlUtils');
 const { stash } = require('../lib/trash');
@@ -14,9 +20,12 @@ const logger = require('../lib/logger');
 const router = express.Router();
 
 router.post('/', ensureAuthenticated, upload.single('imageFile'), verifyCsrfToken, async (req, res) => {
-  const uploadedPath = req.file ? buildUploadedPath(req.file.filename) : null;
+  let uploadedPath = req.file ? buildUploadedPath(req.file.filename) : null;
   let importedPath = null;
   try {
+    if (req.file) {
+      uploadedPath = await shrinkUploadedLogo(req.file.filename);
+    }
     const { name, targetUrl } = req.body;
 
     const descriptionInput = typeof req.body.description === 'string' ? req.body.description.trim() : '';
@@ -87,9 +96,12 @@ router.post('/', ensureAuthenticated, upload.single('imageFile'), verifyCsrfToke
 });
 
 router.post('/:id', ensureAuthenticated, upload.single('imageFile'), verifyCsrfToken, async (req, res) => {
-  const uploadedPath = req.file ? buildUploadedPath(req.file.filename) : null;
+  let uploadedPath = req.file ? buildUploadedPath(req.file.filename) : null;
   let importedPath = null;
   try {
+    if (req.file) {
+      uploadedPath = await shrinkUploadedLogo(req.file.filename);
+    }
     const { id } = req.params;
     const { name, targetUrl } = req.body;
     const descriptionInput = typeof req.body.description === 'string' ? req.body.description.trim() : undefined;

@@ -5,6 +5,7 @@ const path = require('path');
 const { FAVICON_FETCH_TIMEOUT, UPLOAD_DIR } = require('../config');
 const { assertPublicHost } = require('./ssrfGuard');
 const { buildUploadedPath } = require('./uploads');
+const { shrinkLogo } = require('./imageResize');
 
 const USER_AGENT = 'Mozilla/5.0 ShortcutWall/1.0';
 // Same cap as manual uploads (see uploads.js).
@@ -78,7 +79,8 @@ async function readCapped(response, limit) {
   }
 }
 
-// Downloads a remote image into /uploads and returns its local path, or null
+// Downloads a remote image into /uploads (downsized if oversized) and returns
+// its local path, or null
 // when it can't be fetched or isn't a supported raster image (callers then keep
 // the remote URL). Serving logos from the app itself means a site's hotlink
 // protection or a "Cross-Origin-Resource-Policy: same-site" header — which
@@ -119,8 +121,13 @@ async function importRemoteImage(remoteUrl) {
       return null;
     }
 
-    const filename = `logo-${Date.now()}-${crypto.randomBytes(4).toString('hex')}.${type}`;
-    await fs.writeFile(path.join(UPLOAD_DIR, filename), buffer);
+    // Oversized logos are stored downsized (see shrinkLogo); ICO icons are
+    // small by nature and not decodable by sharp, so they are kept as-is.
+    const shrunk = type === 'ico' ? null : await shrinkLogo(buffer);
+    const extension = shrunk ? 'webp' : type;
+
+    const filename = `logo-${Date.now()}-${crypto.randomBytes(4).toString('hex')}.${extension}`;
+    await fs.writeFile(path.join(UPLOAD_DIR, filename), shrunk || buffer);
     return buildUploadedPath(filename);
   } catch {
     return null;

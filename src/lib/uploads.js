@@ -4,6 +4,7 @@ const multer = require('multer');
 
 const { UPLOAD_DIR } = require('../config');
 const { sanitizeFilename } = require('./filenames');
+const { shrinkLogo } = require('./imageResize');
 const logger = require('./logger');
 
 fs.mkdir(UPLOAD_DIR, { recursive: true }).catch((error) => {
@@ -41,6 +42,29 @@ const upload = multer({
 
 function buildUploadedPath(filename) {
   return `/uploads/${filename}`;
+}
+
+// Downsizes a freshly uploaded logo (see shrinkLogo) and returns the stored
+// path to use: the WebP copy, replacing the original, or the original itself
+// when it was already small enough or couldn't be processed.
+async function shrinkUploadedLogo(filename) {
+  const originalPath = path.join(UPLOAD_DIR, filename);
+  try {
+    const shrunk = await shrinkLogo(await fs.readFile(originalPath));
+    if (!shrunk) {
+      return buildUploadedPath(filename);
+    }
+
+    const resizedName = `${path.parse(filename).name}.webp`;
+    await fs.writeFile(path.join(UPLOAD_DIR, resizedName), shrunk);
+    if (resizedName !== filename) {
+      await fs.unlink(originalPath).catch(() => {});
+    }
+    return buildUploadedPath(resizedName);
+  } catch (error) {
+    logger.warn({ err: error }, 'Unable to resize uploaded logo, keeping the original');
+    return buildUploadedPath(filename);
+  }
 }
 
 // Resolves a stored `/uploads/...` reference to an absolute path guaranteed to
@@ -81,4 +105,11 @@ async function deleteUploadedAsset(value) {
   }
 }
 
-module.exports = { upload, buildUploadedPath, isUploadedAsset, deleteUploadedAsset, InvalidFileError };
+module.exports = {
+  upload,
+  buildUploadedPath,
+  shrinkUploadedLogo,
+  isUploadedAsset,
+  deleteUploadedAsset,
+  InvalidFileError,
+};
