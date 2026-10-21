@@ -62,6 +62,10 @@ function createApp() {
           upgradeInsecureRequests: null,
         },
       },
+      // Sends the Referer on same-origin navigations only: the language
+      // switch relies on it to bring the visitor back to the page they were
+      // on, while links to the shortcut sites still leak nothing.
+      referrerPolicy: { policy: 'same-origin' },
     }),
   );
 
@@ -69,7 +73,9 @@ function createApp() {
   // this frequently and it must stay cheap (no session/locale/data-loading).
   app.use('/healthz', healthRouter);
 
-  app.use(express.urlencoded({ extended: true }));
+  // Flat key=value forms only: nested objects and name[]= arrays are never
+  // expected, and a field that arrives as an array is rejected by the routes.
+  app.use(express.urlencoded({ extended: false, limit: '100kb' }));
   app.use('/uploads', express.static(UPLOAD_DIR));
   app.use(express.static(PUBLIC_DIR));
   app.use(

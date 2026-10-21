@@ -80,6 +80,19 @@ describe('ShortcutWall app', () => {
     expect(cookies.some((cookie) => cookie.startsWith('connect.sid='))).toBe(false);
   });
 
+  it('sends the Referer only within the site', async () => {
+    const res = await request(app).get('/');
+    expect(res.headers['referrer-policy']).toBe('same-origin');
+  });
+
+  it('brings the visitor back to the page they switched language from', async () => {
+    const res = await request(app)
+      .get('/language/fr')
+      .set('Referer', `http://127.0.0.1/admin/login?x=1`)
+      .set('Host', '127.0.0.1');
+    expect(res.headers.location).toBe('/admin/login?x=1');
+  });
+
   it('remembers the chosen language in a cookie, without a session', async () => {
     const switchRes = await request(app).get('/language/fr');
     expect(switchRes.status).toBe(302);
