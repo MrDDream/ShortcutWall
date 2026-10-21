@@ -16,10 +16,19 @@ module.exports = [
     },
   },
   {
-    files: ['public/**/*.js'],
+    // theme.js is a classic script, run synchronously from <head>
+    files: ['public/theme.js'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'script',
+      globals: { ...globals.browser },
+    },
+  },
+  {
+    files: ['public/js/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
       globals: { ...globals.browser },
     },
   },

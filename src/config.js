@@ -64,7 +64,6 @@ if (IS_PRODUCTION && USES_DEFAULT_CREDENTIALS) {
 }
 
 module.exports = {
-  ROOT_DIR,
   VIEWS_DIR,
   PUBLIC_DIR,
   UPLOAD_DIR,

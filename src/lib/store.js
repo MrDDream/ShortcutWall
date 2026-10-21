@@ -17,13 +17,17 @@ function withLock(filePath, task) {
   return run;
 }
 
+// Parsed content of each data file, reused while the file is unchanged on
+// disk (same modification time and size): nearly every request only reads it,
+// and re-parsing the JSON for each page view is wasted work. What readJson
+// returns is therefore shared: callers must treat it as read-only (updateJson
+// hands its updater a private copy).
+const cache = new Map();
+
 async function readFileAsJson(filePath) {
+  let stats;
   try {
-    const data = JSON.parse(await fs.readFile(filePath, 'utf-8'));
-    if (!Array.isArray(data)) {
-      throw new Error(`${filePath} does not contain a JSON array`);
-    }
-    return data;
+    stats = await fs.stat(filePath);
   } catch (error) {
     if (error.code === 'ENOENT') {
       await fs.writeFile(filePath, '[]', 'utf-8');
@@ -31,6 +35,18 @@ async function readFileAsJson(filePath) {
     }
     throw error;
   }
+
+  const cached = cache.get(filePath);
+  if (cached && cached.mtimeMs === stats.mtimeMs && cached.size === stats.size) {
+    return cached.data;
+  }
+
+  const data = JSON.parse(await fs.readFile(filePath, 'utf-8'));
+  if (!Array.isArray(data)) {
+    throw new Error(`${filePath} does not contain a JSON array`);
+  }
+  cache.set(filePath, { mtimeMs: stats.mtimeMs, size: stats.size, data });
+  return data;
 }
 
 // Writes to a temporary file, flushes it to disk, then renames it over the
@@ -63,7 +79,7 @@ function readJson(filePath) {
 // Throw NotFoundError from `updater` to signal a missing record to the caller.
 function updateJson(filePath, updater) {
   return withLock(filePath, async () => {
-    const current = await readFileAsJson(filePath);
+    const current = structuredClone(await readFileAsJson(filePath));
     const next = await updater(current);
     await writeFileAsJson(filePath, next);
     return next;

@@ -42,6 +42,32 @@ describe('store', () => {
     expect(fs.readdirSync(tmpDir)).toEqual(['data.json']);
   });
 
+  it('reuses the parsed content while the file is unchanged, and rereads it after a change', async () => {
+    await updateJson(tmpFile, () => [{ id: 'a' }]);
+    const first = await readJson(tmpFile);
+    expect(await readJson(tmpFile)).toBe(first);
+
+    // Edited outside the app (e.g. by hand): a new mtime/size invalidates the cache.
+    fs.writeFileSync(tmpFile, JSON.stringify([{ id: 'a' }, { id: 'b' }]));
+    const later = new Date(Date.now() + 5000);
+    fs.utimesSync(tmpFile, later, later);
+    expect(await readJson(tmpFile)).toEqual([{ id: 'a' }, { id: 'b' }]);
+  });
+
+  it('never lets an update mutate data previously returned by readJson', async () => {
+    await updateJson(tmpFile, () => [{ id: 'a' }]);
+    const snapshot = await readJson(tmpFile);
+
+    await updateJson(tmpFile, (items) => {
+      items[0].id = 'changed';
+      items.push({ id: 'b' });
+      return items;
+    });
+
+    expect(snapshot).toEqual([{ id: 'a' }]);
+    expect(await readJson(tmpFile)).toEqual([{ id: 'changed' }, { id: 'b' }]);
+  });
+
   it('refuses a data file that is not a JSON array', async () => {
     fs.writeFileSync(tmpFile, '{"id": 1}');
     await expect(readJson(tmpFile)).rejects.toThrow(/JSON array/);

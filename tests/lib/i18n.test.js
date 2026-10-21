@@ -17,11 +17,11 @@ describe('i18n.translate', () => {
   });
 
   it('interpolates variables', () => {
-    expect(translate('en', 'language.switch', { language: 'French' })).toBe('Switch to French');
+    expect(translate('en', 'admin.statusImported', { count: 3 })).toBe('3 shortcut(s) imported.');
   });
 
   it('leaves an unresolved placeholder untouched', () => {
-    expect(translate('en', 'language.switch', {})).toBe('Switch to {language}');
+    expect(translate('en', 'admin.statusImported', {})).toBe('{count} shortcut(s) imported.');
   });
 });
 

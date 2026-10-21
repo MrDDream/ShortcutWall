@@ -129,7 +129,6 @@
     "name": {
       "fr": "French",
       "en": "English"
-    },
-    "switch": "Switch to {language}"
+    }
   }
 }

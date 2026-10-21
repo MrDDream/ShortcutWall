@@ -1,15 +1,15 @@
 const httpClient = require('./httpClient');
 
-// Checks and normalises the URL entered by the user, throwing an error if it's invalid or unsupported.
+// Checks and normalises a user-entered URL; throws if it's invalid or not http(s).
 function normalizeTargetUrl(value) {
-  if (!value || !value.trim()) {
-    throw new Error('URL manquante.');
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new Error('Missing URL.');
   }
 
   const url = new URL(value.trim());
 
   if (!['http:', 'https:'].includes(url.protocol)) {
-    throw new Error('Protocole non supporté.');
+    throw new Error('Unsupported protocol.');
   }
 
   return url.toString();
