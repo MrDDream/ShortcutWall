@@ -1,5 +1,5 @@
+const crypto = require('crypto');
 const express = require('express');
-const { v4: uuidv4 } = require('uuid');
 
 const { SITES_FILE } = require('../config');
 const { ensureAuthenticated } = require('../middleware/auth');
@@ -70,7 +70,7 @@ router.post('/', ensureAuthenticated, upload.single('imageFile'), verifyCsrfToke
 
     await updateJson(SITES_FILE, (sites) => {
       sites.push({
-        id: uuidv4(),
+        id: crypto.randomUUID(),
         name: name.trim(),
         targetUrl: normalizedUrl,
         description: descriptionInput,

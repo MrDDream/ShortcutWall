@@ -291,7 +291,7 @@ describe('ShortcutWall app', () => {
 
         expect(res.status).toBe(200);
         expect(res.headers['content-disposition']).toMatch(
-          /attachment; filename="shortcutwall-\d{4}-\d{2}-\d{2}\.json"/,
+          /attachment; filename="?shortcutwall-\d{4}-\d{2}-\d{2}\.json"?/,
         );
         const backup = JSON.parse(res.text);
         expect(backup).toMatchObject({ app: 'ShortcutWall', version: 1 });

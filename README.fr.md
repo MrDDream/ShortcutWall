@@ -114,7 +114,7 @@ pas encore être ajoutés.
 
 ```bash
 npm ci
-npm run dev          # redémarre à chaque modification (nodemon)
+npm run dev          # redémarre à chaque modification (node --watch)
 npm test             # Vitest
 npm run lint         # ESLint
 npm run format:check # Prettier

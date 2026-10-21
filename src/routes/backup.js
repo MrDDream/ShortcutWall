@@ -1,6 +1,6 @@
+const crypto = require('crypto');
 const express = require('express');
 const multer = require('multer');
-const { v4: uuidv4 } = require('uuid');
 
 const { SITES_FILE } = require('../config');
 const { ensureAuthenticated } = require('../middleware/auth');
@@ -154,7 +154,7 @@ router.post('/import', ensureAuthenticated, receiveBackupFile, verifyCsrfToken, 
       }
 
       incoming.push({
-        id: uuidv4(),
+        id: crypto.randomUUID(),
         name: entry.name,
         targetUrl: entry.targetUrl,
         description: entry.description,

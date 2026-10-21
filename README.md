@@ -111,7 +111,7 @@ To prevent SSRF, the server refuses to contact private network addresses (`192.1
 
 ```bash
 npm ci
-npm run dev          # restarts on change (nodemon)
+npm run dev          # restarts on change (node --watch)
 npm test             # Vitest
 npm run lint         # ESLint
 npm run format:check # Prettier
