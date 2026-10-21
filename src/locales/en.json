@@ -121,7 +121,9 @@
     "unsupportedFileType": "Only image files (png, jpg, gif, webp) are allowed.",
     "importInvalidFile": "This file isn’t a valid ShortcutWall backup.",
     "importInvalidSite": "Invalid site in the backup: “{name}” (missing or incorrect name or URL).",
-    "importTooLarge": "File too large (20 MB maximum)."
+    "importTooLarge": "File too large (20 MB maximum).",
+    "invalidField": "One of the fields is invalid.",
+    "fieldTooLong": "One of the fields is too long (name: 100, description: 300, URL: 2048 characters)."
   },
   "language": {
     "name": {

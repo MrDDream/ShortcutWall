@@ -7,236 +7,193 @@ const { verifyCsrfToken } = require('../middleware/csrf');
 const { readJson, updateJson, NotFoundError } = require('../lib/store');
 const {
   upload,
-  buildUploadedPath,
   shrinkUploadedLogo,
   isUploadedAsset,
   deleteUploadedAsset,
+  InvalidFileError,
 } = require('../lib/uploads');
 const { importRemoteImage } = require('../lib/remoteImage');
 const { normalizeTargetUrl, normalizeImageUrl, isUrlReachable } = require('../lib/urlUtils');
+const { FieldError, readSiteFields } = require('../lib/siteFields');
 const { stash } = require('../lib/trash');
 const logger = require('../lib/logger');
 
 const router = express.Router();
 
-router.post('/', ensureAuthenticated, upload.single('imageFile'), verifyCsrfToken, async (req, res) => {
-  let uploadedPath = req.file ? buildUploadedPath(req.file.filename) : null;
-  let importedPath = null;
+// Rejects the request with a translated 400 message.
+function invalid(key) {
+  return new FieldError(key);
+}
+
+function parseUrl(normalize, value) {
   try {
-    if (req.file) {
-      uploadedPath = await shrinkUploadedLogo(req.file.filename);
+    return normalize(value);
+  } catch {
+    throw invalid('errors.invalidUrl');
+  }
+}
+
+// Keeps a local copy of a remote logo when possible (see importRemoteImage),
+// recording the new file so a failed request can remove it again.
+async function localizeLogo(imageUrl, createdFiles) {
+  if (!imageUrl || isUploadedAsset(imageUrl)) {
+    return imageUrl;
+  }
+  const imported = await importRemoteImage(imageUrl);
+  if (!imported) {
+    return imageUrl;
+  }
+  createdFiles.push(imported);
+  return imported;
+}
+
+// Stores and checks the uploaded file, if any (see shrinkUploadedLogo).
+async function receiveUpload(req, createdFiles) {
+  if (!req.file) {
+    return null;
+  }
+  const storedPath = await shrinkUploadedLogo(req.file.filename);
+  createdFiles.push(storedPath);
+  return storedPath;
+}
+
+// One place to turn a failed save into a response, after removing every file
+// the request created (upload, imported logo).
+async function failSave(res, error, createdFiles, logMessage) {
+  await Promise.all(createdFiles.map((file) => deleteUploadedAsset(file)));
+
+  if (error instanceof FieldError) {
+    return res.status(400).send(res.locals.t(error.key));
+  }
+  if (error instanceof InvalidFileError) {
+    return res.status(400).send(res.locals.t('errors.unsupportedFileType'));
+  }
+  if (error instanceof NotFoundError) {
+    return res.status(404).send(res.locals.t('errors.siteNotFound'));
+  }
+  logger.error({ err: error }, logMessage);
+  return res.status(500).send(res.locals.t('errors.shortcutGeneration'));
+}
+
+router.post('/', ensureAuthenticated, upload.single('imageFile'), verifyCsrfToken, async (req, res) => {
+  const createdFiles = [];
+  try {
+    const uploadedPath = await receiveUpload(req, createdFiles);
+    const fields = readSiteFields(req.body);
+    if (!fields.name || !fields.targetUrl) {
+      throw invalid('errors.missingSiteFields');
     }
-    const { name, targetUrl } = req.body;
 
-    const descriptionInput = typeof req.body.description === 'string' ? req.body.description.trim() : '';
+    const targetUrl = parseUrl(normalizeTargetUrl, fields.targetUrl);
+    let imageUrl = uploadedPath || parseUrl(normalizeImageUrl, fields.imageUrl);
 
-    if (!name || !targetUrl) {
-      if (uploadedPath) {
-        await deleteUploadedAsset(uploadedPath);
-      }
-
-      return res.status(400).send(res.locals.t('errors.missingSiteFields'));
+    if (!(await isUrlReachable(targetUrl))) {
+      throw invalid('errors.siteUnreachable');
     }
+    imageUrl = await localizeLogo(imageUrl, createdFiles);
 
-    let normalizedUrl;
-    let normalizedImageUrl;
-
-    try {
-      normalizedUrl = normalizeTargetUrl(targetUrl);
-      normalizedImageUrl = uploadedPath || normalizeImageUrl(req.body.imageUrl);
-    } catch {
-      if (uploadedPath) {
-        await deleteUploadedAsset(uploadedPath);
-      }
-
-      return res.status(400).send(res.locals.t('errors.invalidUrl'));
-    }
-
-    const reachable = await isUrlReachable(normalizedUrl);
-
-    if (!reachable) {
-      if (uploadedPath) {
-        await deleteUploadedAsset(uploadedPath);
-      }
-
-      return res.status(400).send(res.locals.t('errors.siteUnreachable'));
-    }
-
-    // Keep a local copy of a remote logo when possible (see importRemoteImage).
-    if (normalizedImageUrl && !isUploadedAsset(normalizedImageUrl)) {
-      importedPath = await importRemoteImage(normalizedImageUrl);
-      normalizedImageUrl = importedPath || normalizedImageUrl;
-    }
-
-    await updateJson(SITES_FILE, (sites) => {
-      sites.push({
+    await updateJson(SITES_FILE, (sites) => [
+      ...sites,
+      {
         id: crypto.randomUUID(),
-        name: name.trim(),
-        targetUrl: normalizedUrl,
-        description: descriptionInput,
-        imageUrl: normalizedImageUrl,
+        name: fields.name,
+        targetUrl,
+        description: fields.description || '',
+        imageUrl,
         createdAt: new Date().toISOString(),
-      });
-      return sites;
-    });
+      },
+    ]);
 
     res.redirect('/admin?status=created');
   } catch (error) {
-    logger.error({ err: error }, 'Site creation failed');
-
-    if (uploadedPath) {
-      await deleteUploadedAsset(uploadedPath);
-    }
-    if (importedPath) {
-      await deleteUploadedAsset(importedPath);
-    }
-
-    res.status(500).send(res.locals.t('errors.shortcutGeneration'));
+    await failSave(res, error, createdFiles, 'Site creation failed');
   }
 });
 
+// Fields left out of the request keep their current value; an empty name or
+// URL also keeps the current one, while an empty description or logo clears it.
 router.post('/:id', ensureAuthenticated, upload.single('imageFile'), verifyCsrfToken, async (req, res) => {
-  let uploadedPath = req.file ? buildUploadedPath(req.file.filename) : null;
-  let importedPath = null;
+  const createdFiles = [];
   try {
-    if (req.file) {
-      uploadedPath = await shrinkUploadedLogo(req.file.filename);
-    }
-    const { id } = req.params;
-    const { name, targetUrl } = req.body;
-    const descriptionInput = typeof req.body.description === 'string' ? req.body.description.trim() : undefined;
+    const uploadedPath = await receiveUpload(req, createdFiles);
+    const fields = readSiteFields(req.body);
 
-    // Snapshot read to compute fallbacks (existing targetUrl/imageUrl) and to
-    // validate/run the network reachability check *before* touching the file.
-    // The actual persisted mutation below re-reads the current state under the
-    // lock, so a concurrent delete/update is still handled correctly.
-    const currentSites = await readJson(SITES_FILE);
-    const currentSite = currentSites.find((site) => site.id === id);
-
+    // Snapshot read for the fallbacks and the reachability check, run before
+    // touching the file; the write below re-reads under the lock, so a
+    // concurrent delete is still detected.
+    const currentSite = (await readJson(SITES_FILE)).find((site) => site.id === req.params.id);
     if (!currentSite) {
-      if (uploadedPath) {
-        await deleteUploadedAsset(uploadedPath);
-      }
-      return res.status(404).send(res.locals.t('errors.siteNotFound'));
+      throw new NotFoundError();
     }
 
-    let normalizedUrl;
-    let nextImage = currentSite.imageUrl;
-    let shouldDeletePrevious = false;
-
-    try {
-      normalizedUrl = normalizeTargetUrl(targetUrl?.trim() || currentSite.targetUrl);
-
-      if (uploadedPath) {
-        nextImage = uploadedPath;
-        shouldDeletePrevious = true;
-      } else if (typeof req.body.imageUrl !== 'undefined') {
-        nextImage = normalizeImageUrl(req.body.imageUrl);
-        if (nextImage !== currentSite.imageUrl) {
-          shouldDeletePrevious = true;
-        }
-      }
-    } catch {
-      if (uploadedPath) {
-        await deleteUploadedAsset(uploadedPath);
-      }
-      return res.status(400).send(res.locals.t('errors.invalidUrl'));
+    const targetUrl = parseUrl(normalizeTargetUrl, fields.targetUrl || currentSite.targetUrl);
+    let imageUrl = currentSite.imageUrl;
+    if (uploadedPath) {
+      imageUrl = uploadedPath;
+    } else if (fields.imageUrl !== undefined) {
+      imageUrl = parseUrl(normalizeImageUrl, fields.imageUrl);
     }
 
-    const reachable = await isUrlReachable(normalizedUrl);
-
-    if (!reachable) {
-      if (uploadedPath) {
-        await deleteUploadedAsset(uploadedPath);
-      }
-      return res.status(400).send(res.locals.t('errors.siteUnreachable'));
+    if (!(await isUrlReachable(targetUrl))) {
+      throw invalid('errors.siteUnreachable');
     }
-
-    // Keep a local copy of a remote logo when possible (see importRemoteImage);
-    // this also migrates an existing site's remote logo on its next save.
-    if (nextImage && !isUploadedAsset(nextImage)) {
-      importedPath = await importRemoteImage(nextImage);
-      if (importedPath) {
-        nextImage = importedPath;
-        shouldDeletePrevious = true;
-      }
-    }
-
-    const previousImage = currentSite.imageUrl;
+    imageUrl = await localizeLogo(imageUrl, createdFiles);
 
     await updateJson(SITES_FILE, (sites) => {
-      const index = sites.findIndex((site) => site.id === id);
+      const index = sites.findIndex((site) => site.id === req.params.id);
       if (index === -1) {
         throw new NotFoundError();
       }
-
+      const site = sites[index];
       sites[index] = {
-        ...sites[index],
-        name: name?.trim() || sites[index].name,
-        targetUrl: normalizedUrl,
-        description: typeof descriptionInput === 'undefined' ? sites[index].description || '' : descriptionInput,
-        imageUrl: nextImage,
+        ...site,
+        name: fields.name || site.name,
+        targetUrl,
+        description: fields.description ?? site.description ?? '',
+        imageUrl,
         updatedAt: new Date().toISOString(),
       };
-
       return sites;
     });
 
-    if (shouldDeletePrevious) {
-      await deleteUploadedAsset(previousImage);
+    // Saved: the new files are now in use, and a replaced local logo isn't.
+    createdFiles.length = 0;
+    if (imageUrl !== currentSite.imageUrl) {
+      await deleteUploadedAsset(currentSite.imageUrl);
     }
 
     res.redirect('/admin?status=updated');
   } catch (error) {
-    if (uploadedPath) {
-      await deleteUploadedAsset(uploadedPath);
-    }
-    if (importedPath) {
-      await deleteUploadedAsset(importedPath);
-    }
-
-    if (error instanceof NotFoundError) {
-      return res.status(404).send(res.locals.t('errors.siteNotFound'));
-    }
-
-    logger.error({ err: error }, 'Site update failed');
-    res.status(500).send(res.locals.t('errors.shortcutGeneration'));
+    await failSave(res, error, createdFiles, 'Site update failed');
   }
 });
 
 router.post('/:id/delete', ensureAuthenticated, verifyCsrfToken, async (req, res) => {
-  const { id } = req.params;
-
+  let deletedSite = null;
   try {
-    let deletedSite = null;
-
     await updateJson(SITES_FILE, (sites) => {
-      const index = sites.findIndex((site) => site.id === id);
-      if (index === -1) {
+      deletedSite = sites.find((site) => site.id === req.params.id);
+      if (!deletedSite) {
         throw new NotFoundError();
       }
-      deletedSite = sites[index];
-      return sites.filter((site) => site.id !== id);
+      return sites.filter((site) => site !== deletedSite);
     });
-
-    // The uploaded asset is only actually removed once the undo window
-    // expires unused, so clicking "Undo" can still show the original image.
-    const undoToken = deletedSite
-      ? stash({ type: 'site', item: deletedSite }, (payload) => {
-          deleteUploadedAsset(payload.item.imageUrl).catch((error) => {
-            logger.error({ err: error }, 'Unable to clean up asset after undo window expired');
-          });
-        })
-      : null;
-
-    const undoParam = undoToken ? `&undoToken=${encodeURIComponent(undoToken)}` : '';
-    res.redirect(`/admin?status=deleted${undoParam}`);
   } catch (error) {
     if (error instanceof NotFoundError) {
       return res.status(404).send(res.locals.t('errors.siteNotFound'));
     }
     throw error;
   }
+
+  // The logo is only actually removed once the undo window expires unused,
+  // so "Undo" can still bring the site back with it.
+  const undoToken = stash({ type: 'site', item: deletedSite }, (payload) => {
+    deleteUploadedAsset(payload.item.imageUrl).catch((error) => {
+      logger.error({ err: error }, 'Unable to clean up asset after undo window expired');
+    });
+  });
+
+  res.redirect(`/admin?status=deleted&undoToken=${encodeURIComponent(undoToken)}`);
 });
 
 module.exports = router;

@@ -5,35 +5,10 @@ const path = require('path');
 const { UPLOAD_DIR } = require('../config');
 const httpClient = require('./httpClient');
 const { buildUploadedPath } = require('./uploads');
-const { shrinkLogo } = require('./imageResize');
+const { shrinkLogo, detectImageType } = require('./images');
 
 // Same cap as manual uploads (see uploads.js).
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-
-// Identifies the format from the file's first bytes instead of trusting the
-// remote Content-Type. Raster formats only: SVG (or anything else) is refused
-// for the same stored-XSS reason as manual uploads, since /uploads is served
-// from the app's own origin.
-function detectImageType(buffer) {
-  const startsWith = (bytes, offset = 0) => bytes.every((byte, index) => buffer[offset + index] === byte);
-
-  if (startsWith([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) {
-    return 'png';
-  }
-  if (startsWith([0xff, 0xd8, 0xff])) {
-    return 'jpg';
-  }
-  if (startsWith([0x47, 0x49, 0x46, 0x38])) {
-    return 'gif';
-  }
-  if (startsWith([0x52, 0x49, 0x46, 0x46]) && startsWith([0x57, 0x45, 0x42, 0x50], 8)) {
-    return 'webp';
-  }
-  if (startsWith([0x00, 0x00, 0x01, 0x00])) {
-    return 'ico';
-  }
-  return null;
-}
 
 // Stores image bytes (a download, a backup being imported) in /uploads and
 // returns the local path, or null if they aren't a supported raster image or
@@ -74,4 +49,4 @@ async function importRemoteImage(remoteUrl) {
   }
 }
 
-module.exports = { importRemoteImage, saveImageBuffer, detectImageType };
+module.exports = { importRemoteImage, saveImageBuffer };

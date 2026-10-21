@@ -9,9 +9,13 @@ const logger = require('../lib/logger');
 
 const router = express.Router();
 
+// 10 failed attempts per IP and 15 minutes; successful logins don't count.
+// Behind a reverse proxy, TRUST_PROXY=true is needed for the real client IP:
+// otherwise every visitor shares the proxy's address, and its limit.
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
+  skipSuccessfulRequests: true,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
@@ -59,7 +63,7 @@ router.post('/login', loginLimiter, verifyCsrfToken, (req, res) => {
     });
   }
 
-  res.render('login', {
+  res.status(401).render('login', {
     pageTitle: res.locals.t('app.loginTitle'),
     errorKey: 'login.invalidCredentials',
   });

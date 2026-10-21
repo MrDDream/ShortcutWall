@@ -3,7 +3,7 @@ import os from 'os';
 import path from 'path';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
-import { readJson, writeJson, updateJson, NotFoundError } from '../../src/lib/store.js';
+import { readJson, updateJson, NotFoundError } from '../../src/lib/store.js';
 
 describe('store', () => {
   let tmpDir;
@@ -24,15 +24,33 @@ describe('store', () => {
     expect(fs.existsSync(tmpFile)).toBe(true);
   });
 
-  it('round-trips written data', async () => {
-    await writeJson(tmpFile, [{ id: '1' }]);
+  it('round-trips written data, leaving no temporary file behind', async () => {
+    await updateJson(tmpFile, () => [{ id: '1' }]);
     expect(await readJson(tmpFile)).toEqual([{ id: '1' }]);
+    expect(fs.readdirSync(tmpDir)).toEqual(['data.json']);
+  });
+
+  it('keeps the previous content when a write fails midway (atomic write)', async () => {
+    await updateJson(tmpFile, () => [{ id: 'kept' }]);
+
+    // A value JSON.stringify can't serialize makes the write throw.
+    const circular = {};
+    circular.self = circular;
+    await expect(updateJson(tmpFile, () => [circular])).rejects.toThrow();
+
+    expect(await readJson(tmpFile)).toEqual([{ id: 'kept' }]);
+    expect(fs.readdirSync(tmpDir)).toEqual(['data.json']);
+  });
+
+  it('refuses a data file that is not a JSON array', async () => {
+    fs.writeFileSync(tmpFile, '{"id": 1}');
+    await expect(readJson(tmpFile)).rejects.toThrow(/JSON array/);
   });
 
   it('serializes concurrent updateJson calls without losing writes (regression test)', async () => {
     // Guards against the read-modify-write race that used to let concurrent
     // admin requests silently overwrite each other's changes.
-    await writeJson(tmpFile, []);
+    await updateJson(tmpFile, () => []);
 
     await Promise.all(
       Array.from({ length: 25 }, (_, index) =>
@@ -49,7 +67,7 @@ describe('store', () => {
   });
 
   it('propagates a NotFoundError from the updater without writing', async () => {
-    await writeJson(tmpFile, [{ id: 'a' }]);
+    await updateJson(tmpFile, () => [{ id: 'a' }]);
 
     await expect(
       updateJson(tmpFile, () => {
@@ -61,7 +79,7 @@ describe('store', () => {
   });
 
   it('keeps the per-file queue usable after a failed update', async () => {
-    await writeJson(tmpFile, []);
+    await updateJson(tmpFile, () => []);
     await expect(
       updateJson(tmpFile, () => {
         throw new Error('boom');

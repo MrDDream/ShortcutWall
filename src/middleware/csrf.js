@@ -23,13 +23,13 @@ function attachCsrfToken(req, res, next) {
 
 function verifyCsrfToken(req, res, next) {
   const sessionToken = req.session?.csrfToken;
-  const submittedToken = typeof req.body?._csrf === 'string' ? req.body._csrf : '';
+  const submitted = Buffer.from(typeof req.body?._csrf === 'string' ? req.body._csrf : '');
+  const expected = Buffer.from(typeof sessionToken === 'string' ? sessionToken : '');
 
+  // Lengths compared in bytes, not characters: timingSafeEqual throws on
+  // buffers of different sizes (a non-ASCII token used to cause a 500).
   const isValid =
-    typeof sessionToken === 'string' &&
-    sessionToken.length > 0 &&
-    submittedToken.length === sessionToken.length &&
-    crypto.timingSafeEqual(Buffer.from(submittedToken), Buffer.from(sessionToken));
+    expected.length > 0 && submitted.length === expected.length && crypto.timingSafeEqual(submitted, expected);
 
   if (!isValid) {
     return res.status(403).send(res.locals.t('errors.invalidCsrfToken'));

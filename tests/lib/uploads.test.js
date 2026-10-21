@@ -27,6 +27,7 @@ describe('uploads path traversal protection', () => {
     expect(isUploadedAsset(null)).toBe(false);
     expect(isUploadedAsset('https://evil.com/x.png')).toBe(false);
     expect(isUploadedAsset('/etc/passwd')).toBe(false);
+    expect(isUploadedAsset('/uploads/')).toBe(false);
   });
 
   it('never deletes a file outside UPLOAD_DIR (regression test)', async () => {

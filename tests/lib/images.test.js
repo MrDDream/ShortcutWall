@@ -3,7 +3,7 @@ import path from 'path';
 import sharp from 'sharp';
 import { describe, it, expect, afterEach } from 'vitest';
 
-import { shrinkLogo, MAX_LOGO_SIZE } from '../../src/lib/imageResize.js';
+import { shrinkLogo, detectImageType, MAX_LOGO_SIZE } from '../../src/lib/images.js';
 import { shrinkUploadedLogo } from '../../src/lib/uploads.js';
 import { UPLOAD_DIR } from '../../src/config.js';
 
@@ -12,7 +12,7 @@ const png = (width, height) =>
     .png()
     .toBuffer();
 
-describe('imageResize.shrinkLogo', () => {
+describe('images.shrinkLogo', () => {
   it('downsizes a large image to fit MAX_LOGO_SIZE, keeping ratio and transparency, as WebP', async () => {
     const shrunk = await shrinkLogo(await png(1254, 627));
     const meta = await sharp(shrunk).metadata();
@@ -62,5 +62,25 @@ describe('uploads.shrinkUploadedLogo', () => {
 
     expect(await shrinkUploadedLogo('test-small-logo.png')).toBe('/uploads/test-small-logo.png');
     expect(fs.existsSync(path.join(UPLOAD_DIR, 'test-small-logo.png'))).toBe(true);
+  });
+});
+
+const bytes = (...values) => Buffer.from(values);
+
+describe('images.detectImageType', () => {
+  it('recognises the supported raster formats from their signature', () => {
+    expect(detectImageType(bytes(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00))).toBe('png');
+    expect(detectImageType(bytes(0xff, 0xd8, 0xff, 0xe0))).toBe('jpg');
+    expect(detectImageType(Buffer.from('GIF89a'))).toBe('gif');
+    expect(detectImageType(Buffer.concat([Buffer.from('RIFF'), bytes(0, 0, 0, 0), Buffer.from('WEBPVP8 ')]))).toBe(
+      'webp',
+    );
+    expect(detectImageType(bytes(0x00, 0x00, 0x01, 0x00, 0x01))).toBe('ico');
+  });
+
+  it('refuses SVG, HTML and anything unknown, whatever the server claimed', () => {
+    expect(detectImageType(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script/></svg>'))).toBeNull();
+    expect(detectImageType(Buffer.from('<!DOCTYPE html><html>'))).toBeNull();
+    expect(detectImageType(Buffer.alloc(0))).toBeNull();
   });
 });

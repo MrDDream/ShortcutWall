@@ -9,12 +9,13 @@ const { readJson, updateJson } = require('../lib/store');
 const { isUploadedAsset, readUploadedAsset, deleteUploadedAsset } = require('../lib/uploads');
 const { saveImageBuffer } = require('../lib/remoteImage');
 const { normalizeTargetUrl, normalizeImageUrl } = require('../lib/urlUtils');
+const { FIELD_LIMITS, readTextField } = require('../lib/siteFields');
 const logger = require('../lib/logger');
 
 const router = express.Router();
 
 // Backup file format: a self-contained JSON document, uploaded logos embedded
-// as base64 (they're downsized to a few KB each, see imageResize.js).
+// as base64 (they're downsized to a few KB each, see images.js).
 const BACKUP_APP = 'ShortcutWall';
 const BACKUP_VERSION = 1;
 const MAX_BACKUP_BYTES = 20 * 1024 * 1024;
@@ -94,27 +95,37 @@ function parseBackup(file) {
   }
 
   return backup.sites.map((entry) => {
-    const name = typeof entry?.name === 'string' ? entry.name.trim() : '';
+    // Same limits as the forms (see siteFields.js): a backup can't sneak in
+    // what the admin couldn't type.
+    const text = (value, maxLength) => {
+      try {
+        return readTextField(value, maxLength);
+      } catch {
+        return null;
+      }
+    };
+    const name = text(entry?.name, FIELD_LIMITS.name);
+    const description = text(entry?.description, FIELD_LIMITS.description);
     let targetUrl = null;
     try {
-      targetUrl = normalizeTargetUrl(entry?.targetUrl || '');
+      targetUrl = normalizeTargetUrl(text(entry?.targetUrl, FIELD_LIMITS.url) || '');
     } catch {
       // Reported below.
     }
-    if (!name || !targetUrl) {
+    if (!name || !targetUrl || description === null) {
       throw new ImportError('errors.importInvalidSite', { name: name || '?' });
     }
 
     let imageUrl = '';
     try {
-      imageUrl = normalizeImageUrl(entry.imageUrl || '');
+      imageUrl = normalizeImageUrl(text(entry.imageUrl, FIELD_LIMITS.url) || '');
     } catch {
       // An unusable logo URL just means no logo.
     }
 
     return {
       name,
-      description: typeof entry.description === 'string' ? entry.description.trim() : '',
+      description,
       targetUrl,
       // Another install's /uploads path points at nothing here.
       imageUrl: isUploadedAsset(imageUrl) ? '' : imageUrl,

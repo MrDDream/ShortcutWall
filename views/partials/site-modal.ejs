@@ -23,7 +23,7 @@
     <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
     <div class="field field--half">
       <label class="field__label" for="<%= prefix %>-name"><%= t('forms.name') %></label>
-      <input class="input" type="text" name="name" id="<%= prefix %>-name" value="<%= isNew ? '' : site.name %>" required />
+      <input class="input" type="text" name="name" id="<%= prefix %>-name" value="<%= isNew ? '' : site.name %>" maxlength="<%= fieldLimits.name %>" required />
     </div>
     <div class="field field--half">
       <label class="field__label" for="<%= prefix %>-description"><%= t('forms.descriptionOptional') %></label>
@@ -32,6 +32,7 @@
         type="text"
         name="description"
         id="<%= prefix %>-description"
+        maxlength="<%= fieldLimits.description %>"
         value="<%= isNew ? '' : site.description || '' %>"
       />
     </div>
@@ -42,6 +43,7 @@
         type="url"
         name="targetUrl"
         id="<%= prefix %>-url"
+        maxlength="<%= fieldLimits.url %>"
         value="<%= isNew ? '' : site.targetUrl %>"
         placeholder="<%= t('forms.siteUrlPlaceholder') %>"
         required
@@ -58,6 +60,7 @@
           autocomplete="off"
           name="imageUrl"
           id="<%= prefix %>-image"
+          maxlength="<%= fieldLimits.url %>"
           value="<%= isNew ? '' : site.imageUrl || '' %>"
           placeholder="<%= t('forms.siteImagePlaceholder') %>"
         />

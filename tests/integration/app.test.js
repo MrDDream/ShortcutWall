@@ -147,8 +147,18 @@ describe('ShortcutWall app', () => {
       .type('form')
       .send({ username: 'testadmin', password: 'wrong', _csrf: csrf });
 
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(401);
     expect(res.text).toMatch(/invalid/i);
+  });
+
+  it('answers a malformed (non-ASCII) CSRF token with 403, not a crash', async () => {
+    const freshAgent = request.agent(app);
+    await freshAgent.get('/admin/login');
+    const res = await freshAgent
+      .post('/admin/login')
+      .type('form')
+      .send({ username: 'x', password: 'y', _csrf: 'é'.repeat(64) });
+    expect(res.status).toBe(403);
   });
 
   it('logs in with the correct credentials and a valid CSRF token', async () => {
@@ -243,6 +253,62 @@ describe('ShortcutWall app', () => {
       });
 
       expect(res.status).toBe(400);
+      expect(readData('shortcuts.json')).toHaveLength(0);
+    });
+
+    it('rejects a repeated field or an overlong name with 400, not a crash', async () => {
+      const csrf = extractCsrfToken((await agent.get('/admin')).text);
+
+      const repeated = await agent
+        .post('/admin/site')
+        .type('form')
+        .send(`name=a&name=b&targetUrl=https%3A%2F%2Fexample.com&_csrf=${csrf}`);
+      expect(repeated.status).toBe(400);
+
+      const tooLong = await agent
+        .post('/admin/site')
+        .type('form')
+        .send({ name: 'x'.repeat(101), targetUrl: 'https://example.com', _csrf: csrf });
+      expect(tooLong.status).toBe(400);
+      expect(readData('shortcuts.json')).toHaveLength(0);
+    });
+
+    it('stores an uploaded logo under a generated name, whatever the original name', async () => {
+      const csrf = extractCsrfToken((await agent.get('/admin')).text);
+      const png = await sharp({ create: { width: 16, height: 16, channels: 3, background: '#123456' } })
+        .png()
+        .toBuffer();
+
+      const res = await agent
+        .post('/admin/site')
+        .field('_csrf', csrf)
+        .field('name', 'Uploaded')
+        .field('targetUrl', 'https://example.com')
+        .attach('imageFile', png, { filename: 'logo#1 %.png', contentType: 'image/png' });
+
+      expect(res.status).toBe(302);
+      const [site] = readData('shortcuts.json');
+      expect(site.imageUrl).toMatch(/^\/uploads\/logo-\d+-[0-9a-f]{8}\.png$/);
+      expect((await request(app).get(site.imageUrl)).status).toBe(200);
+      writeData('shortcuts.json', []);
+    });
+
+    it('rejects a non-image upload disguised as a PNG and keeps no file', async () => {
+      const csrf = extractCsrfToken((await agent.get('/admin')).text);
+      const before = fs.readdirSync(process.env.UPLOAD_DIR).length;
+
+      const res = await agent
+        .post('/admin/site')
+        .field('_csrf', csrf)
+        .field('name', 'Fake')
+        .field('targetUrl', 'https://example.com')
+        .attach('imageFile', Buffer.from('<html><script>alert(1)</script></html>'), {
+          filename: 'fake.png',
+          contentType: 'image/png',
+        });
+
+      expect(res.status).toBe(400);
+      expect(fs.readdirSync(process.env.UPLOAD_DIR)).toHaveLength(before);
       expect(readData('shortcuts.json')).toHaveLength(0);
     });
 

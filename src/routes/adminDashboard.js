@@ -2,6 +2,7 @@ const express = require('express');
 
 const { ensureAuthenticated } = require('../middleware/auth');
 const { USES_DEFAULT_CREDENTIALS } = require('../config');
+const { FIELD_LIMITS } = require('../lib/siteFields');
 
 const router = express.Router();
 
@@ -25,6 +26,7 @@ router.get('/', ensureAuthenticated, (req, res) => {
     statusVars: { count: Number.parseInt(req.query.count, 10) || 0 },
     undoToken,
     usesDefaultCredentials: USES_DEFAULT_CREDENTIALS,
+    fieldLimits: FIELD_LIMITS,
     pageTitle: res.locals.t('app.adminTitle'),
   });
 });

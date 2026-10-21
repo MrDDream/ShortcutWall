@@ -19,8 +19,11 @@ function withLock(filePath, task) {
 
 async function readFileAsJson(filePath) {
   try {
-    const raw = await fs.readFile(filePath, 'utf-8');
-    return JSON.parse(raw);
+    const data = JSON.parse(await fs.readFile(filePath, 'utf-8'));
+    if (!Array.isArray(data)) {
+      throw new Error(`${filePath} does not contain a JSON array`);
+    }
+    return data;
   } catch (error) {
     if (error.code === 'ENOENT') {
       await fs.writeFile(filePath, '[]', 'utf-8');
@@ -30,16 +33,29 @@ async function readFileAsJson(filePath) {
   }
 }
 
+// Writes to a temporary file, flushes it to disk, then renames it over the
+// target. A rename is atomic: a crash or restart mid-write leaves the previous
+// version intact instead of a truncated file (which used to empty the wall and
+// block every later save).
 async function writeFileAsJson(filePath, payload) {
-  await fs.writeFile(filePath, JSON.stringify(payload, null, 2), 'utf-8');
+  const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  try {
+    const handle = await fs.open(tempPath, 'w');
+    try {
+      await handle.writeFile(JSON.stringify(payload, null, 2), 'utf-8');
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
+    await fs.rename(tempPath, filePath);
+  } catch (error) {
+    await fs.unlink(tempPath).catch(() => {});
+    throw error;
+  }
 }
 
 function readJson(filePath) {
   return withLock(filePath, () => readFileAsJson(filePath));
-}
-
-function writeJson(filePath, payload) {
-  return withLock(filePath, () => writeFileAsJson(filePath, payload));
 }
 
 // Runs an atomic read-modify-write cycle: `updater` receives the current array
@@ -54,4 +70,4 @@ function updateJson(filePath, updater) {
   });
 }
 
-module.exports = { readJson, writeJson, updateJson, NotFoundError };
+module.exports = { readJson, updateJson, NotFoundError };

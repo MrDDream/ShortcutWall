@@ -84,7 +84,7 @@ Tout se règle par variables d'environnement, en général dans `.env`.
 | `SESSION_SECRET` | `change-me` | Secret qui signe la session d'administration. **À changer.** |
 | `ADMIN_USER` / `ADMIN_PASS` | `admin` / `admin123` | Identifiants d'administration. **À changer.** |
 | `PORT` / `HOST` | `3050` / `0.0.0.0` | Port et adresse d'écoute. |
-| `TRUST_PROXY` | `false` | À mettre à `true` derrière un reverse proxy (HTTPS, IP du client). |
+| `TRUST_PROXY` | `false` | À mettre à `true` derrière un reverse proxy (HTTPS, IP du client). Sans cela, tous les visiteurs partagent l'IP du proxy, et sa limite de tentatives de connexion. |
 | `APP_NAME` | `ShortcutWall` | Nom affiché dans l'en-tête et le titre des pages. |
 | `APP_DEFAULT_LOCALE` | `fr` | Langue par défaut (`fr` ou `en`). |
 | `SUPPORT_EMAIL` / `SUPPORT_PHONE` | — | Contacts de la fenêtre « Besoin d'aide ? » (masquée si vides). |
@@ -92,7 +92,9 @@ Tout se règle par variables d'environnement, en général dans `.env`.
 | `DATA_DIR` | `./data` | Dossier des raccourcis et des sessions. |
 | `UPLOAD_DIR` | `./public/uploads` | Dossier des logos (servis sur `/uploads`). |
 
-L'administration affiche un avertissement tant que les identifiants ou le secret par défaut sont utilisés.
+En production (`NODE_ENV=production`, le défaut avec Docker), l'application **refuse de démarrer** tant que
+`ADMIN_PASS` ou `SESSION_SECRET` garde sa valeur par défaut ; ailleurs, l'administration affiche un avertissement.
+La connexion est limitée à 10 échecs par IP toutes les 15 minutes.
 
 ## Utilisation
 

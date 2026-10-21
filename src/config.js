@@ -50,22 +50,16 @@ const LANGUAGE_FLAGS = {
   en: { icon: '/images/flags/gb.svg' },
 };
 
-// Surfaced in the admin UI itself (not just server logs), since a self-hoster
-// following the Docker quick-start may never see the startup console output.
-const USES_DEFAULT_CREDENTIALS =
-  SESSION_SECRET === DEFAULT_SESSION_SECRET || (ADMIN_USER === DEFAULT_ADMIN_USER && ADMIN_PASS === DEFAULT_ADMIN_PASS);
+// The password and the session secret published in this repository: anyone who
+// read the source could log in, or sign a session cookie.
+const USES_DEFAULT_CREDENTIALS = SESSION_SECRET === DEFAULT_SESSION_SECRET || ADMIN_PASS === DEFAULT_ADMIN_PASS;
 
-// Loud, unmissable warnings if the operator never overrode the well-known
-// defaults published in this repo's .env.example — anyone who read the source
-// can log in, or (for SESSION_SECRET) forge a valid admin session cookie.
-if (SESSION_SECRET === DEFAULT_SESSION_SECRET) {
-  console.warn(
-    '[SECURITY] SESSION_SECRET is left at its default value. Set a unique, random SESSION_SECRET in your environment.',
-  );
-}
-if (ADMIN_USER === DEFAULT_ADMIN_USER && ADMIN_PASS === DEFAULT_ADMIN_PASS) {
-  console.warn(
-    '[SECURITY] ADMIN_USER/ADMIN_PASS are left at their default values. Set unique credentials in your environment.',
+// Refuse to serve a production instance with them (outside production, e.g. a
+// quick local try, the admin area shows a warning banner instead).
+if (IS_PRODUCTION && USES_DEFAULT_CREDENTIALS) {
+  throw new Error(
+    'Refusing to start in production with the default ADMIN_PASS or SESSION_SECRET. ' +
+      'Set your own values in .env (see .env.example).',
   );
 }
 

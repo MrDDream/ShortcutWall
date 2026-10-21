@@ -1,11 +1,11 @@
+const crypto = require('crypto');
 const fsSync = require('fs');
 const fs = require('fs').promises;
 const path = require('path');
 const multer = require('multer');
 
 const { UPLOAD_DIR } = require('../config');
-const { sanitizeFilename } = require('./filenames');
-const { shrinkLogo } = require('./imageResize');
+const { shrinkLogo, detectImageType } = require('./images');
 const logger = require('./logger');
 
 // Synchronous so the directory exists before any request (or test) writes to it.
@@ -18,13 +18,13 @@ const ALLOWED_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp']);
 
 class InvalidFileError extends Error {}
 
+// Generated names, never the uploader's: characters such as "#" or "%" in a
+// file name would otherwise break the logo's URL.
 const uploadStorage = multer.diskStorage({
   destination: (_, __, cb) => cb(null, UPLOAD_DIR),
   filename: (_, file, cb) => {
-    const { name, ext } = path.parse(file.originalname);
-    const safeName = sanitizeFilename(name || 'image');
-    const timestamp = Date.now();
-    cb(null, `${safeName}-${timestamp}${ext.toLowerCase()}`);
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    cb(null, `logo-${Date.now()}-${crypto.randomBytes(4).toString('hex')}${ext}`);
   },
 });
 
@@ -44,13 +44,20 @@ function buildUploadedPath(filename) {
   return `/uploads/${filename}`;
 }
 
-// Downsizes a freshly uploaded logo (see shrinkLogo) and returns the stored
-// path to use: the WebP copy, replacing the original, or the original itself
-// when it was already small enough or couldn't be processed.
+// Checks a freshly uploaded logo and downsizes it (see shrinkLogo). Returns the
+// stored path to use: the WebP copy, replacing the original, or the original
+// itself when it was already small enough or couldn't be resized. The declared
+// type and extension only passed multer's filter: a file whose actual bytes
+// aren't a raster image (e.g. HTML renamed .png) is deleted and rejected.
 async function shrinkUploadedLogo(filename) {
   const originalPath = path.join(UPLOAD_DIR, filename);
+  const bytes = await fs.readFile(originalPath);
+  if (!detectImageType(bytes)) {
+    await fs.unlink(originalPath).catch(() => {});
+    throw new InvalidFileError('Uploaded file is not an image.');
+  }
   try {
-    const shrunk = await shrinkLogo(await fs.readFile(originalPath));
+    const shrunk = await shrinkLogo(bytes);
     if (!shrunk) {
       return buildUploadedPath(filename);
     }
@@ -80,7 +87,8 @@ function resolveUploadPath(value) {
   const resolved = path.resolve(UPLOAD_DIR, relative);
   const uploadDirWithSep = UPLOAD_DIR.endsWith(path.sep) ? UPLOAD_DIR : `${UPLOAD_DIR}${path.sep}`;
 
-  if (resolved !== UPLOAD_DIR && !resolved.startsWith(uploadDirWithSep)) {
+  // Strictly inside: "/uploads/" alone would resolve to the directory itself.
+  if (!resolved.startsWith(uploadDirWithSep) || resolved === uploadDirWithSep) {
     return null;
   }
 

@@ -83,7 +83,7 @@ Everything is set through environment variables, usually in `.env`.
 | `SESSION_SECRET` | `change-me` | Secret signing the admin session. **Change it.** |
 | `ADMIN_USER` / `ADMIN_PASS` | `admin` / `admin123` | Admin credentials. **Change them.** |
 | `PORT` / `HOST` | `3050` / `0.0.0.0` | Listening port and address. |
-| `TRUST_PROXY` | `false` | Set to `true` behind a reverse proxy (HTTPS, client IP). |
+| `TRUST_PROXY` | `false` | Set to `true` behind a reverse proxy (HTTPS, client IP). Without it, every visitor shares the proxy's IP, and its login attempt limit. |
 | `APP_NAME` | `ShortcutWall` | Name shown in the header and page titles. |
 | `APP_DEFAULT_LOCALE` | `fr` | Default language (`fr` or `en`). |
 | `SUPPORT_EMAIL` / `SUPPORT_PHONE` | — | Contacts shown in the "Need help?" dialog (hidden if empty). |
@@ -91,7 +91,9 @@ Everything is set through environment variables, usually in `.env`.
 | `DATA_DIR` | `./data` | Folder for shortcuts and sessions. |
 | `UPLOAD_DIR` | `./public/uploads` | Folder for logos (served at `/uploads`). |
 
-The admin area shows a warning as long as the default credentials or secret are in use.
+In production (`NODE_ENV=production`, the Docker default) the app **refuses to start** while `ADMIN_PASS` or
+`SESSION_SECRET` keeps its default value; elsewhere the admin area shows a warning instead.
+Login is limited to 10 failed attempts per IP every 15 minutes.
 
 ## Usage
 
