@@ -33,6 +33,10 @@ function localeMiddleware(req, res, next) {
     confirmDelete: translate(sessionLocale, 'forms.confirmDelete'),
     confirmDeleteAction: translate(sessionLocale, 'forms.delete'),
     cancel: translate(sessionLocale, 'forms.cancel'),
+    discardChanges: translate(sessionLocale, 'forms.discardChanges'),
+    discardAction: translate(sessionLocale, 'forms.discard'),
+    keepEditing: translate(sessionLocale, 'forms.keepEditing'),
+    unexpectedError: translate(sessionLocale, 'errors.unexpected'),
     searchNoResults: translate(sessionLocale, 'search.noResults'),
     saving: translate(sessionLocale, 'forms.saving'),
   };

@@ -11,13 +11,14 @@ function readClientTranslations() {
 
 let currentSort = 'alpha';
 
+// Admin forms with edits not yet submitted (see setupUnsavedChangesWarning).
+const dirtyForms = new Set();
+
 document.addEventListener('DOMContentLoaded', () => {
   initThemeToggle();
   setupSortControl();
-  setupViewSwitch();
   setupSearchFilter();
   setupSearchShortcut();
-  setupAdminTabs();
   setupAdminMenu();
   setupFaviconButtons();
   setupFaviconThumbnails();
@@ -25,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupHelpModal();
   setupDeleteConfirmation();
   setupFormSubmitFeedback();
+  setupModals();
   setupAdminSearch();
   setupUndoDelete();
   setupToasts();
@@ -50,55 +52,6 @@ function initThemeToggle() {
       // Storage unavailable: the choice simply won't persist across pages.
     }
   });
-}
-
-function setupViewSwitch() {
-  const switchButtons = Array.from(document.querySelectorAll('.view-switch__button'));
-  if (!switchButtons.length) {
-    return;
-  }
-
-  const grids = {
-    sites: document.getElementById('sites-grid'),
-    folders: document.getElementById('folders-grid'),
-  };
-
-  let currentView = switchButtons.find((btn) => btn.classList.contains('is-active'))?.dataset.view || 'sites';
-  document.body.dataset.view = currentView;
-
-  function activate(view) {
-    if (!grids[view]) {
-      return;
-    }
-
-    currentView = view;
-    document.body.dataset.view = view;
-    Object.entries(grids).forEach(([key, section]) => {
-      if (!section) {
-        return;
-      }
-      section.classList.toggle('is-active', key === view);
-    });
-
-    switchButtons.forEach((btn) => {
-      btn.classList.toggle('is-active', btn.dataset.view === view);
-    });
-
-    const url = new URL(window.location.href);
-    url.searchParams.set('type', view);
-    window.history.replaceState({}, '', url);
-
-    applySearchFilter(view);
-  }
-
-  switchButtons.forEach((btn) => {
-    btn.addEventListener('click', (event) => {
-      event.preventDefault();
-      activate(btn.dataset.view);
-    });
-  });
-
-  activate(currentView);
 }
 
 function setupSearchFilter() {
@@ -141,16 +94,11 @@ function setupSearchShortcut() {
   });
 }
 
-function applySearchFilter(view) {
-  const targetView =
-    view ||
-    document.body.dataset.view ||
-    document.querySelector('.view-switch__button.is-active')?.dataset.view ||
-    'sites';
-  applySorting(targetView);
+function applySearchFilter() {
+  applySorting();
 
   const term = document.getElementById('search-term')?.value.trim().toLowerCase() || '';
-  const grid = document.getElementById(`${targetView}-grid`);
+  const grid = document.getElementById('sites-grid');
   if (!grid) {
     return;
   }
@@ -215,23 +163,20 @@ function setupSortControl() {
   applySorting();
 }
 
-function applySorting(view) {
-  const views = view ? [view] : ['sites', 'folders'];
-  views.forEach((targetView) => {
-    const grid = document.getElementById(`${targetView}-grid`);
-    if (!grid) {
-      return;
-    }
+function applySorting() {
+  const grid = document.getElementById('sites-grid');
+  if (!grid) {
+    return;
+  }
 
-    const cards = Array.from(grid.querySelectorAll('.shortcut-card'));
-    const sorted = [...cards].sort((cardA, cardB) => compareCards(cardA, cardB, currentSort));
-    // Re-appending a card restarts its entrance animation, so leave the DOM
-    // alone when the order is unchanged (e.g. on every search keystroke).
-    if (sorted.every((card, index) => card === cards[index])) {
-      return;
-    }
-    sorted.forEach((card) => grid.appendChild(card));
-  });
+  const cards = Array.from(grid.querySelectorAll('.shortcut-card'));
+  const sorted = [...cards].sort((cardA, cardB) => compareCards(cardA, cardB, currentSort));
+  // Re-appending a card restarts its entrance animation, so leave the DOM
+  // alone when the order is unchanged (e.g. on every search keystroke).
+  if (sorted.every((card, index) => card === cards[index])) {
+    return;
+  }
+  sorted.forEach((card) => grid.appendChild(card));
 }
 
 function compareCards(cardA, cardB, sortType) {
@@ -247,43 +192,6 @@ function compareCards(cardA, cardB, sortType) {
   const nameA = (cardA.dataset.sortName || cardA.dataset.name || '').toString();
   const nameB = (cardB.dataset.sortName || cardB.dataset.name || '').toString();
   return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
-}
-
-function setupAdminTabs() {
-  const tabsContainer = document.querySelector('.admin-tabs');
-  if (!tabsContainer) {
-    return;
-  }
-
-  const buttons = Array.from(tabsContainer.querySelectorAll('.admin-tab'));
-  const panels = Array.from(document.querySelectorAll('.admin-panel'));
-  const defaultTab = tabsContainer.dataset.defaultTab || 'sites';
-
-  function activate(tabId) {
-    const targetPanel = panels.find((panel) => panel.id === `panel-${tabId}`);
-    const targetButton = buttons.find((button) => button.dataset.tab === tabId);
-
-    if (!targetPanel || !targetButton) {
-      const fallback = buttons[0];
-      if (fallback) {
-        activate(fallback.dataset.tab);
-      }
-      return;
-    }
-
-    panels.forEach((panel) => panel.classList.toggle('is-active', panel === targetPanel));
-    buttons.forEach((button) => button.classList.toggle('is-active', button === targetButton));
-
-    const url = new URL(window.location.href);
-    url.searchParams.set('tab', tabId);
-    window.history.replaceState({}, '', url);
-  }
-
-  buttons.forEach((button) => {
-    button.addEventListener('click', () => activate(button.dataset.tab));
-  });
-
-  activate(defaultTab);
 }
 
 function setupAdminMenu() {
@@ -357,10 +265,17 @@ function setupDeleteConfirmation() {
   });
 }
 
+const DIALOG_ICONS = {
+  trash:
+    '<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+  alert:
+    '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+};
+
 // Styled replacement for window.confirm(), built on the native <dialog>
 // element (focus trapping, Escape and ::backdrop for free). Falls back to
 // window.confirm() on browsers without showModal().
-function confirmDialog(message) {
+function confirmDialog(message, { confirmLabel, cancelLabel, icon: iconName = 'trash' } = {}) {
   const dialog = document.createElement('dialog');
   if (typeof dialog.showModal !== 'function') {
     return Promise.resolve(window.confirm(message));
@@ -371,10 +286,7 @@ function confirmDialog(message) {
   const icon = document.createElement('span');
   icon.className = 'confirm-dialog__icon';
   icon.setAttribute('aria-hidden', 'true');
-  const trashIcon = document.querySelector('.delete-form .icon');
-  if (trashIcon) {
-    icon.appendChild(trashIcon.cloneNode(true));
-  }
+  icon.innerHTML = `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${DIALOG_ICONS[iconName] || ''}</svg>`;
 
   const text = document.createElement('p');
   text.className = 'confirm-dialog__message';
@@ -388,13 +300,13 @@ function confirmDialog(message) {
   cancel.type = 'submit';
   cancel.value = 'cancel';
   cancel.className = 'btn btn--secondary';
-  cancel.textContent = clientTranslations.cancel || 'Cancel';
+  cancel.textContent = cancelLabel || clientTranslations.cancel || 'Cancel';
 
   const confirm = document.createElement('button');
   confirm.type = 'submit';
   confirm.value = 'confirm';
   confirm.className = 'btn btn--danger-solid';
-  confirm.textContent = clientTranslations.confirmDeleteAction || 'OK';
+  confirm.textContent = confirmLabel || clientTranslations.confirmDeleteAction || 'OK';
 
   actions.append(cancel, confirm);
   dialog.append(icon, text, actions);
@@ -430,11 +342,153 @@ function setupFormSubmitFeedback() {
       if (!submitButton || submitButton.disabled) {
         return;
       }
+      submitButton.dataset.originalLabel = submitButton.innerHTML;
       submitButton.disabled = true;
       submitButton.classList.add('is-loading');
       submitButton.textContent = clientTranslations.saving || submitButton.textContent;
     });
   });
+}
+
+function restoreSubmitButton(button) {
+  if (!button) {
+    return;
+  }
+  button.disabled = false;
+  button.classList.remove('is-loading');
+  if (button.dataset.originalLabel) {
+    button.innerHTML = button.dataset.originalLabel;
+  }
+}
+
+// Add/edit forms live in native <dialog> modals ([data-modal-open="id"]
+// opens one). They are submitted via fetch so a server-side validation error
+// (unreachable site, invalid URL…) shows inside the dialog, with the typed
+// values intact, instead of replacing the whole page; on success the server's
+// redirect is followed as usual. Without JS the forms still post normally.
+function setupModals() {
+  const modals = Array.from(document.querySelectorAll('dialog.modal'));
+  if (!modals.length) {
+    return;
+  }
+
+  document.querySelectorAll('[data-modal-open]').forEach((trigger) => {
+    trigger.addEventListener('click', () => openModal(document.getElementById(trigger.dataset.modalOpen)));
+  });
+
+  modals.forEach((modal) => {
+    const form = modal.querySelector('form.admin-form');
+
+    modal.querySelectorAll('[data-modal-close]').forEach((button) => {
+      button.addEventListener('click', () => requestModalClose(modal));
+    });
+
+    // The dialog box is fully covered by its content, so a click whose target
+    // is the <dialog> itself landed on the backdrop.
+    modal.addEventListener('click', (event) => {
+      if (event.target === modal) {
+        requestModalClose(modal);
+      }
+    });
+
+    modal.addEventListener('cancel', (event) => {
+      event.preventDefault();
+      requestModalClose(modal);
+    });
+
+    // Closing without saving discards the edits, so reopening shows the
+    // stored values again.
+    modal.addEventListener('close', () => {
+      form?.reset();
+      showModalError(modal, '');
+      modal.querySelectorAll('[data-favicon-feedback]').forEach((feedback) => {
+        feedback.hidden = true;
+      });
+    });
+
+    if (form) {
+      form.addEventListener('submit', (event) => submitModalForm(event, modal, form));
+    }
+  });
+
+  // "?add=1" (the public page's empty-state button) opens the add dialog.
+  const url = new URL(window.location.href);
+  if (url.searchParams.get('add') === '1') {
+    url.searchParams.delete('add');
+    window.history.replaceState({}, '', url);
+    openModal(document.getElementById('modal-site-new'));
+  }
+}
+
+function openModal(modal) {
+  if (!modal || modal.open || typeof modal.showModal !== 'function') {
+    return;
+  }
+  modal.showModal();
+  // showModal() would focus the header's close button; start on the first
+  // field instead, except on touch screens where that pops the keyboard up.
+  if (window.matchMedia('(pointer: fine)').matches) {
+    modal.querySelector('.admin-form .input')?.focus();
+  }
+}
+
+async function requestModalClose(modal) {
+  const form = modal.querySelector('form.admin-form');
+  if (form && dirtyForms.has(form)) {
+    const discard = await confirmDialog(clientTranslations.discardChanges || '', {
+      confirmLabel: clientTranslations.discardAction,
+      cancelLabel: clientTranslations.keepEditing,
+      icon: 'alert',
+    });
+    if (!discard) {
+      return;
+    }
+  }
+  modal.close();
+}
+
+function showModalError(modal, message) {
+  const box = modal.querySelector('[data-form-error]');
+  const text = box?.querySelector('[data-form-error-text]');
+  if (!box || !text) {
+    return;
+  }
+  text.textContent = message;
+  box.hidden = !message;
+  if (message) {
+    box.scrollIntoView({ block: 'nearest' });
+  }
+}
+
+async function submitModalForm(event, modal, form) {
+  event.preventDefault();
+  showModalError(modal, '');
+
+  const submitter = event.submitter;
+  const data = new FormData(form);
+  // Only the site routes parse multipart bodies (multer); anything else
+  // expects a classic urlencoded form.
+  const body = form.enctype === 'multipart/form-data' ? data : new URLSearchParams(data);
+
+  try {
+    const response = await fetch(form.action, { method: 'POST', body, credentials: 'same-origin' });
+
+    if (response.ok) {
+      window.location.href = response.redirected ? response.url : window.location.href;
+      return;
+    }
+
+    // Errors are short plain-text messages; anything else (an HTML page) is
+    // not worth showing verbatim.
+    const text = (await response.text()).trim();
+    showModalError(modal, text && !text.startsWith('<') ? text : clientTranslations.unexpectedError || '');
+  } catch (error) {
+    console.error('Error while saving the form', error);
+    showModalError(modal, clientTranslations.unexpectedError || '');
+  }
+
+  restoreSubmitButton(submitter);
+  dirtyForms.add(form);
 }
 
 function setupFaviconButtons() {
@@ -609,6 +663,11 @@ function setupImageFilePreview() {
 
     let objectUrl = null;
 
+    // form.reset() clears the file input without a "change" event.
+    input.form?.addEventListener('reset', () => {
+      setTimeout(() => input.dispatchEvent(new Event('change')));
+    });
+
     input.addEventListener('change', () => {
       if (objectUrl) {
         URL.revokeObjectURL(objectUrl);
@@ -715,9 +774,8 @@ function setupHelpModal() {
   });
 }
 
-// Filters the admin site/folder lists client-side, matching against each
-// item's visible summary (name + description) only — not its full edit form,
-// which would otherwise match on static field labels too.
+// Filters the admin list client-side, matching against each item's visible
+// name + description only.
 function setupAdminSearch() {
   const inputs = Array.from(document.querySelectorAll('[data-admin-search]'));
 
@@ -855,19 +913,14 @@ function setupUnsavedChangesWarning() {
     return;
   }
 
-  let dirty = false;
-
   forms.forEach((form) => {
-    form.addEventListener('input', () => {
-      dirty = true;
-    });
-    form.addEventListener('submit', () => {
-      dirty = false;
-    });
+    form.addEventListener('input', () => dirtyForms.add(form));
+    form.addEventListener('submit', () => dirtyForms.delete(form));
+    form.addEventListener('reset', () => dirtyForms.delete(form));
   });
 
   window.addEventListener('beforeunload', (event) => {
-    if (!dirty) {
+    if (!dirtyForms.size) {
       return;
     }
     event.preventDefault();

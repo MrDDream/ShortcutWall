@@ -1,4 +1,4 @@
-<%- include('partials/head', { pageTitle, bodyClass: 'page-home', includeViewSwitch: true, viewMode }) %>
+<%- include('partials/head', { pageTitle, bodyClass: 'page-home' }) %>
 <main class="page" id="main">
   <section class="toolbar" aria-label="<%= t('search.label') %>">
     <div class="search-field">
@@ -74,10 +74,9 @@
   <% } %>
 
   <section
-    class="shortcut-grid <%= viewMode === 'sites' ? 'is-active' : '' %>"
+    class="shortcut-grid is-active"
     id="sites-grid"
     data-category="sites"
-    aria-label="<%= t('header.viewSites') %>"
   >
     <% if (!sites.length) { %>
       <div class="empty-state">
@@ -85,7 +84,7 @@
         <p class="empty-state__title"><%= t('shortcuts.siteEmpty') %></p>
         <% if (isAuthenticated) { %>
           <p class="empty-state__text"><%= t('shortcuts.emptyHint') %></p>
-          <a class="btn btn--primary" href="/admin?tab=sites">
+          <a class="btn btn--primary" href="/admin?add=1">
             <%- include('partials/icon', { name: 'plus' }) %>
             <%= t('shortcuts.emptyCta') %>
           </a>
@@ -129,66 +128,6 @@
         <% if (shortcut.description) { %>
           <p class="shortcut-description" title="<%= shortcut.description %>"><%= shortcut.description %></p>
         <% } %>
-        <% if (host) { %>
-          <p class="shortcut-meta"><%= host %></p>
-        <% } %>
-        <div class="shortcut-actions">
-          <a
-            class="icon-button download"
-            href="/site/<%= shortcut.id %>/download"
-            title="<%= t('shortcuts.siteDownloadTitle') %>"
-            aria-label="<%= t('shortcuts.siteDownloadTitle') %> : <%= shortcut.name %>"
-          >
-            <%- include('partials/icon', { name: 'download' }) %>
-          </a>
-        </div>
-      </article>
-    <% }); %>
-  </section>
-
-  <section
-    class="shortcut-grid <%= viewMode === 'folders' ? 'is-active' : '' %>"
-    id="folders-grid"
-    data-category="folders"
-    aria-label="<%= t('header.viewFolders') %>"
-  >
-    <% if (!folders.length) { %>
-      <div class="empty-state">
-        <span class="empty-state__icon"><%- include('partials/icon', { name: 'folder' }) %></span>
-        <p class="empty-state__title"><%= t('shortcuts.folderEmpty') %></p>
-        <% if (isAuthenticated) { %>
-          <p class="empty-state__text"><%= t('shortcuts.emptyHint') %></p>
-          <a class="btn btn--primary" href="/admin?tab=folders">
-            <%- include('partials/icon', { name: 'plus' }) %>
-            <%= t('shortcuts.emptyCta') %>
-          </a>
-        <% } %>
-      </div>
-    <% } %>
-    <% folders.forEach((shortcut) => { %>
-      <% const sortName = shortcut.name || ''; %>
-      <% const createdValue = shortcut.updatedAt || shortcut.createdAt || ''; %>
-      <article
-        class="shortcut-card shortcut-card--folder"
-        data-name="<%= sortName.toLowerCase() %>"
-        data-sort-name="<%= sortName %>"
-        data-created="<%= createdValue %>"
-        data-description="<%= (shortcut.networkPath || '').toLowerCase() %>"
-      >
-        <div class="shortcut-thumb shortcut-thumb--folder" aria-hidden="true">
-          <%- include('partials/icon', { name: 'folder' }) %>
-        </div>
-        <h2 class="shortcut-title">
-          <a
-            class="shortcut-card__link"
-            href="/folder/<%= shortcut.id %>/download"
-            title="<%= t('shortcuts.folderDownloadTitle') %>"
-          ><%= shortcut.name %></a>
-        </h2>
-        <% if (shortcut.networkPath) { %>
-          <p class="shortcut-meta shortcut-meta--mono" title="<%= shortcut.networkPath %>"><%= shortcut.networkPath %></p>
-        <% } %>
-        <span class="shortcut-corner" aria-hidden="true"><%- include('partials/icon', { name: 'download' }) %></span>
       </article>
     <% }); %>
   </section>

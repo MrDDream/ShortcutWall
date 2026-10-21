@@ -13,7 +13,6 @@ const STATUS_KEYS = {
 };
 
 router.get('/', ensureAuthenticated, (req, res) => {
-  const activeTab = req.query.tab === 'folders' ? 'folders' : 'sites';
   const statusKey = STATUS_KEYS[req.query.status] || null;
   // Only meaningful alongside a "deleted" status: any other value is ignored downstream.
   const undoToken =
@@ -21,8 +20,6 @@ router.get('/', ensureAuthenticated, (req, res) => {
 
   res.render('admin', {
     sites: res.locals.sites,
-    folders: res.locals.folders,
-    activeTab,
     statusKey,
     undoToken,
     usesDefaultCredentials: USES_DEFAULT_CREDENTIALS,

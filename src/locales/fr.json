@@ -6,13 +6,10 @@
     "notFoundTitle": "Page introuvable"
   },
   "header": {
-    "viewSites": "Sites web",
-    "viewFolders": "Dossiers",
     "login": "Connexion",
     "logout": "Se déconnecter",
     "adminLink": "Administration",
     "themeToggle": "Changer de thème",
-    "viewSwitchLabel": "Type de raccourci",
     "skipToContent": "Aller au contenu"
   },
   "search": {
@@ -34,39 +31,30 @@
   },
   "shortcuts": {
     "siteEmpty": "Aucun raccourci Internet pour le moment.",
-    "folderEmpty": "Aucun raccourci dossier pour le moment.",
-    "siteDownloadTitle": "Télécharger",
     "siteAccessTitle": "Accéder au site",
-    "folderDownloadTitle": "Télécharger le raccourci du dossier",
     "emptyHint": "Ajoutez-en depuis l’espace d’administration.",
     "emptyCta": "Ajouter un raccourci"
   },
   "admin": {
-    "tabsSites": "Gestion des sites",
-    "tabsFolders": "Gestion des dossiers",
     "addSite": "Ajouter un site",
     "existingSites": "Sites existants",
-    "addFolder": "Ajouter un dossier",
-    "existingFolders": "Dossiers existants",
     "emptySites": "Aucun site pour le moment.",
-    "emptyFolders": "Aucun dossier pour le moment.",
     "statusCreated": "Élément ajouté avec succès.",
     "statusUpdated": "Élément mis à jour avec succès.",
     "statusDeleted": "Élément supprimé avec succès.",
     "statusRestored": "Élément restauré.",
     "undo": "Annuler",
     "defaultCredentialsWarning": "Les identifiants admin ou le secret de session sont encore aux valeurs par défaut du dépôt. Changez ADMIN_PASS et SESSION_SECRET avant toute exposition publique.",
-    "subtitle": "Gérez les raccourcis affichés sur le mur."
+    "subtitle": "Gérez les raccourcis affichés sur le mur.",
+    "editSite": "Modifier le site"
   },
   "forms": {
     "name": "Nom",
     "descriptionOptional": "Description (optionnel)",
     "url": "URL",
-    "networkPath": "Chemin réseau",
     "logoUrlOptional": "URL du logo (optionnel)",
     "siteUrlPlaceholder": "https://exemple.com",
     "siteImagePlaceholder": "https://exemple.com/logo.png",
-    "networkPathPlaceholder": "\\\\serveur\\partage",
     "save": "Enregistrer",
     "update": "Mettre à jour",
     "delete": "Supprimer",
@@ -75,9 +63,13 @@
     "uploadHint": "Un fichier téléversé remplace l'URL ci-dessus.",
     "currentImage": "Aperçu actuel",
     "newImagePreview": "Aperçu du nouveau fichier",
-    "confirmDelete": "Voulez-vous vraiment supprimer cet élément ? Vous aurez 15 secondes pour annuler.",
+    "confirmDelete": "Voulez-vous vraiment supprimer cet élément ? Vous aurez 15 secondes pour annuler.",
     "saving": "Enregistrement...",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "edit": "Modifier",
+    "discardChanges": "Abandonner les modifications non enregistrées ?",
+    "discard": "Abandonner",
+    "keepEditing": "Continuer l’édition"
   },
   "login": {
     "adminArea": "Espace administrateur",

@@ -22,29 +22,6 @@
             <span class="brand__name"><%= appName %></span>
           </a>
         </h1>
-        <% const showViewSwitch = typeof includeViewSwitch !== 'undefined' && includeViewSwitch; %>
-        <% if (showViewSwitch) { %>
-          <nav class="segmented view-switch header-switch" aria-label="<%= t('header.viewSwitchLabel') %>">
-            <a
-              class="segmented__item view-switch__button <%= viewMode === 'sites' ? 'is-active' : '' %>"
-              href="/?type=sites"
-              data-view="sites"
-            >
-              <%- include('icon', { name: 'globe' }) %>
-              <span><%= t('header.viewSites') %></span>
-              <span class="segmented__count"><%= typeof sites !== 'undefined' ? sites.length : 0 %></span>
-            </a>
-            <a
-              class="segmented__item view-switch__button <%= viewMode === 'folders' ? 'is-active' : '' %>"
-              href="/?type=folders"
-              data-view="folders"
-            >
-              <%- include('icon', { name: 'folder' }) %>
-              <span><%= t('header.viewFolders') %></span>
-              <span class="segmented__count"><%= typeof folders !== 'undefined' ? folders.length : 0 %></span>
-            </a>
-          </nav>
-        <% } %>
         <div class="header-actions">
           <button
             type="button"

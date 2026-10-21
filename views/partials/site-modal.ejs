@@ -1,0 +1,110 @@
+<%
+  // Add (site === null) or edit dialog for a website shortcut. The form posts
+  // normally without JS; scripts.js submits it via fetch so a validation error
+  // shows inside the dialog instead of replacing the page.
+  const isNew = !site;
+  const prefix = isNew ? 'site-new' : `site-${site.id}`;
+  const action = isNew ? '/admin/site' : `/admin/site/${site.id}`;
+  const hasLogo = !isNew && site.imageUrl && site.imageUrl.trim();
+%>
+<dialog class="modal" id="modal-<%= prefix %>" aria-labelledby="modal-<%= prefix %>-title">
+  <div class="modal__header">
+    <span class="card__icon"><%- include('icon', { name: isNew ? 'plus' : 'pencil' }) %></span>
+    <h2 class="modal__title" id="modal-<%= prefix %>-title"><%= isNew ? t('admin.addSite') : t('admin.editSite') %></h2>
+    <button type="button" class="icon-btn icon-btn--plain" data-modal-close aria-label="<%= t('help.close') %>">
+      <%- include('icon', { name: 'close' }) %>
+    </button>
+  </div>
+  <form class="admin-form modal__body" id="<%= prefix %>-form" method="post" action="<%= action %>" enctype="multipart/form-data">
+    <p class="callout callout--error" role="alert" data-form-error hidden>
+      <%- include('icon', { name: 'alert' }) %>
+      <span data-form-error-text></span>
+    </p>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+    <div class="field field--half">
+      <label class="field__label" for="<%= prefix %>-name"><%= t('forms.name') %></label>
+      <input class="input" type="text" name="name" id="<%= prefix %>-name" value="<%= isNew ? '' : site.name %>" required />
+    </div>
+    <div class="field field--half">
+      <label class="field__label" for="<%= prefix %>-description"><%= t('forms.descriptionOptional') %></label>
+      <input
+        class="input"
+        type="text"
+        name="description"
+        id="<%= prefix %>-description"
+        value="<%= isNew ? '' : site.description || '' %>"
+      />
+    </div>
+    <div class="field">
+      <label class="field__label" for="<%= prefix %>-url"><%= t('forms.url') %></label>
+      <input
+        class="input"
+        type="url"
+        name="targetUrl"
+        id="<%= prefix %>-url"
+        value="<%= isNew ? '' : site.targetUrl %>"
+        placeholder="<%= t('forms.siteUrlPlaceholder') %>"
+        required
+      />
+    </div>
+    <div class="field image-field">
+      <label class="field__label" for="<%= prefix %>-image"><%= t('forms.logoUrlOptional') %></label>
+      <div class="field__row">
+        <input
+          class="input"
+          type="url"
+          name="imageUrl"
+          id="<%= prefix %>-image"
+          value="<%= isNew ? '' : site.imageUrl || '' %>"
+          placeholder="<%= t('forms.siteImagePlaceholder') %>"
+        />
+        <button
+          type="button"
+          class="btn btn--secondary fetch-favicon"
+          data-source="input[name='targetUrl']"
+          data-target="input[name='imageUrl']"
+        >
+          <%- include('icon', { name: 'image' }) %>
+          <span><%= t('forms.fetchFavicon') %></span>
+        </button>
+      </div>
+      <p class="field-feedback" data-favicon-feedback hidden></p>
+    </div>
+    <div class="image-upload-group">
+      <label class="dropzone file-field">
+        <span class="dropzone__icon"><%- include('icon', { name: 'upload' }) %></span>
+        <span class="dropzone__text">
+          <span class="dropzone__title" data-file-name><%= t('forms.uploadFile') %></span>
+          <span class="dropzone__hint"><%= t('forms.uploadHint') %></span>
+        </span>
+        <input class="dropzone__input" type="file" name="imageFile" accept="image/*" data-file-preview-input />
+      </label>
+      <figure class="image-preview" data-file-preview hidden>
+        <img data-file-preview-img alt="" />
+        <figcaption><%= t('forms.newImagePreview') %></figcaption>
+      </figure>
+      <% if (hasLogo) { %>
+        <figure class="image-preview">
+          <img src="<%= site.imageUrl %>" alt="<%= site.name %>" loading="lazy" />
+          <figcaption><%= t('forms.currentImage') %></figcaption>
+        </figure>
+      <% } %>
+    </div>
+  </form>
+  <div class="modal__footer">
+    <% if (!isNew) { %>
+      <form method="post" action="/admin/site/<%= site.id %>/delete" class="delete-form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+        <button type="submit" class="btn btn--danger">
+          <%- include('icon', { name: 'trash' }) %>
+          <span class="hide-sm"><%= t('forms.delete') %></span>
+        </button>
+      </form>
+    <% } %>
+    <span class="modal__spacer"></span>
+    <button type="button" class="btn btn--secondary" data-modal-close><%= t('forms.cancel') %></button>
+    <button type="submit" form="<%= prefix %>-form" class="btn btn--primary">
+      <%= isNew ? t('forms.save') : t('forms.update') %>
+    </button>
+  </div>
+</dialog>

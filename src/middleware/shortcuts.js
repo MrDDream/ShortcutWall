@@ -18,8 +18,6 @@ async function loadShortcuts(req, res, next) {
     res.locals.sites = [];
     res.locals.folders = [];
   }
-  res.locals.includeViewSwitch = false;
-  res.locals.viewMode = 'sites';
   res.locals.isAuthenticated = req.session?.isAuthenticated;
   next();
 }

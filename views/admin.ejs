@@ -1,4 +1,4 @@
-<%- include('partials/head', { pageTitle, bodyClass: 'page-admin', includeViewSwitch: false }) %>
+<%- include('partials/head', { pageTitle, bodyClass: 'page-admin' }) %>
 <main class="page admin" id="main">
   <% if (typeof usesDefaultCredentials !== 'undefined' && usesDefaultCredentials) { %>
     <p class="callout callout--warning" role="alert">
@@ -12,109 +12,20 @@
       <h2 class="admin-header__title"><%= t('app.adminTitle') %></h2>
       <p class="admin-header__subtitle"><%= t('admin.subtitle') %></p>
     </div>
-    <nav class="segmented admin-tabs" data-default-tab="<%= activeTab %>">
-      <button
-        type="button"
-        class="segmented__item admin-tab <%= activeTab === 'sites' ? 'is-active' : '' %>"
-        data-tab="sites"
-      >
-        <%- include('partials/icon', { name: 'globe' }) %>
-        <span><%= t('admin.tabsSites') %></span>
-        <span class="segmented__count"><%= sites.length %></span>
-      </button>
-      <button
-        type="button"
-        class="segmented__item admin-tab <%= activeTab === 'folders' ? 'is-active' : '' %>"
-        data-tab="folders"
-      >
-        <%- include('partials/icon', { name: 'folder' }) %>
-        <span><%= t('admin.tabsFolders') %></span>
-        <span class="segmented__count"><%= folders.length %></span>
-      </button>
-    </nav>
+    <button type="button" class="btn btn--primary btn--lg" data-modal-open="modal-site-new">
+      <%- include('partials/icon', { name: 'plus' }) %>
+      <%= t('admin.addSite') %>
+    </button>
   </div>
 
-  <section class="admin-panel <%= activeTab === 'sites' ? 'is-active' : '' %>" id="panel-sites">
-    <div class="card admin-card admin-panel__form">
-      <div class="card__header">
-        <span class="card__icon"><%- include('partials/icon', { name: 'plus' }) %></span>
-        <h2><%= t('admin.addSite') %></h2>
-      </div>
-      <form class="admin-form" method="post" action="/admin/site" enctype="multipart/form-data">
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-        <div class="field">
-          <label class="field__label" for="create-site-name"><%= t('forms.name') %></label>
-          <input class="input" type="text" name="name" id="create-site-name" required />
-        </div>
-        <div class="field">
-          <label class="field__label" for="create-site-description"><%= t('forms.descriptionOptional') %></label>
-          <input class="input" type="text" name="description" id="create-site-description" />
-        </div>
-        <div class="field">
-          <label class="field__label" for="create-site-url"><%= t('forms.url') %></label>
-          <input
-            class="input"
-            type="url"
-            name="targetUrl"
-            id="create-site-url"
-            placeholder="<%= t('forms.siteUrlPlaceholder') %>"
-            required
-          />
-        </div>
-        <div class="field image-field">
-          <label class="field__label" for="create-site-image"><%= t('forms.logoUrlOptional') %></label>
-          <div class="field__row">
-            <input
-              class="input"
-              type="url"
-              name="imageUrl"
-              id="create-site-image"
-              placeholder="<%= t('forms.siteImagePlaceholder') %>"
-            />
-            <button
-              type="button"
-              class="btn btn--secondary fetch-favicon"
-              data-source="#create-site-url"
-              data-target="#create-site-image"
-            >
-              <%- include('partials/icon', { name: 'image' }) %>
-              <span><%= t('forms.fetchFavicon') %></span>
-            </button>
-          </div>
-          <p class="field-feedback" data-favicon-feedback hidden></p>
-        </div>
-        <div class="image-upload-group">
-          <label class="dropzone file-field">
-            <span class="dropzone__icon"><%- include('partials/icon', { name: 'upload' }) %></span>
-            <span class="dropzone__text">
-              <span class="dropzone__title" data-file-name><%= t('forms.uploadFile') %></span>
-              <span class="dropzone__hint"><%= t('forms.uploadHint') %></span>
-            </span>
-            <input class="dropzone__input" type="file" name="imageFile" accept="image/*" data-file-preview-input />
-          </label>
-          <figure class="image-preview" data-file-preview hidden>
-            <img data-file-preview-img alt="" />
-            <figcaption><%= t('forms.newImagePreview') %></figcaption>
-          </figure>
-        </div>
-        <div class="form-actions">
-          <button type="submit" class="btn btn--primary btn--block"><%= t('forms.save') %></button>
-        </div>
-      </form>
-    </div>
-
-    <div class="card admin-card">
-      <div class="card__header">
+  <section class="card admin-card">
+    <div class="admin-toolbar">
+      <div class="admin-toolbar__title">
         <h2><%= t('admin.existingSites') %></h2>
         <span class="badge"><%= sites.length %></span>
       </div>
-      <% if (!sites.length) { %>
-        <div class="empty-state small">
-          <span class="empty-state__icon"><%- include('partials/icon', { name: 'inbox' }) %></span>
-          <p class="empty-state__title"><%= t('admin.emptySites') %></p>
-        </div>
-      <% } else { %>
-        <div class="search-field admin-list-search">
+      <% if (sites.length) { %>
+        <div class="search-field">
           <%- include('partials/icon', { name: 'search' }) %>
           <input
             type="search"
@@ -126,213 +37,81 @@
           />
         </div>
       <% } %>
-      <div class="admin-list" data-admin-list="sites">
-        <% sites.forEach((site) => { %>
-          <% const hasLogo = site.imageUrl && site.imageUrl.trim(); %>
-          <% const fieldId = `site-${site.id}`; %>
-          <details class="admin-item">
-            <summary>
-              <span class="shortcut-thumb shortcut-thumb--sm <%= hasLogo ? '' : 'shortcut-thumb--fallback' %>" aria-hidden="true">
-                <% if (hasLogo) { %>
-                  <img class="shortcut-thumb__image" src="<%= site.imageUrl %>" alt="" loading="lazy" />
-                <% } %>
-                <span class="shortcut-thumb__fallback"><%= site.name.charAt(0).toUpperCase() %></span>
-              </span>
-              <span class="admin-item__text">
-                <span class="admin-item__title"><%= site.name %></span>
-                <span class="admin-item__subtitle"><%= site.description || site.targetUrl %></span>
-              </span>
-              <%- include('partials/icon', { name: 'chevronDown', className: 'admin-item__chevron' }) %>
-            </summary>
-            <div class="admin-item__body">
-              <form
-                class="admin-form"
-                id="<%= fieldId %>-form"
-                method="post"
-                action="/admin/site/<%= site.id %>"
-                enctype="multipart/form-data"
+    </div>
+
+    <% if (!sites.length) { %>
+      <div class="empty-state small">
+        <span class="empty-state__icon"><%- include('partials/icon', { name: 'inbox' }) %></span>
+        <p class="empty-state__title"><%= t('admin.emptySites') %></p>
+        <button type="button" class="btn btn--primary" data-modal-open="modal-site-new">
+          <%- include('partials/icon', { name: 'plus' }) %>
+          <%= t('admin.addSite') %>
+        </button>
+      </div>
+    <% } %>
+
+    <div class="admin-list" data-admin-list="sites" role="list">
+      <% sites.forEach((site) => { %>
+        <% const hasLogo = site.imageUrl && site.imageUrl.trim(); %>
+        <div class="admin-item" role="listitem">
+          <button
+            type="button"
+            class="admin-item__main"
+            data-modal-open="modal-site-<%= site.id %>"
+            title="<%= t('forms.edit') %>"
+          >
+            <span class="shortcut-thumb shortcut-thumb--sm <%= hasLogo ? '' : 'shortcut-thumb--fallback' %>" aria-hidden="true">
+              <% if (hasLogo) { %>
+                <img class="shortcut-thumb__image" src="<%= site.imageUrl %>" alt="" loading="lazy" />
+              <% } %>
+              <span class="shortcut-thumb__fallback"><%= site.name.charAt(0).toUpperCase() %></span>
+            </span>
+            <span class="admin-item__text">
+              <span class="admin-item__title"><%= site.name %></span>
+              <span class="admin-item__subtitle"><%= site.description || site.targetUrl %></span>
+            </span>
+          </button>
+          <div class="admin-item__actions">
+            <a
+              class="icon-btn icon-btn--plain"
+              href="<%= site.targetUrl %>"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="<%= t('shortcuts.siteAccessTitle') %>"
+              aria-label="<%= t('shortcuts.siteAccessTitle') %> : <%= site.name %>"
+            >
+              <%- include('partials/icon', { name: 'arrowUpRight' }) %>
+            </a>
+            <button
+              type="button"
+              class="icon-btn icon-btn--plain"
+              data-modal-open="modal-site-<%= site.id %>"
+              title="<%= t('forms.edit') %>"
+              aria-label="<%= t('forms.edit') %> : <%= site.name %>"
+            >
+              <%- include('partials/icon', { name: 'pencil' }) %>
+            </button>
+            <form method="post" action="/admin/site/<%= site.id %>/delete" class="delete-form">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+              <button
+                type="submit"
+                class="icon-btn icon-btn--plain icon-btn--danger"
+                title="<%= t('forms.delete') %>"
+                aria-label="<%= t('forms.delete') %> : <%= site.name %>"
               >
-                <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-                <div class="field">
-                  <label class="field__label" for="<%= fieldId %>-name"><%= t('forms.name') %></label>
-                  <input class="input" type="text" name="name" id="<%= fieldId %>-name" value="<%= site.name %>" required />
-                </div>
-                <div class="field">
-                  <label class="field__label" for="<%= fieldId %>-description"><%= t('forms.descriptionOptional') %></label>
-                  <input
-                    class="input"
-                    type="text"
-                    name="description"
-                    id="<%= fieldId %>-description"
-                    value="<%= site.description || '' %>"
-                  />
-                </div>
-                <div class="field field--full">
-                  <label class="field__label" for="<%= fieldId %>-url"><%= t('forms.url') %></label>
-                  <input
-                    class="input"
-                    type="url"
-                    name="targetUrl"
-                    id="<%= fieldId %>-url"
-                    value="<%= site.targetUrl %>"
-                    required
-                  />
-                </div>
-                <div class="field field--full image-field">
-                  <label class="field__label" for="<%= fieldId %>-image"><%= t('forms.logoUrlOptional') %></label>
-                  <div class="field__row">
-                    <input class="input" type="url" name="imageUrl" id="<%= fieldId %>-image" value="<%= site.imageUrl %>" />
-                    <button
-                      type="button"
-                      class="btn btn--secondary fetch-favicon"
-                      data-source="input[name='targetUrl']"
-                      data-target="input[name='imageUrl']"
-                    >
-                      <%- include('partials/icon', { name: 'image' }) %>
-                      <span><%= t('forms.fetchFavicon') %></span>
-                    </button>
-                  </div>
-                  <p class="field-feedback" data-favicon-feedback hidden></p>
-                </div>
-                <div class="image-upload-group">
-                  <label class="dropzone file-field">
-                    <span class="dropzone__icon"><%- include('partials/icon', { name: 'upload' }) %></span>
-                    <span class="dropzone__text">
-                      <span class="dropzone__title" data-file-name><%= t('forms.uploadFile') %></span>
-                      <span class="dropzone__hint"><%= t('forms.uploadHint') %></span>
-                    </span>
-                    <input class="dropzone__input" type="file" name="imageFile" accept="image/*" data-file-preview-input />
-                  </label>
-                  <figure class="image-preview" data-file-preview hidden>
-                    <img data-file-preview-img alt="" />
-                    <figcaption><%= t('forms.newImagePreview') %></figcaption>
-                  </figure>
-                  <% if (hasLogo) { %>
-                    <figure class="image-preview">
-                      <img src="<%= site.imageUrl %>" alt="<%= site.name %>" loading="lazy" />
-                      <figcaption><%= t('forms.currentImage') %></figcaption>
-                    </figure>
-                  <% } %>
-                </div>
-              </form>
-              <div class="admin-item__footer">
-                <form method="post" action="/admin/site/<%= site.id %>/delete" class="delete-form">
-                  <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-                  <button type="submit" class="btn btn--danger btn--sm">
-                    <%- include('partials/icon', { name: 'trash' }) %>
-                    <%= t('forms.delete') %>
-                  </button>
-                </form>
-                <button type="submit" form="<%= fieldId %>-form" class="btn btn--primary btn--sm"><%= t('forms.update') %></button>
-              </div>
-            </div>
-          </details>
-        <% }); %>
-      </div>
+                <%- include('partials/icon', { name: 'trash' }) %>
+              </button>
+            </form>
+          </div>
+        </div>
+      <% }); %>
     </div>
   </section>
 
-  <section class="admin-panel <%= activeTab === 'folders' ? 'is-active' : '' %>" id="panel-folders">
-    <div class="card admin-card admin-panel__form">
-      <div class="card__header">
-        <span class="card__icon"><%- include('partials/icon', { name: 'plus' }) %></span>
-        <h2><%= t('admin.addFolder') %></h2>
-      </div>
-      <form class="admin-form" method="post" action="/admin/folder">
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-        <div class="field">
-          <label class="field__label" for="create-folder-name"><%= t('forms.name') %></label>
-          <input class="input" type="text" name="name" id="create-folder-name" required />
-        </div>
-        <div class="field">
-          <label class="field__label" for="create-folder-path"><%= t('forms.networkPath') %></label>
-          <input
-            class="input input--mono"
-            type="text"
-            name="networkPath"
-            id="create-folder-path"
-            placeholder="<%= t('forms.networkPathPlaceholder') %>"
-            required
-          />
-        </div>
-        <div class="form-actions">
-          <button type="submit" class="btn btn--primary btn--block"><%= t('forms.save') %></button>
-        </div>
-      </form>
-    </div>
-
-    <div class="card admin-card">
-      <div class="card__header">
-        <h2><%= t('admin.existingFolders') %></h2>
-        <span class="badge"><%= folders.length %></span>
-      </div>
-      <% if (!folders.length) { %>
-        <div class="empty-state small">
-          <span class="empty-state__icon"><%- include('partials/icon', { name: 'inbox' }) %></span>
-          <p class="empty-state__title"><%= t('admin.emptyFolders') %></p>
-        </div>
-      <% } else { %>
-        <div class="search-field admin-list-search">
-          <%- include('partials/icon', { name: 'search' }) %>
-          <input
-            type="search"
-            class="input admin-search__input"
-            data-admin-search="folders"
-            placeholder="<%= t('search.placeholder') %>"
-            aria-label="<%= t('search.label') %>"
-            autocomplete="off"
-          />
-        </div>
-      <% } %>
-      <div class="admin-list" data-admin-list="folders">
-        <% folders.forEach((folder) => { %>
-          <% const fieldId = `folder-${folder.id}`; %>
-          <details class="admin-item">
-            <summary>
-              <span class="shortcut-thumb shortcut-thumb--sm shortcut-thumb--folder" aria-hidden="true">
-                <%- include('partials/icon', { name: 'folder' }) %>
-              </span>
-              <span class="admin-item__text">
-                <span class="admin-item__title"><%= folder.name %></span>
-                <span class="admin-item__subtitle admin-item__subtitle--mono"><%= folder.networkPath %></span>
-              </span>
-              <%- include('partials/icon', { name: 'chevronDown', className: 'admin-item__chevron' }) %>
-            </summary>
-            <div class="admin-item__body">
-              <form class="admin-form" id="<%= fieldId %>-form" method="post" action="/admin/folder/<%= folder.id %>">
-                <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-                <div class="field">
-                  <label class="field__label" for="<%= fieldId %>-name"><%= t('forms.name') %></label>
-                  <input class="input" type="text" name="name" id="<%= fieldId %>-name" value="<%= folder.name %>" required />
-                </div>
-                <div class="field">
-                  <label class="field__label" for="<%= fieldId %>-path"><%= t('forms.networkPath') %></label>
-                  <input
-                    class="input input--mono"
-                    type="text"
-                    name="networkPath"
-                    id="<%= fieldId %>-path"
-                    value="<%= folder.networkPath %>"
-                    required
-                  />
-                </div>
-              </form>
-              <div class="admin-item__footer">
-                <form method="post" action="/admin/folder/<%= folder.id %>/delete" class="delete-form">
-                  <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-                  <button type="submit" class="btn btn--danger btn--sm">
-                    <%- include('partials/icon', { name: 'trash' }) %>
-                    <%= t('forms.delete') %>
-                  </button>
-                </form>
-                <button type="submit" form="<%= fieldId %>-form" class="btn btn--primary btn--sm"><%= t('forms.update') %></button>
-              </div>
-            </div>
-          </details>
-        <% }); %>
-      </div>
-    </div>
-  </section>
+  <%- include('partials/site-modal', { site: null }) %>
+  <% sites.forEach((site) => { %>
+    <%- include('partials/site-modal', { site }) %>
+  <% }); %>
 
   <% if (typeof statusKey !== 'undefined' && statusKey) { %>
     <div class="toast-region">
