@@ -45,6 +45,11 @@ describe('ShortcutWall app', () => {
     expect(res.text).toContain('ShortcutWall');
   });
 
+  it('does not force assets to https, so plain-HTTP LAN deployments still load CSS/JS', async () => {
+    const res = await agent.get('/');
+    expect(res.headers['content-security-policy']).not.toContain('upgrade-insecure-requests');
+  });
+
   it('answers the health check without requiring auth', async () => {
     const res = await agent.get('/healthz');
     expect(res.status).toBe(200);
@@ -127,7 +132,10 @@ describe('ShortcutWall app', () => {
       const dashboard = await agent.get('/admin?tab=folders');
       const csrf = extractCsrfToken(dashboard.text);
 
-      await agent.post('/admin/folder').type('form').send({ name: 'Undo Me', networkPath: '\\\\srv\\share', _csrf: csrf });
+      await agent
+        .post('/admin/folder')
+        .type('form')
+        .send({ name: 'Undo Me', networkPath: '\\\\srv\\share', _csrf: csrf });
 
       const [folder] = readData('folders.json');
       const deleteDashboard = await agent.get('/admin?tab=folders');

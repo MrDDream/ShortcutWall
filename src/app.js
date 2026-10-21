@@ -57,6 +57,10 @@ function createApp() {
           baseUri: ["'self'"],
           formAction: ["'self'"],
           frameAncestors: ["'self'"],
+          // Helmet adds this by default, but it makes browsers rewrite every
+          // same-origin asset to https://, breaking all CSS/JS when the app is
+          // self-hosted over plain HTTP on a LAN address (e.g. 192.168.x.x:3050).
+          upgradeInsecureRequests: null,
         },
       },
     }),
