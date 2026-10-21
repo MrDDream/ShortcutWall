@@ -5,7 +5,8 @@ const { SITES_FILE } = require('../config');
 const { ensureAuthenticated } = require('../middleware/auth');
 const { verifyCsrfToken } = require('../middleware/csrf');
 const { readJson, updateJson, NotFoundError } = require('../lib/store');
-const { upload, buildUploadedPath, deleteUploadedAsset } = require('../lib/uploads');
+const { upload, buildUploadedPath, isUploadedAsset, deleteUploadedAsset } = require('../lib/uploads');
+const { importRemoteImage } = require('../lib/remoteImage');
 const { normalizeTargetUrl, normalizeImageUrl, isUrlReachable } = require('../lib/urlUtils');
 const { stash } = require('../lib/trash');
 const logger = require('../lib/logger');
@@ -14,6 +15,7 @@ const router = express.Router();
 
 router.post('/', ensureAuthenticated, upload.single('imageFile'), verifyCsrfToken, async (req, res) => {
   const uploadedPath = req.file ? buildUploadedPath(req.file.filename) : null;
+  let importedPath = null;
   try {
     const { name, targetUrl } = req.body;
 
@@ -51,6 +53,12 @@ router.post('/', ensureAuthenticated, upload.single('imageFile'), verifyCsrfToke
       return res.status(400).send(res.locals.t('errors.siteUnreachable'));
     }
 
+    // Keep a local copy of a remote logo when possible (see importRemoteImage).
+    if (normalizedImageUrl && !isUploadedAsset(normalizedImageUrl)) {
+      importedPath = await importRemoteImage(normalizedImageUrl);
+      normalizedImageUrl = importedPath || normalizedImageUrl;
+    }
+
     await updateJson(SITES_FILE, (sites) => {
       sites.push({
         id: uuidv4(),
@@ -70,6 +78,9 @@ router.post('/', ensureAuthenticated, upload.single('imageFile'), verifyCsrfToke
     if (uploadedPath) {
       await deleteUploadedAsset(uploadedPath);
     }
+    if (importedPath) {
+      await deleteUploadedAsset(importedPath);
+    }
 
     res.status(500).send(res.locals.t('errors.shortcutGeneration'));
   }
@@ -77,6 +88,7 @@ router.post('/', ensureAuthenticated, upload.single('imageFile'), verifyCsrfToke
 
 router.post('/:id', ensureAuthenticated, upload.single('imageFile'), verifyCsrfToken, async (req, res) => {
   const uploadedPath = req.file ? buildUploadedPath(req.file.filename) : null;
+  let importedPath = null;
   try {
     const { id } = req.params;
     const { name, targetUrl } = req.body;
@@ -128,6 +140,16 @@ router.post('/:id', ensureAuthenticated, upload.single('imageFile'), verifyCsrfT
       return res.status(400).send(res.locals.t('errors.siteUnreachable'));
     }
 
+    // Keep a local copy of a remote logo when possible (see importRemoteImage);
+    // this also migrates an existing site's remote logo on its next save.
+    if (nextImage && !isUploadedAsset(nextImage)) {
+      importedPath = await importRemoteImage(nextImage);
+      if (importedPath) {
+        nextImage = importedPath;
+        shouldDeletePrevious = true;
+      }
+    }
+
     const previousImage = currentSite.imageUrl;
 
     await updateJson(SITES_FILE, (sites) => {
@@ -156,6 +178,9 @@ router.post('/:id', ensureAuthenticated, upload.single('imageFile'), verifyCsrfT
   } catch (error) {
     if (uploadedPath) {
       await deleteUploadedAsset(uploadedPath);
+    }
+    if (importedPath) {
+      await deleteUploadedAsset(importedPath);
     }
 
     if (error instanceof NotFoundError) {

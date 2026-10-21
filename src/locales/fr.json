@@ -69,7 +69,8 @@
     "discardChanges": "Abandonner les modifications non enregistrées ?",
     "discard": "Abandonner",
     "keepEditing": "Continuer l’édition",
-    "logoPreview": "Aperçu du logo"
+    "logoPreview": "Aperçu du logo",
+    "logoPreviewUnavailable": "Aperçu indisponible : ce site interdit l’affichage de ses images ailleurs. Le logo sera importé dans l’app à l’enregistrement."
   },
   "login": {
     "adminArea": "Espace administrateur",

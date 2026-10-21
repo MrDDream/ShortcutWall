@@ -1,7 +1,5 @@
-const { FAVICON_FETCH_TIMEOUT } = require('../config');
-const { assertPublicHost } = require('./ssrfGuard');
+const { guardedFetch } = require('./remoteImage');
 
-const USER_AGENT = 'Mozilla/5.0 ShortcutWall/1.0';
 // Only the best few icons are probed, to bound the request count.
 const MAX_CANDIDATES_CHECKED = 5;
 // Conventional locations, probed even when the page doesn't declare them:
@@ -11,26 +9,6 @@ const CONVENTIONAL_ICONS = [
   { path: '/favicon.ico', score: 16 },
 ];
 const IMAGE_EXTENSION = /\.(ico|png|svg|jpe?g|gif|webp|avif)$/i;
-
-// fetch() with the app's timeout and user agent. Rejects non-public hosts up
-// front to prevent SSRF (see ssrfGuard.js).
-async function guardedFetch(resourceUrl, options = {}) {
-  await assertPublicHost(resourceUrl.toString());
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), FAVICON_FETCH_TIMEOUT);
-
-  try {
-    return await fetch(resourceUrl, {
-      redirect: 'follow',
-      ...options,
-      signal: controller.signal,
-      headers: { 'User-Agent': USER_AGENT, ...(options.headers || {}) },
-    });
-  } finally {
-    clearTimeout(timeout);
-  }
-}
 
 // Servers label icons inconsistently (an .ico is often served as
 // application/octet-stream), so trust the extension when the type is

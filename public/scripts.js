@@ -621,8 +621,19 @@ function setupFaviconThumbnails() {
       return;
     }
 
-    if (img.complete && img.naturalWidth > 0) {
-      thumb.classList.add('is-loaded');
+    const showFallback = () => {
+      thumb.classList.add('shortcut-thumb--fallback');
+      img.remove();
+    };
+
+    // The image may already have settled before this script ran: a failed
+    // one is "complete" with no size, and its error event has already fired.
+    if (img.complete) {
+      if (img.naturalWidth > 0) {
+        thumb.classList.add('is-loaded');
+      } else {
+        showFallback();
+      }
       return;
     }
 
@@ -630,10 +641,7 @@ function setupFaviconThumbnails() {
       thumb.classList.add('is-loaded');
     });
 
-    img.addEventListener('error', () => {
-      thumb.classList.add('shortcut-thumb--fallback');
-      img.remove();
-    });
+    img.addEventListener('error', showFallback);
   });
 }
 
@@ -694,16 +702,27 @@ function setupImageFilePreview() {
 }
 
 // Live preview of the logo URL field, so a fetched favicon (or a pasted URL)
-// is visibly confirmed before saving. Hidden while empty or if the image fails.
+// is visibly confirmed before saving. Hidden while empty. A remote image the
+// browser can't show (often a site forbidding embedding) gets a note instead:
+// the server imports it on save, which usually works around that.
 function setupLogoPreview() {
   document.querySelectorAll('[data-logo-preview]').forEach((preview) => {
     const img = preview.querySelector('[data-logo-preview-img]');
+    const caption = preview.querySelector('figcaption');
     const input = preview.closest('.image-field')?.querySelector('input[name="imageUrl"]');
     if (!img || !input) {
       return;
     }
 
+    const defaultCaption = caption?.textContent || '';
     let timer = null;
+
+    const setState = (ok) => {
+      preview.classList.toggle('is-unavailable', !ok);
+      if (caption) {
+        caption.textContent = ok ? defaultCaption : clientTranslations.logoPreviewUnavailable || defaultCaption;
+      }
+    };
 
     const update = () => {
       const value = input.value.trim();
@@ -718,11 +737,18 @@ function setupLogoPreview() {
     };
 
     img.addEventListener('load', () => {
+      setState(true);
       preview.hidden = !input.value.trim();
     });
     img.addEventListener('error', () => {
-      preview.hidden = true;
+      setState(false);
+      preview.hidden = !input.value.trim();
     });
+
+    // Rendered with the stored logo, which may have failed before this ran.
+    if (img.getAttribute('src') && img.complete && img.naturalWidth === 0) {
+      setState(false);
+    }
 
     input.addEventListener('input', () => {
       clearTimeout(timer);

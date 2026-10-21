@@ -3,6 +3,7 @@ const express = require('express');
 const { ensureAuthenticated } = require('../middleware/auth');
 const { normalizeTargetUrl, isUrlReachable } = require('../lib/urlUtils');
 const { findFavicon } = require('../lib/favicon');
+const { importRemoteImage } = require('../lib/remoteImage');
 const logger = require('../lib/logger');
 
 const router = express.Router();
@@ -32,9 +33,13 @@ router.get('/', ensureAuthenticated, async (req, res) => {
       });
     }
 
+    // Served from the app when possible (see importRemoteImage), so the
+    // preview and the wall work even if the site forbids embedding its images.
+    const localUrl = await importRemoteImage(faviconUrl);
+
     return res.json({
       success: true,
-      faviconUrl,
+      faviconUrl: localUrl || faviconUrl,
     });
   } catch (error) {
     logger.error({ err: error }, 'Favicon fetch failed');

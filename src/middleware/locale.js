@@ -36,6 +36,7 @@ function localeMiddleware(req, res, next) {
     discardChanges: translate(sessionLocale, 'forms.discardChanges'),
     discardAction: translate(sessionLocale, 'forms.discard'),
     keepEditing: translate(sessionLocale, 'forms.keepEditing'),
+    logoPreviewUnavailable: translate(sessionLocale, 'forms.logoPreviewUnavailable'),
     unexpectedError: translate(sessionLocale, 'errors.unexpected'),
     searchNoResults: translate(sessionLocale, 'search.noResults'),
     saving: translate(sessionLocale, 'forms.saving'),

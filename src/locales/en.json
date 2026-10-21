@@ -69,7 +69,8 @@
     "discardChanges": "Discard unsaved changes?",
     "discard": "Discard",
     "keepEditing": "Keep editing",
-    "logoPreview": "Logo preview"
+    "logoPreview": "Logo preview",
+    "logoPreviewUnavailable": "Preview unavailable: this site forbids showing its images elsewhere. The logo will be imported into the app on save."
   },
   "login": {
     "adminArea": "Administrator area",

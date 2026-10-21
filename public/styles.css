@@ -826,6 +826,15 @@ input[type='search']::-webkit-search-cancel-button {
   object-fit: contain;
 }
 
+/* The image itself couldn't be shown: keep just the explanatory caption. */
+.image-preview.is-unavailable img {
+  display: none;
+}
+
+.image-preview.is-unavailable figcaption {
+  color: var(--warning);
+}
+
 .image-preview figcaption {
   color: var(--text-muted);
   font-size: 0.8125rem;
@@ -995,7 +1004,7 @@ input[type='search']::-webkit-search-cancel-button {
 
 .shortcut-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(198px, 1fr));
   gap: 1rem;
 }
 
@@ -1008,9 +1017,9 @@ input[type='search']::-webkit-search-cancel-button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.4rem;
   min-width: 0;
-  padding: 1.6rem 1rem 1.35rem;
+  padding: 1.75rem 1.1rem 1.5rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface);
@@ -1074,12 +1083,12 @@ input[type='search']::-webkit-search-cancel-button {
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  width: 64px;
-  height: 64px;
-  margin-bottom: 0.65rem;
+  width: 77px;
+  height: 77px;
+  margin-bottom: 0.75rem;
   overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: 18px;
+  border-radius: 21px;
   background: var(--surface-muted);
   transition: transform 0.3s var(--ease);
 }
@@ -1091,7 +1100,7 @@ input[type='search']::-webkit-search-cancel-button {
 .shortcut-thumb__image {
   width: 100%;
   height: 100%;
-  padding: 9px;
+  padding: 11px;
   object-fit: contain;
   opacity: 0;
   transition: opacity 0.3s ease;
@@ -1104,7 +1113,7 @@ input[type='search']::-webkit-search-cancel-button {
 .shortcut-thumb__fallback {
   display: none;
   color: #fff;
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -1880,12 +1889,12 @@ html:has(dialog[open]) {
   }
 
   .shortcut-grid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(154px, 1fr));
     gap: 0.75rem;
   }
 
   .shortcut-card {
-    padding: 1.25rem 0.75rem 1rem;
+    padding: 1.4rem 0.8rem 1.1rem;
   }
 
   .admin-header__title {
