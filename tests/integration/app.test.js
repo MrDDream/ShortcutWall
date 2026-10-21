@@ -376,6 +376,22 @@ describe('ShortcutWall app', () => {
       });
     });
 
+    it('only accepts favicon lookups as a CSRF-protected POST', async () => {
+      const getRes = await agent.get('/api/favicon?url=https://example.com/');
+      expect(getRes.status).toBe(404);
+
+      const noTokenRes = await agent.post('/api/favicon').type('form').send({ url: 'https://example.com/' });
+      expect(noTokenRes.status).toBe(403);
+
+      const csrf = extractCsrfToken((await agent.get('/admin')).text);
+      const internalRes = await agent
+        .post('/api/favicon')
+        .type('form')
+        .send({ url: 'http://127.0.0.1:1/', _csrf: csrf });
+      expect(internalRes.status).toBe(400);
+      expect(internalRes.body.success).toBe(false);
+    });
+
     it('logs out and revokes access to /admin', async () => {
       const dashboard = await agent.get('/admin');
       const csrf = extractCsrfToken(dashboard.text);

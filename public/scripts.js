@@ -572,7 +572,14 @@ function setupFaviconButtons() {
       button.textContent = clientTranslations.faviconLoading;
 
       try {
-        const response = await fetch(`/api/favicon?url=${encodeURIComponent(url.toString())}`);
+        // POST + CSRF token: the lookup stores a file, so it must not be
+        // triggerable by a mere cross-site link.
+        const csrfToken = button.closest('form')?.querySelector('input[name="_csrf"]')?.value || '';
+        const response = await fetch('/api/favicon', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ url: url.toString(), _csrf: csrfToken }),
+        });
 
         const result = await response.json();
 

@@ -1,69 +1,65 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
-vi.mock('dns', () => {
-  const promises = { lookup: vi.fn() };
-  return { default: { promises }, promises };
-});
+import { isBlockedAddress, createGuardedLookup, BlockedHostError } from '../../src/lib/ssrfGuard.js';
 
-import dns from 'dns';
-import { assertPublicHost, BlockedHostError } from '../../src/lib/ssrfGuard.js';
-
-describe('ssrfGuard.assertPublicHost', () => {
-  beforeEach(() => {
-    dns.promises.lookup.mockReset();
+describe('ssrfGuard.isBlockedAddress', () => {
+  it('allows public IPv4 and IPv6 addresses', () => {
+    expect(isBlockedAddress('93.184.216.34', 4)).toBe(false);
+    expect(isBlockedAddress('2606:2800:220:1:248:1893:25c8:1946', 6)).toBe(false);
   });
 
-  it('allows a public IPv4 address', async () => {
-    dns.promises.lookup.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
-    await expect(assertPublicHost('https://example.com')).resolves.toBeUndefined();
-  });
-
-  it('blocks loopback addresses', async () => {
-    dns.promises.lookup.mockResolvedValue([{ address: '127.0.0.1', family: 4 }]);
-    await expect(assertPublicHost('http://localhost')).rejects.toBeInstanceOf(BlockedHostError);
-  });
-
-  it('blocks private network ranges (10.x, 172.16-31.x, 192.168.x)', async () => {
-    for (const address of ['10.0.0.5', '172.20.3.4', '192.168.1.1']) {
-      dns.promises.lookup.mockResolvedValue([{ address, family: 4 }]);
-      await expect(assertPublicHost(`http://${address}`)).rejects.toBeInstanceOf(BlockedHostError);
+  it('blocks loopback, private and carrier-grade NAT ranges', () => {
+    for (const address of ['127.0.0.1', '10.0.0.5', '172.20.3.4', '192.168.1.1', '100.64.0.1', '0.0.0.0']) {
+      expect(isBlockedAddress(address, 4), address).toBe(true);
     }
   });
 
-  it('blocks the cloud metadata link-local address', async () => {
-    dns.promises.lookup.mockResolvedValue([{ address: '169.254.169.254', family: 4 }]);
-    await expect(assertPublicHost('http://169.254.169.254/latest/meta-data/')).rejects.toBeInstanceOf(BlockedHostError);
+  it('blocks the cloud metadata link-local address', () => {
+    expect(isBlockedAddress('169.254.169.254', 4)).toBe(true);
   });
 
-  it('does not block a public address adjacent to a private range (regression test)', async () => {
+  it('does not block a public address adjacent to a private range (regression test)', () => {
     // 172.66.147.243 sits just outside 172.16.0.0/12 (172.16-172.31). An earlier
     // version of the blocklist also registered an "::ffff:0:0/96" IPv6 rule,
     // which made net.BlockList match *every* plain IPv4 address through its
     // internal mapped-address normalisation and blocked all public traffic.
-    dns.promises.lookup.mockResolvedValue([{ address: '172.66.147.243', family: 4 }]);
-    await expect(assertPublicHost('https://example.com')).resolves.toBeUndefined();
+    expect(isBlockedAddress('172.66.147.243', 4)).toBe(false);
   });
 
-  it('unwraps and blocks an IPv4-mapped IPv6 loopback literal', async () => {
-    dns.promises.lookup.mockResolvedValue([{ address: '::ffff:127.0.0.1', family: 6 }]);
-    await expect(assertPublicHost('http://mapped-loopback/')).rejects.toBeInstanceOf(BlockedHostError);
+  it('unwraps and blocks an IPv4-mapped IPv6 private address', () => {
+    expect(isBlockedAddress('::ffff:127.0.0.1', 6)).toBe(true);
+    expect(isBlockedAddress('::ffff:93.184.216.34', 6)).toBe(false);
   });
 
-  it('blocks IPv6 loopback and unique-local addresses', async () => {
-    dns.promises.lookup.mockResolvedValue([{ address: '::1', family: 6 }]);
-    await expect(assertPublicHost('http://ipv6-loopback/')).rejects.toBeInstanceOf(BlockedHostError);
+  it('blocks IPv6 loopback, unique-local, link-local, NAT64 and 6to4 addresses', () => {
+    for (const address of ['::1', 'fd12:3456:789a::1', 'fe80::1', '64:ff9b::a9fe:a9fe', '2002:c0a8:101::1']) {
+      expect(isBlockedAddress(address, 6), address).toBe(true);
+    }
+  });
+});
 
-    dns.promises.lookup.mockResolvedValue([{ address: 'fd12:3456:789a::1', family: 6 }]);
-    await expect(assertPublicHost('http://ipv6-unique-local/')).rejects.toBeInstanceOf(BlockedHostError);
+describe('ssrfGuard.createGuardedLookup', () => {
+  const lookup = (hostname, options = {}) =>
+    new Promise((resolve, reject) => {
+      createGuardedLookup()(hostname, options, (error, ...result) => (error ? reject(error) : resolve(result)));
+    });
+
+  it('refuses to connect to a name that resolves to a private address', async () => {
+    await expect(lookup('localhost')).rejects.toBeInstanceOf(BlockedHostError);
   });
 
-  it('rejects when DNS resolution fails', async () => {
-    dns.promises.lookup.mockRejectedValue(new Error('ENOTFOUND'));
-    await expect(assertPublicHost('http://does-not-resolve.invalid')).rejects.toBeInstanceOf(BlockedHostError);
+  it('honours a custom predicate and both lookup result shapes', async () => {
+    const allowAll = createGuardedLookup(() => false);
+    const single = await new Promise((resolve) => allowAll('localhost', {}, (_, address) => resolve(address)));
+    const all = await new Promise((resolve) =>
+      allowAll('localhost', { all: true }, (_, addresses) => resolve(addresses)),
+    );
+
+    expect(typeof single).toBe('string');
+    expect(Array.isArray(all) && all.length > 0).toBe(true);
   });
 
-  it('rejects when DNS resolution returns no address', async () => {
-    dns.promises.lookup.mockResolvedValue([]);
-    await expect(assertPublicHost('http://empty-resolution.invalid')).rejects.toBeInstanceOf(BlockedHostError);
+  it('reports DNS failures as errors', async () => {
+    await expect(lookup('does-not-exist.invalid')).rejects.toThrow();
   });
 });

@@ -1,5 +1,4 @@
-const { FAVICON_FETCH_TIMEOUT } = require('../config');
-const { assertPublicHost } = require('./ssrfGuard');
+const httpClient = require('./httpClient');
 
 // Checks and normalises the URL entered by the user, throwing an error if it's invalid or unsupported.
 function normalizeTargetUrl(value) {
@@ -23,45 +22,18 @@ function isReachableStatus(status) {
 
 // Sends requests to websites to verify their reachability, using a HEAD request
 // first and falling back to GET if necessary (some servers reject HEAD outright).
-// Rejects non-public hosts up front to prevent SSRF (see ssrfGuard.js).
+// Non-public hosts (directly or through a redirect) count as unreachable: see
+// httpClient.js.
 async function isUrlReachable(targetUrl) {
   try {
-    await assertPublicHost(targetUrl);
-  } catch {
-    return false;
-  }
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), FAVICON_FETCH_TIMEOUT);
-
-  const requestOptions = {
-    signal: controller.signal,
-    redirect: 'follow',
-    headers: {
-      'User-Agent': 'Mozilla/5.0 ShortcutWall/1.0',
-    },
-  };
-
-  try {
-    const headResponse = await fetch(targetUrl, {
-      ...requestOptions,
-      method: 'HEAD',
-    });
-
-    if (isReachableStatus(headResponse.status)) {
+    const head = await httpClient.request(targetUrl, { method: 'HEAD' });
+    if (isReachableStatus(head.status)) {
       return true;
     }
-
-    const getResponse = await fetch(targetUrl, {
-      ...requestOptions,
-      method: 'GET',
-    });
-
-    return isReachableStatus(getResponse.status);
+    const get = await httpClient.request(targetUrl, { method: 'GET' });
+    return isReachableStatus(get.status);
   } catch {
     return false;
-  } finally {
-    clearTimeout(timeout);
   }
 }
 

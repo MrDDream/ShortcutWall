@@ -1,6 +1,7 @@
 const express = require('express');
 
 const { ensureAuthenticated } = require('../middleware/auth');
+const { verifyCsrfToken } = require('../middleware/csrf');
 const { normalizeTargetUrl, isUrlReachable } = require('../lib/urlUtils');
 const { findFavicon } = require('../lib/favicon');
 const { importRemoteImage } = require('../lib/remoteImage');
@@ -8,9 +9,10 @@ const logger = require('../lib/logger');
 
 const router = express.Router();
 
-// API endpoint for retrieving the favicon for a given URL.
-router.get('/', ensureAuthenticated, async (req, res) => {
-  const rawUrl = typeof req.query.url === 'string' ? req.query.url.trim() : '';
+// Finds a site's favicon and stores a local copy. A POST protected by the
+// CSRF token, since it writes a file: a cross-site link must not trigger it.
+router.post('/', ensureAuthenticated, verifyCsrfToken, async (req, res) => {
+  const rawUrl = typeof req.body.url === 'string' ? req.body.url.trim() : '';
 
   try {
     const targetUrl = normalizeTargetUrl(rawUrl);
@@ -44,7 +46,7 @@ router.get('/', ensureAuthenticated, async (req, res) => {
   } catch (error) {
     logger.error({ err: error }, 'Favicon fetch failed');
 
-    return res.status(400).json({
+    return res.status(500).json({
       success: false,
       message: res.locals.t('errors.faviconFetchFailed'),
     });

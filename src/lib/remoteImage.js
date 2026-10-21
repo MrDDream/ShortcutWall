@@ -2,37 +2,13 @@ const crypto = require('crypto');
 const fs = require('fs').promises;
 const path = require('path');
 
-const { FAVICON_FETCH_TIMEOUT, UPLOAD_DIR } = require('../config');
-const { assertPublicHost } = require('./ssrfGuard');
+const { UPLOAD_DIR } = require('../config');
+const httpClient = require('./httpClient');
 const { buildUploadedPath } = require('./uploads');
 const { shrinkLogo } = require('./imageResize');
 
-const USER_AGENT = 'Mozilla/5.0 ShortcutWall/1.0';
 // Same cap as manual uploads (see uploads.js).
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-// Covers the whole download, body included, not just the response headers.
-const IMPORT_TIMEOUT = FAVICON_FETCH_TIMEOUT * 2;
-
-// fetch() with the app's timeout and user agent. Rejects non-public hosts up
-// front to prevent SSRF (see ssrfGuard.js). The timeout only covers the
-// response headers: callers reading a body must bound it themselves.
-async function guardedFetch(resourceUrl, options = {}) {
-  await assertPublicHost(resourceUrl.toString());
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), FAVICON_FETCH_TIMEOUT);
-
-  try {
-    return await fetch(resourceUrl, {
-      redirect: 'follow',
-      ...options,
-      signal: controller.signal,
-      headers: { 'User-Agent': USER_AGENT, ...(options.headers || {}) },
-    });
-  } finally {
-    clearTimeout(timeout);
-  }
-}
 
 // Identifies the format from the file's first bytes instead of trusting the
 // remote Content-Type. Raster formats only: SVG (or anything else) is refused
@@ -81,26 +57,6 @@ async function saveImageBuffer(buffer) {
   return buildUploadedPath(filename);
 }
 
-// Reads a response body, giving up (null) as soon as it exceeds `limit`.
-async function readCapped(response, limit) {
-  const reader = response.body.getReader();
-  const chunks = [];
-  let size = 0;
-
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) {
-      return Buffer.concat(chunks);
-    }
-    size += value.length;
-    if (size > limit) {
-      await reader.cancel().catch(() => {});
-      return null;
-    }
-    chunks.push(value);
-  }
-}
-
 // Downloads a remote image into /uploads (downsized if oversized) and returns
 // its local path, or null
 // when it can't be fetched or isn't a supported raster image (callers then keep
@@ -109,40 +65,13 @@ async function readCapped(response, limit) {
 // makes browsers refuse to show its images on any other site — can't break the
 // wall, and viewers' browsers no longer contact third-party sites at all.
 async function importRemoteImage(remoteUrl) {
-  let url;
   try {
-    url = new URL(remoteUrl);
+    const response = await httpClient.request(remoteUrl, { maxBytes: MAX_IMAGE_BYTES });
+    return response.ok ? await saveImageBuffer(response.body) : null;
   } catch {
+    // Blocked host, network error, timeout or oversized file: keep the URL.
     return null;
-  }
-  if (!['http:', 'https:'].includes(url.protocol)) {
-    return null;
-  }
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), IMPORT_TIMEOUT);
-
-  try {
-    await assertPublicHost(url.toString());
-
-    const response = await fetch(url, {
-      redirect: 'follow',
-      signal: controller.signal,
-      headers: { 'User-Agent': USER_AGENT },
-    });
-
-    const declaredSize = Number(response.headers.get('content-length'));
-    if (!response.ok || !response.body || declaredSize > MAX_IMAGE_BYTES) {
-      await response.body?.cancel().catch(() => {});
-      return null;
-    }
-
-    return await saveImageBuffer(await readCapped(response, MAX_IMAGE_BYTES));
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timeout);
   }
 }
 
-module.exports = { guardedFetch, importRemoteImage, saveImageBuffer, detectImageType };
+module.exports = { importRemoteImage, saveImageBuffer, detectImageType };

@@ -1,4 +1,4 @@
-const { guardedFetch } = require('./remoteImage');
+const httpClient = require('./httpClient');
 
 // Only the best few icons are probed, to bound the request count.
 const MAX_CANDIDATES_CHECKED = 5;
@@ -9,6 +9,8 @@ const CONVENTIONAL_ICONS = [
   { path: '/favicon.ico', score: 16 },
 ];
 const IMAGE_EXTENSION = /\.(ico|png|svg|jpe?g|gif|webp|avif)$/i;
+// Icons are declared in <head>: no need to load more of a (possibly huge) page.
+const MAX_HTML_BYTES = 2 * 1024 * 1024;
 
 // Servers label icons inconsistently (an .ico is often served as
 // application/octet-stream), so trust the extension when the type is
@@ -29,7 +31,7 @@ function looksLikeImage(response, resourceUrl) {
 // falls back to GET (discarding the body) when HEAD is refused or inconclusive.
 async function imageExists(resourceUrl) {
   try {
-    const head = await guardedFetch(resourceUrl, { method: 'HEAD' });
+    const head = await httpClient.request(resourceUrl, { method: 'HEAD' });
     if (head.ok && looksLikeImage(head, resourceUrl)) {
       return true;
     }
@@ -37,10 +39,8 @@ async function imageExists(resourceUrl) {
       return false;
     }
 
-    const get = await guardedFetch(resourceUrl, { method: 'GET' });
-    const valid = get.ok && looksLikeImage(get, resourceUrl);
-    await get.body?.cancel().catch(() => {});
-    return valid;
+    const get = await httpClient.request(resourceUrl, { method: 'GET' });
+    return get.ok && looksLikeImage(get, resourceUrl);
   } catch {
     return false;
   }
@@ -124,13 +124,11 @@ function dedupeByUrl(candidates) {
 // once the site has redirected elsewhere).
 async function findDeclaredFavicons(targetUrl) {
   try {
-    const response = await guardedFetch(targetUrl, { method: 'GET' });
+    const response = await httpClient.request(targetUrl, { maxBytes: MAX_HTML_BYTES });
     if (!response.ok) {
-      await response.body?.cancel().catch(() => {});
       return [];
     }
-    const html = await response.text();
-    return extractFaviconCandidates(html, response.url || targetUrl);
+    return extractFaviconCandidates(response.body.toString('utf-8'), response.url);
   } catch {
     return [];
   }
@@ -154,10 +152,13 @@ async function findFavicon(targetUrl) {
   }));
   const ranked = dedupeByUrl([...declared, ...conventional]).sort((a, b) => b.score - a.score);
 
-  for (const { url } of ranked.slice(0, MAX_CANDIDATES_CHECKED)) {
-    if (await imageExists(url)) {
-      return url;
-    }
+  // Checked in parallel (one slow candidate no longer delays the others), the
+  // best-ranked one that really is an image wins.
+  const candidates = ranked.slice(0, MAX_CANDIDATES_CHECKED);
+  const valid = await Promise.all(candidates.map(({ url }) => imageExists(url)));
+  const best = candidates.find((_, index) => valid[index]);
+  if (best) {
+    return best.url;
   }
 
   const google = buildGoogleFaviconUrl(targetUrl);
