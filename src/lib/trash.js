@@ -39,4 +39,10 @@ function pendingPayloads() {
   return Array.from(entries.values(), (entry) => entry.payload);
 }
 
-module.exports = { stash, pop, pendingPayloads, TTL_MS };
+// Every site held by pending payloads, whether a single deleted site or a
+// whole list replaced by an import.
+function pendingSites() {
+  return pendingPayloads().flatMap((payload) => payload?.items ?? [payload?.item]);
+}
+
+module.exports = { stash, pop, pendingPayloads, pendingSites, TTL_MS };

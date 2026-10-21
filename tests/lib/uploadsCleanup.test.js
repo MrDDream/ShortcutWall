@@ -62,6 +62,19 @@ describe('uploadsCleanup.removeOrphanUploads', () => {
     }
   });
 
+  it('keeps the logos of a site list replaced by an import that can still be undone', async () => {
+    writeSites([{ id: 'new', imageUrl: '/uploads/new.webp' }]);
+    writeUpload('new.webp', 2 * MIN_AGE_MS);
+    writeUpload('before-import.webp', 2 * MIN_AGE_MS);
+    const token = stash({ type: 'sites', items: [{ id: 'old', imageUrl: '/uploads/before-import.webp' }] });
+
+    try {
+      expect(await run()).toEqual([]);
+    } finally {
+      pop(token);
+    }
+  });
+
   it('deletes nothing when the site list is empty (e.g. data volume not mounted)', async () => {
     writeSites([]);
     writeUpload('logo.webp', 2 * MIN_AGE_MS);

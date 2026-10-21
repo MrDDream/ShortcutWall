@@ -126,7 +126,7 @@
 
   <% if (typeof statusKey !== 'undefined' && statusKey) { %>
     <div class="toast-region">
-      <p class="toast" role="status" data-toast>
+      <p class="toast" role="status" data-toast data-undo-window="<%= undoWindowMs %>">
         <%- include('partials/icon', { name: 'check' }) %>
         <span class="toast__message"><%= t(statusKey, typeof statusVars !== 'undefined' ? statusVars : {}) %></span>
         <% if (typeof undoToken !== 'undefined' && undoToken) { %>

@@ -49,6 +49,11 @@ export function toggleAdminSearchNoResults(list, shouldShow) {
   }
 }
 
+// Length of the server's undo window (src/lib/trash.js), sent with the toast.
+function undoWindowMs(element) {
+  return Number(element?.closest('[data-undo-window]')?.dataset.undoWindow) || 15000;
+}
+
 // Lets the "Undo" button on the post-delete banner restore the item via the
 // short-lived server-side trash, without a full page reload for the click itself.
 export function setupUndoDelete() {
@@ -57,10 +62,9 @@ export function setupUndoDelete() {
     return;
   }
 
-  const UNDO_WINDOW_MS = 15000; // keep in sync with src/lib/trash.js TTL_MS
   const hideTimer = setTimeout(() => {
     button.remove();
-  }, UNDO_WINDOW_MS);
+  }, undoWindowMs(button));
 
   button.addEventListener('click', async () => {
     clearTimeout(hideTimer);
@@ -124,7 +128,7 @@ export function setupToasts() {
       setTimeout(() => toast.remove(), 400);
     };
 
-    const timer = setTimeout(dismiss, hasUndo ? 15000 : 5000);
+    const timer = setTimeout(dismiss, hasUndo ? undoWindowMs(toast) : 5000);
 
     toast.querySelector('[data-toast-close]')?.addEventListener('click', () => {
       clearTimeout(timer);

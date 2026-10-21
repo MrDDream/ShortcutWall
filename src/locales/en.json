@@ -59,7 +59,7 @@
     "importModeMerge": "Merge",
     "importModeMergeHint": "Adds the file’s sites without touching the current ones. Sites whose URL already exists are skipped.",
     "importModeReplace": "Replace",
-    "importModeReplaceHint": "Deletes every current site and replaces them with the file’s.",
+    "importModeReplaceHint": "Replaces every current site with the file's. You'll have 15 seconds to undo.",
     "importSubmit": "Import",
     "statusImported": "{count} shortcut(s) imported."
   },

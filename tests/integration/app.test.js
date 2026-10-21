@@ -400,13 +400,49 @@ describe('ShortcutWall app', () => {
         expect(fs.existsSync(path.join(uploadDir, path.basename(sites[1].imageUrl)))).toBe(true);
       });
 
-      it('replaces every site in "replace" mode', async () => {
-        writeData('shortcuts.json', [seededSite({ id: 'old', name: 'Old' })]);
+      it('replaces every site in "replace" mode, and the replace can be undone', async () => {
+        fs.writeFileSync(path.join(uploadDir, 'old-logo.png'), logoBytes);
+        writeData('shortcuts.json', [seededSite({ id: 'old', name: 'Old', imageUrl: '/uploads/old-logo.png' })]);
 
-        const res = await importBackup(backupFile([{ name: 'Fresh', targetUrl: 'https://fresh.example/' }]), 'replace');
+        const res = await importBackup(
+          backupFile([
+            { name: 'Fresh', targetUrl: 'https://fresh.example/', image: { data: logoBytes.toString('base64') } },
+          ]),
+          'replace',
+        );
 
-        expect(res.headers.location).toBe('/admin?status=imported&count=1');
-        expect(readData('shortcuts.json').map((site) => site.name)).toEqual(['Fresh']);
+        expect(res.headers.location).toMatch(/^\/admin\?status=imported&count=1&undoToken=/);
+        const [fresh] = readData('shortcuts.json');
+        expect(fresh.name).toBe('Fresh');
+        // The previous logo is kept while the replace can still be undone.
+        expect(fs.existsSync(path.join(uploadDir, 'old-logo.png'))).toBe(true);
+
+        const toastPage = await agent.get(res.headers.location);
+        expect(toastPage.text).toContain('data-undo-window="15000"');
+        const undoToken = new URL(res.headers.location, 'http://localhost').searchParams.get('undoToken');
+        const restoreRes = await agent
+          .post(`/admin/trash/${undoToken}/restore`)
+          .type('form')
+          .send({ _csrf: extractCsrfToken(toastPage.text) });
+
+        expect(restoreRes.headers.location).toBe('/admin?status=restored');
+        expect(readData('shortcuts.json').map((site) => site.name)).toEqual(['Old']);
+        // The imported logo, now unused, is removed; the restored one is intact.
+        expect(fs.existsSync(path.join(uploadDir, path.basename(fresh.imageUrl)))).toBe(false);
+        expect(fs.existsSync(path.join(uploadDir, 'old-logo.png'))).toBe(true);
+        fs.rmSync(path.join(uploadDir, 'old-logo.png'), { force: true });
+      });
+
+      it('keeps valid creation dates and replaces malformed ones by the import date', async () => {
+        await importBackup(
+          backupFile([
+            { name: 'Dated', targetUrl: 'https://dated.example/', createdAt: '2024-05-01T10:00:00Z' },
+            { name: 'Junk', targetUrl: 'https://junk.example/', createdAt: 'x'.repeat(5000) },
+          ]),
+        );
+        const [dated, junk] = readData('shortcuts.json');
+        expect(dated.createdAt).toBe('2024-05-01T10:00:00.000Z');
+        expect(Date.now() - Date.parse(junk.createdAt)).toBeLessThan(60_000);
       });
 
       it('drops an embedded logo that is not a raster image (e.g. SVG)', async () => {

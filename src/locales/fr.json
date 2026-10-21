@@ -59,7 +59,7 @@
     "importModeMerge": "Fusionner",
     "importModeMergeHint": "Ajoute les sites du fichier sans toucher aux sites actuels. Ceux dont l’URL existe déjà sont ignorés.",
     "importModeReplace": "Remplacer",
-    "importModeReplaceHint": "Supprime tous les sites actuels et les remplace par ceux du fichier.",
+    "importModeReplaceHint": "Remplace tous les sites actuels par ceux du fichier. Vous aurez 15 secondes pour annuler.",
     "importSubmit": "Importer",
     "statusImported": "{count} raccourci(s) importé(s)."
   },

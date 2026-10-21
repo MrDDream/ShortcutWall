@@ -8,6 +8,7 @@ const { verifyCsrfToken } = require('../middleware/csrf');
 const { readJson, updateJson } = require('../lib/store');
 const { isUploadedAsset, readUploadedAsset, deleteUploadedAsset } = require('../lib/uploads');
 const { saveImageBuffer } = require('../lib/remoteImage');
+const { stash } = require('../lib/trash');
 const { normalizeTargetUrl, normalizeImageUrl } = require('../lib/urlUtils');
 const { FIELD_LIMITS, readTextField } = require('../lib/siteFields');
 const logger = require('../lib/logger');
@@ -81,6 +82,16 @@ class ImportError extends Error {
   }
 }
 
+// An ISO date string, or null for anything else (missing, malformed, or an
+// arbitrarily long string that would only bloat the data file).
+function parseDate(value) {
+  if (typeof value !== 'string' || value.length > 40) {
+    return null;
+  }
+  const time = Date.parse(value);
+  return Number.isNaN(time) ? null : new Date(time).toISOString();
+}
+
 // Validates the whole backup before anything is written, so a bad entry
 // never leaves a half-imported list behind.
 function parseBackup(file) {
@@ -130,13 +141,15 @@ function parseBackup(file) {
       // Another install's /uploads path points at nothing here.
       imageUrl: isUploadedAsset(imageUrl) ? '' : imageUrl,
       imageData: typeof entry.image?.data === 'string' ? entry.image.data : null,
-      createdAt: typeof entry.createdAt === 'string' && entry.createdAt ? entry.createdAt : null,
+      createdAt: parseDate(entry.createdAt),
     };
   });
 }
 
 // "merge" (default) adds the backup's sites, skipping URLs already on the wall;
-// "replace" swaps the whole list for the backup's.
+// "replace" swaps the whole list for the backup's. A replace can be undone for
+// the trash window (like a deletion): the previous list and its logos are only
+// discarded once that window has passed.
 router.post('/import', ensureAuthenticated, receiveBackupFile, verifyCsrfToken, async (req, res) => {
   const replace = req.body.mode === 'replace';
   const savedImages = [];
@@ -180,11 +193,17 @@ router.post('/import', ensureAuthenticated, receiveBackupFile, verifyCsrfToken, 
       return replace ? incoming : [...sites, ...incoming];
     });
 
-    if (replace) {
-      await Promise.all(previousSites.map((site) => deleteUploadedAsset(site.imageUrl)));
-    }
+    const undoToken =
+      replace && previousSites.length
+        ? stash({ type: 'sites', items: previousSites }, (payload) => {
+            Promise.all(payload.items.map((site) => deleteUploadedAsset(site.imageUrl))).catch((error) => {
+              logger.error({ err: error }, 'Unable to clean up logos after the undo window expired');
+            });
+          })
+        : null;
+    const undoParam = undoToken ? `&undoToken=${encodeURIComponent(undoToken)}` : '';
 
-    res.redirect(`/admin?status=imported&count=${incoming.length}`);
+    res.redirect(`/admin?status=imported&count=${incoming.length}${undoParam}`);
   } catch (error) {
     await Promise.all(savedImages.map((image) => deleteUploadedAsset(image)));
 

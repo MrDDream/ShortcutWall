@@ -3,7 +3,7 @@ const path = require('path');
 
 const { SITES_FILE, UPLOAD_DIR } = require('../config');
 const { readJson } = require('./store');
-const { pendingPayloads } = require('./trash');
+const { pendingSites } = require('./trash');
 const logger = require('./logger');
 
 // Leaves recent files alone: a logo fetched in a still-open dialog, or one
@@ -25,7 +25,7 @@ async function removeOrphanUploads({ uploadDir = UPLOAD_DIR, sitesFile = SITES_F
   if (!Array.isArray(sites) || !sites.length) {
     return [];
   }
-  const items = [...sites, ...pendingPayloads().map((payload) => payload?.item)];
+  const items = [...sites, ...pendingSites()];
   const referenced = new Set(items.map((item) => uploadedFilename(item?.imageUrl)).filter(Boolean));
 
   let names;
