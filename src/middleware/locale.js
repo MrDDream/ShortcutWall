@@ -1,5 +1,5 @@
-const { normalizeLocale, translate, DEFAULT_LOCALE } = require('../lib/i18n');
-const { APP_NAME, SUPPORT_EMAIL, SUPPORT_PHONE, LANGUAGE_FLAGS } = require('../config');
+const { normalizeLocale, translate, DEFAULT_LOCALE, SUPPORTED_LOCALES } = require('../lib/i18n');
+const { APP_NAME, SUPPORT_EMAIL, SUPPORT_PHONE, LANGUAGE_FLAGS, PROJECT_URL } = require('../config');
 
 function localeMiddleware(req, res, next) {
   const sessionLocale = normalizeLocale(req.session?.locale) || DEFAULT_LOCALE;
@@ -13,17 +13,16 @@ function localeMiddleware(req, res, next) {
   res.locals.supportEmail = SUPPORT_EMAIL;
   res.locals.supportPhone = SUPPORT_PHONE;
 
-  const nextLocale = sessionLocale === 'fr' ? 'en' : 'fr';
-  const nextLanguageName = translate(sessionLocale, `language.name.${nextLocale}`);
-  const currentLanguageName = translate(sessionLocale, `language.name.${sessionLocale}`);
-  const currentFlag = LANGUAGE_FLAGS[sessionLocale] || {};
-
-  res.locals.languageToggle = {
-    next: nextLocale,
-    currentIcon: currentFlag.icon || null,
-    currentLabel: currentLanguageName,
-    title: translate(sessionLocale, 'language.switch', { language: nextLanguageName }),
-  };
+  // Header language picker. Each language is listed under its own name
+  // ("Français", "English"), so readers recognise theirs whatever the
+  // current page language is.
+  res.locals.languages = SUPPORTED_LOCALES.map((code) => ({
+    code,
+    label: translate(code, `language.name.${code}`),
+    icon: LANGUAGE_FLAGS[code]?.icon || null,
+    active: code === sessionLocale,
+  }));
+  res.locals.projectUrl = PROJECT_URL;
 
   res.locals.clientTranslations = {
     invalidUrl: translate(sessionLocale, 'alerts.invalidUrl'),

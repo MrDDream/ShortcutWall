@@ -10,7 +10,9 @@
     "logout": "Se déconnecter",
     "adminLink": "Administration",
     "themeToggle": "Changer de thème",
-    "skipToContent": "Aller au contenu"
+    "skipToContent": "Aller au contenu",
+    "language": "Langue",
+    "github": "Voir le projet sur GitHub"
   },
   "search": {
     "label": "Recherche",

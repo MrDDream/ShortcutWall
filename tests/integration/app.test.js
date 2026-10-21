@@ -45,6 +45,16 @@ describe('ShortcutWall app', () => {
     expect(res.text).toContain('ShortcutWall');
   });
 
+  it('offers every language, each under its own name, and links to the GitHub project', async () => {
+    const res = await agent.get('/');
+    expect(res.text).toContain('href="/language/fr"');
+    expect(res.text).toContain('href="/language/en"');
+    expect(res.text).toContain('Français');
+    expect(res.text).toContain('English');
+    expect(res.text).toMatch(/href="\/language\/en"[^>]*aria-current="true"/);
+    expect(res.text).toContain('href="https://github.com/MrDDream/ShortcutWall"');
+  });
+
   it('does not force assets to https, so plain-HTTP LAN deployments still load CSS/JS', async () => {
     const res = await agent.get('/');
     expect(res.headers['content-security-policy']).not.toContain('upgrade-insecure-requests');

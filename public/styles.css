@@ -427,12 +427,30 @@ kbd {
   display: block;
 }
 
-.language-toggle img {
+.flag {
   width: 20px;
   height: 20px;
+  flex-shrink: 0;
   border-radius: 50%;
   object-fit: cover;
   box-shadow: 0 0 0 1px var(--border-strong);
+}
+
+.dropdown {
+  position: relative;
+  display: inline-flex;
+}
+
+.language-menu__toggle {
+  gap: 0.5rem;
+  padding: 0 0.6rem 0 0.7rem;
+  font-weight: 500;
+}
+
+.language-menu__toggle .dropdown__chevron {
+  width: 1rem;
+  height: 1rem;
+  color: var(--text-subtle);
 }
 
 .header-admin-menu {
@@ -452,11 +470,11 @@ kbd {
   border-bottom-left-radius: 0;
 }
 
-.header-admin-menu__toggle .icon {
+.dropdown__chevron {
   transition: transform 0.2s var(--ease);
 }
 
-.header-admin-menu__toggle[aria-expanded='true'] .icon {
+[data-menu-toggle][aria-expanded='true'] .dropdown__chevron {
   transform: rotate(180deg);
 }
 
@@ -498,6 +516,20 @@ kbd {
 
 .menu__item:hover {
   background: var(--surface-hover);
+}
+
+.menu__item.is-active {
+  font-weight: 600;
+}
+
+.menu__label {
+  flex: 1;
+}
+
+.menu__check {
+  width: 1rem;
+  height: 1rem;
+  color: var(--accent);
 }
 
 .menu__item--danger {
@@ -1004,7 +1036,7 @@ input[type='search']::-webkit-search-cancel-button {
 
 .shortcut-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(198px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(178px, 1fr));
   gap: 1rem;
 }
 
@@ -1083,18 +1115,42 @@ input[type='search']::-webkit-search-cancel-button {
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  width: 77px;
-  height: 77px;
+  width: 92px;
+  height: 92px;
   margin-bottom: 0.75rem;
   overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: 21px;
+  border-radius: 22px;
   background: var(--surface-muted);
   transition: transform 0.3s var(--ease);
 }
 
 .shortcut-card:hover .shortcut-thumb {
   transform: scale(1.06);
+}
+
+/* On the wall a loaded logo stands on its own, frameless and full size. The
+   muted tile only shows while it loads. In dark mode a light borderless
+   backdrop stays, or dark logos (GitHub's, say) would vanish into the card. */
+.shortcut-card .shortcut-thumb.is-loaded {
+  overflow: visible;
+  border-color: transparent;
+  border-radius: 0;
+  background: transparent;
+}
+
+.shortcut-card .shortcut-thumb__image {
+  padding: 0;
+}
+
+:root[data-theme='dark'] .shortcut-card .shortcut-thumb.is-loaded {
+  overflow: hidden;
+  border-radius: 22px;
+  background: #f4f5fa;
+}
+
+:root[data-theme='dark'] .shortcut-card .shortcut-thumb__image {
+  padding: 12px;
 }
 
 .shortcut-thumb__image {
@@ -1113,7 +1169,7 @@ input[type='search']::-webkit-search-cancel-button {
 .shortcut-thumb__fallback {
   display: none;
   color: #fff;
-  font-size: 1.8rem;
+  font-size: 2.1rem;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -1863,10 +1919,25 @@ html:has(dialog[open]) {
     display: none;
   }
 
+  .header-actions .icon-btn,
+  .header-actions .btn {
+    height: 2.25rem;
+  }
+
+  .header-actions .icon-btn,
   .header-admin-menu__link,
-  .header-login {
-    width: 2.5rem;
+  .header-login,
+  .language-menu__toggle {
+    width: 2.25rem;
     padding: 0;
+  }
+
+  .header-admin-menu__toggle {
+    width: 2rem;
+  }
+
+  .language-menu__toggle .dropdown__chevron {
+    display: none;
   }
 
   .page {
@@ -1889,7 +1960,7 @@ html:has(dialog[open]) {
   }
 
   .shortcut-grid {
-    grid-template-columns: repeat(auto-fill, minmax(154px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(144px, 1fr));
     gap: 0.75rem;
   }
 
@@ -1920,5 +1991,20 @@ html:has(dialog[open]) {
 
   .field__row .btn {
     width: 100%;
+  }
+}
+
+/* Small phones: keep the app name whole next to the four header buttons. */
+@media (max-width: 400px) {
+  .brand {
+    font-size: 1rem;
+  }
+
+  .brand a {
+    gap: 0.5rem;
+  }
+
+  .header-actions {
+    gap: 0.25rem;
   }
 }

@@ -10,7 +10,9 @@
     "logout": "Sign out",
     "adminLink": "Admin",
     "themeToggle": "Toggle theme",
-    "skipToContent": "Skip to content"
+    "skipToContent": "Skip to content",
+    "language": "Language",
+    "github": "View the project on GitHub"
   },
   "search": {
     "label": "Search",

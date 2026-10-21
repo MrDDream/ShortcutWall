@@ -33,22 +33,55 @@
             <%- include('icon', { name: 'moon', className: 'icon-moon' }) %>
             <%- include('icon', { name: 'sun', className: 'icon-sun' }) %>
           </button>
-          <% if (languageToggle) { %>
-            <a
-              class="icon-btn language-toggle"
-              href="/language/<%= languageToggle.next %>"
-              title="<%= languageToggle.title %>"
-              aria-label="<%= languageToggle.title %>"
+          <% const currentLanguage = languages.find((language) => language.active) || languages[0]; %>
+          <div class="dropdown" data-menu>
+            <button
+              type="button"
+              class="btn btn--secondary language-menu__toggle"
+              data-menu-toggle
+              aria-haspopup="true"
+              aria-expanded="false"
+              aria-label="<%= t('header.language') %> : <%= currentLanguage.label %>"
+              title="<%= t('header.language') %>"
             >
-              <% if (languageToggle.currentIcon) { %>
-                <img src="<%= languageToggle.currentIcon %>" alt="<%= languageToggle.currentLabel %>" />
-              <% } else { %>
-                <span><%= languageToggle.currentLabel %></span>
+              <% if (currentLanguage.icon) { %>
+                <img class="flag" src="<%= currentLanguage.icon %>" alt="" />
               <% } %>
-            </a>
-          <% } %>
+              <span class="hide-sm"><%= currentLanguage.label %></span>
+              <%- include('icon', { name: 'chevronDown', className: 'dropdown__chevron' }) %>
+            </button>
+            <div class="menu" data-menu-panel hidden>
+              <% languages.forEach((language) => { %>
+                <a
+                  class="menu__item <%= language.active ? 'is-active' : '' %>"
+                  href="/language/<%= language.code %>"
+                  lang="<%= language.code %>"
+                  hreflang="<%= language.code %>"
+                  <% if (language.active) { %>aria-current="true"<% } %>
+                >
+                  <% if (language.icon) { %>
+                    <img class="flag" src="<%= language.icon %>" alt="" />
+                  <% } %>
+                  <span class="menu__label"><%= language.label %></span>
+                  <% if (language.active) { %>
+                    <%- include('icon', { name: 'checkMark', className: 'menu__check' }) %>
+                  <% } %>
+                </a>
+              <% }); %>
+            </div>
+          </div>
+          <a
+            class="icon-btn"
+            href="<%= projectUrl %>"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="<%= t('header.github') %>"
+            aria-label="<%= t('header.github') %>"
+          >
+            <%- include('icon', { name: 'github' }) %>
+          </a>
           <% if (isAuthenticated) { %>
-            <div class="header-admin-menu">
+            <div class="header-admin-menu" data-menu>
               <a
                 class="btn btn--secondary header-admin-menu__link"
                 href="/admin"
@@ -60,13 +93,14 @@
               <button
                 type="button"
                 class="icon-btn header-admin-menu__toggle"
+                data-menu-toggle
                 aria-haspopup="true"
                 aria-expanded="false"
                 aria-label="<%= t('header.logout') %>"
               >
-                <%- include('icon', { name: 'chevronDown' }) %>
+                <%- include('icon', { name: 'chevronDown', className: 'dropdown__chevron' }) %>
               </button>
-              <div class="menu header-admin-menu__dropdown" hidden>
+              <div class="menu header-admin-menu__dropdown" data-menu-panel hidden>
                 <form action="/admin/logout" method="post">
                   <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
                   <button type="submit" class="menu__item menu__item--danger header-admin-menu__logout">

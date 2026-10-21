@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupSortControl();
   setupSearchFilter();
   setupSearchShortcut();
-  setupAdminMenu();
+  setupMenus();
   setupFaviconButtons();
   setupFaviconThumbnails();
   setupImageFilePreview();
@@ -195,51 +195,49 @@ function compareCards(cardA, cardB, sortType) {
   return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
 }
 
-function setupAdminMenu() {
-  const menu = document.querySelector('.header-admin-menu');
-  if (!menu) {
+// Header dropdowns ([data-menu]: language picker, admin menu). Opening one
+// closes the others; Escape or a click outside closes it.
+function setupMenus() {
+  const menus = Array.from(document.querySelectorAll('[data-menu]'))
+    .map((root) => ({
+      root,
+      toggle: root.querySelector('[data-menu-toggle]'),
+      panel: root.querySelector('[data-menu-panel]'),
+    }))
+    .filter(({ toggle, panel }) => toggle && panel);
+  if (!menus.length) {
     return;
   }
 
-  const toggle = menu.querySelector('.header-admin-menu__toggle');
-  const dropdown = menu.querySelector('.header-admin-menu__dropdown');
-  if (!toggle || !dropdown) {
-    return;
-  }
+  const close = (menu) => {
+    menu.panel.hidden = true;
+    menu.toggle.setAttribute('aria-expanded', 'false');
+  };
 
-  function closeMenu() {
-    dropdown.hidden = true;
-    toggle.setAttribute('aria-expanded', 'false');
-    document.removeEventListener('click', handleOutsideClick);
-    document.removeEventListener('keydown', handleKeydown);
-  }
+  menus.forEach((menu) => {
+    menu.toggle.addEventListener('click', (event) => {
+      event.preventDefault();
+      const opening = menu.panel.hidden;
+      menus.forEach(close);
+      if (opening) {
+        menu.panel.hidden = false;
+        menu.toggle.setAttribute('aria-expanded', 'true');
+      }
+    });
+  });
 
-  function openMenu() {
-    dropdown.hidden = false;
-    toggle.setAttribute('aria-expanded', 'true');
-    document.addEventListener('click', handleOutsideClick);
-    document.addEventListener('keydown', handleKeydown);
-  }
+  document.addEventListener('click', (event) => {
+    menus.filter((menu) => !menu.root.contains(event.target)).forEach(close);
+  });
 
-  function handleOutsideClick(event) {
-    if (!menu.contains(event.target)) {
-      closeMenu();
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') {
+      return;
     }
-  }
-
-  function handleKeydown(event) {
-    if (event.key === 'Escape') {
-      closeMenu();
-      toggle.focus();
-    }
-  }
-
-  toggle.addEventListener('click', (event) => {
-    event.preventDefault();
-    if (dropdown.hidden) {
-      openMenu();
-    } else {
-      closeMenu();
+    const open = menus.find((menu) => !menu.panel.hidden);
+    if (open) {
+      close(open);
+      open.toggle.focus();
     }
   });
 }

@@ -35,6 +35,9 @@ const SUPPORT_PHONE = (process.env.SUPPORT_PHONE && process.env.SUPPORT_PHONE.tr
 const FAVICON_FETCH_TIMEOUT = 5000;
 
 const SUPPORTED_LOCALES = ['fr', 'en'];
+
+// Linked from the header's GitHub button.
+const PROJECT_URL = 'https://github.com/MrDDream/ShortcutWall';
 const DEFAULT_LOCALE_RAW = process.env.APP_DEFAULT_LOCALE;
 
 const LANGUAGE_FLAGS = {
@@ -84,5 +87,6 @@ module.exports = {
   SUPPORTED_LOCALES,
   DEFAULT_LOCALE_RAW,
   LANGUAGE_FLAGS,
+  PROJECT_URL,
   USES_DEFAULT_CREDENTIALS,
 };
