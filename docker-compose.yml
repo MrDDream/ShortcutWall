@@ -1,5 +1,5 @@
 services:
-  raccourci:
+  shortcutwall:
     image: ghcr.io/mrddream/shortcutwall:latest
     container_name: ShortcutWall
     ports:

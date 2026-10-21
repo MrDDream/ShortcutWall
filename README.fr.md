@@ -1,169 +1,173 @@
-# <img src="public/images/logo.svg" alt="Logo ShortcutWall" style="width: 50px; height: auto;" /> ShortcutWall
+<div align="center">
 
-Cette documentation est disponible en [français](README.fr.md) et en [anglais](README.md).
+<img src="public/images/logo.svg" alt="Logo ShortcutWall" width="96" />
 
-## Présentation
+# ShortcutWall
 
-ShortcutWall est un mur de raccourcis vers des sites web, à héberger soi-même : une page où vous et vos
-utilisateurs retrouvez tous les sites utiles, chacun avec son logo, et un espace d'administration pour
-les gérer. C'est une seule application Node.js (ou un conteneur Docker), sans base de données.
+**Votre mur de raccourcis web, auto-hébergé.**<br />
+Une page avec tous les sites utiles et leur logo, et une administration simple pour les gérer.
 
-## Fonctionnalités
+[![CI](https://github.com/MrDDream/ShortcutWall/actions/workflows/ci.yml/badge.svg)](https://github.com/MrDDream/ShortcutWall/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/MrDDream/ShortcutWall?label=version)](https://github.com/MrDDream/ShortcutWall/releases)
+[![Image Docker](https://img.shields.io/badge/image-ghcr.io%2Fmrddream%2Fshortcutwall-2496ED?logo=docker&logoColor=white)](https://github.com/MrDDream/ShortcutWall/pkgs/container/shortcutwall)
+[![Licence : MIT](https://img.shields.io/badge/licence-MIT-green)](LICENSE)
+
+[English](README.md) · Français
+
+<img src="screenshots/homepage.png" alt="Le mur de raccourcis" width="900" />
+
+</div>
+
+## ✨ Fonctionnalités
 
 - 🧱 **Mur de raccourcis** : de grandes cartes avec logo, nom et description ; un clic ouvre le site.
-- 🔎 **Recherche et tri** : recherche instantanée (touche <kbd>/</kbd>) sur les noms, descriptions et
-  domaines ; ordre alphabétique ou du plus récent.
-- 🖼️ **Logos automatiques** : « Récupérer le favicon » trouve la meilleure icône proposée par le site
-  (SVG ou plus grand PNG, vérifiée comme étant bien une image). Les logos sont **stockés par l'app** et
-  **réduits à 256 px** : la protection anti-hotlink ou l'en-tête `Cross-Origin-Resource-Policy` d'un
-  site ne peuvent pas casser le mur. L'import manuel (PNG, JPG, GIF, WebP) reste possible.
-- 🛠️ **Administration en pop-ups** : ajout, modification et suppression sans quitter la liste ; les
-  erreurs du serveur (site inaccessible, URL invalide…) s'affichent dans la pop-up sans perdre la
-  saisie ; une suppression peut être annulée pendant 15 secondes.
-- 💾 **Export / import** : un fichier JSON avec tous les raccourcis et leurs logos, pour sauvegarder ou
-  déménager une installation ; l'import peut fusionner ou remplacer.
-- 🌗 **Thèmes clair et sombre** : suit le système, modifiable à la main.
-- 🌐 **Français et anglais** : sélecteur de langue dans l'en-tête.
-- 🔒 **Sécurité** : protection CSRF, CSP et en-têtes de sécurité, limitation des tentatives de
-  connexion, garde-fou SSRF sur chaque requête sortante, logos limités aux formats d'image matriciels.
+- 🔎 **Recherche et tri instantanés** : touche <kbd>/</kbd> pour chercher dans les noms, descriptions et domaines ; ordre alphabétique ou du plus récent.
+- 🖼️ **Logos automatiques** : « Récupérer le favicon » trouve la meilleure icône du site, la stocke dans l'app et la réduit à 256 px : le mur reste rapide et n'affiche jamais d'image cassée.
+- 🛠️ **Administration en pop-ups** : ajout, modification et suppression sans quitter la liste ; une suppression s'annule pendant 15 secondes.
+- 💾 **Export / import** : un fichier JSON avec tous les raccourcis et leurs logos, pour sauvegarder ou déménager une installation.
+- 🌗 **Thèmes clair et sombre**, 🌐 **français et anglais**, 📱 **adapté au mobile**.
+- 🔒 **Sécurisé par défaut** : protection CSRF, CSP stricte, limitation des tentatives de connexion, garde-fou SSRF, refus de démarrer avec les identifiants par défaut.
 
-## Captures d'écran
+## 🚀 Installation
 
-| Mur | Administration |
-|-----|----------------|
-| ![Mur de raccourcis](screenshots/homepage.png) | ![Administration](screenshots/admin.png) |
+ShortcutWall est fourni sous forme d'image Docker prête à l'emploi (`linux/amd64` et `linux/arm64`, par
+exemple un Raspberry Pi) : **`ghcr.io/mrddream/shortcutwall`**. Il suffit de Docker avec Compose.
 
-![Mur de raccourcis, thème sombre](screenshots/homepage-dark.png)
+### 1. Créez un dossier avec ce `docker-compose.yml`
 
-## Installation
+```bash
+mkdir shortcutwall && cd shortcutwall
+```
 
-### Avec Docker (recommandé)
+```yaml
+services:
+  shortcutwall:
+    image: ghcr.io/mrddream/shortcutwall:latest
+    container_name: ShortcutWall
+    ports:
+      - "${PORT:-3050}:${PORT:-3050}"
+    # ADMIN_USER, ADMIN_PASS, SESSION_SECRET… come from .env (see .env.example):
+    # the app refuses to start in production without real values.
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      NODE_ENV: production
+      PORT: ${PORT:-3050}
+      HOST: ${HOST:-0.0.0.0}
+    volumes:
+      - ./data:/app/data
+      - ./public/uploads:/app/public/uploads
+    restart: unless-stopped
+```
 
-1. Récupérez le fichier `docker-compose.yml` et créez un `.env` à côté, à partir de
-   [`.env.example`](.env.example). Changez au minimum `SESSION_SECRET`, `ADMIN_USER` et `ADMIN_PASS` :
+### 2. Créez les dossiers de données et le fichier `.env`
 
-   ```bash
-   cp .env.example .env
-   ```
+Le conteneur tourne avec un utilisateur non privilégié (uid 1000) : créez les dossiers vous-même, sinon
+Docker les crée en `root` et l'application ne peut pas y écrire.
 
-2. Lancez l'image publiée :
+```bash
+mkdir -p data public/uploads
+```
 
-   ```bash
-   docker compose up -d
-   ```
+```bash
+printf 'ADMIN_USER=admin\nADMIN_PASS=%s\nSESSION_SECRET=%s\n' 'choisissez-un-mot-de-passe-solide' "$(openssl rand -hex 32)" > .env
+```
 
-Le mur est accessible sur `http://localhost:3050` et l'administration sur `/admin`.
-Les données sont dans `./data` (raccourcis, sessions) et les logos dans `./public/uploads`, tous deux
-montés en volumes.
+Remplacez `choisissez-un-mot-de-passe-solide` par votre mot de passe. Les autres réglages sont facultatifs
+(voir [Configuration](#%EF%B8%8F-configuration)).
 
-Pour construire l'image depuis les sources (par exemple après avoir modifié le code), utilisez
+### 3. Lancez
+
+```bash
+docker compose up -d
+```
+
+Le mur est accessible sur **http://localhost:3050** et l'administration sur **http://localhost:3050/admin**.
+
+### Mettre à jour
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+Pour rester sur une version précise, remplacez `latest` par un numéro de version, par exemple
+`ghcr.io/mrddream/shortcutwall:1.1.0`. Les versions disponibles sont listées sur la
+[page des releases](https://github.com/MrDDream/ShortcutWall/releases).
+
+## 📸 Captures d'écran
+
+| Administration | Modification d'un site |
+|:---:|:---:|
+| <img src="screenshots/admin.png" alt="Administration" width="440" /> | <img src="screenshots/admin-edit.png" alt="Modification d'un site" width="440" /> |
+| **Thème sombre** | **Sur téléphone** |
+| <img src="screenshots/homepage-dark.png" alt="Thème sombre" width="440" /> | <img src="screenshots/mobile.png" alt="Sur téléphone" width="200" /> |
+
+## ⚙️ Configuration
+
+Tous les réglages se font dans le fichier `.env` à côté de `docker-compose.yml`, puis
+`docker compose up -d` pour les appliquer.
+
+| Variable | Défaut | Description |
+|----------|--------|-------------|
+| `ADMIN_USER` | `admin` | Identifiant d'administration. |
+| `ADMIN_PASS` | — | Mot de passe d'administration. **Obligatoire** : l'app refuse de démarrer avec celui par défaut. |
+| `SESSION_SECRET` | — | Secret aléatoire d'au moins 32 caractères (`openssl rand -hex 32`). **Obligatoire.** |
+| `PORT` | `3050` | Port de l'application (et port publié). |
+| `TRUST_PROXY` | `false` | À mettre à `true` derrière un reverse proxy (HTTPS, vraie IP du client pour la limite de connexion). |
+| `APP_NAME` | `ShortcutWall` | Nom affiché dans l'en-tête et le titre des pages. |
+| `APP_DEFAULT_LOCALE` | `fr` | Langue par défaut : `fr` ou `en`. |
+| `SUPPORT_EMAIL` / `SUPPORT_PHONE` | — | Contacts affichés dans une fenêtre « Besoin d'aide ? » (masquée si vides). |
+| `LOG_LEVEL` | `info` | `fatal`, `error`, `warn`, `info`, `debug` ou `trace`. |
+
+## 🧭 Utilisation
+
+- **Mur** (`/`) : public, sans compte. Un clic sur une carte ouvre le site.
+- **Administration** (`/admin`) : *Ajouter un site*, puis *Récupérer le favicon* pour obtenir son logo
+  automatiquement ; un clic sur une tuile permet de la modifier.
+- **Sauvegarde** : *Exporter* télécharge `shortcutwall-AAAA-MM-JJ.json` (logos inclus) ; *Importer* le
+  restaure, en le fusionnant avec les sites actuels ou en les remplaçant (annulable pendant 15 secondes).
+- **Données** : les raccourcis sont dans `./data`, les logos dans `./public/uploads`. Sauvegardez ces deux
+  dossiers, ou utilisez *Exporter*.
+
+## 🔒 Sécurité
+
+- Mot de passe d'administration et secret de session obligatoires en production ; une session n'est créée
+  qu'à la connexion.
+- Jetons CSRF sur tous les formulaires, Content-Security-Policy stricte, cookies `HttpOnly` / `SameSite`.
+- Connexion limitée à 10 échecs par IP toutes les 15 minutes.
+- Les requêtes sortantes (favicons, logos) ne peuvent pas atteindre les réseaux privés, ni être redirigées
+  vers eux (garde-fou SSRF).
+- Les fichiers téléversés sont vérifiés comme étant de vraies images et stockés sous des noms générés.
+- L'image tourne avec un utilisateur non root, le code de l'application en lecture seule.
+
+> [!NOTE]
+> À cause du garde-fou SSRF, les sites hébergés sur votre réseau local (`192.168.x.x`, `10.x.x.x`…) ne
+> peuvent pas encore être ajoutés.
+
+## 🩺 Dépannage
+
+- **Le conteneur s'arrête avec `EACCES: permission denied`** : le dossier `data` ou `public/uploads`
+  appartient à `root`. Corrigez avec `sudo chown -R 1000:1000 data public/uploads`, puis `docker compose up -d`.
+- **Il refuse de démarrer (« Refusing to start in production… »)** : `ADMIN_PASS` ou `SESSION_SECRET`
+  manque, garde sa valeur par défaut, ou le secret fait moins de 32 caractères. Vérifiez le fichier `.env`.
+- **Logs** : `docker compose logs -f`.
+
+## 🛠️ Contribuer
+
+Les issues et pull requests sont les bienvenues. Pour construire l'image depuis les sources, utilisez
 `docker-compose-dev.yml` :
 
 ```bash
 docker compose -f docker-compose-dev.yml up -d --build
 ```
 
-### Sans Docker
-
-Nécessite **Node.js 26** ou plus récent (voir [`.nvmrc`](.nvmrc)).
+Avant d'ouvrir une pull request, lancez les vérifications de la CI (Node.js 26) :
 
 ```bash
-git clone https://github.com/MrDDream/ShortcutWall.git
-cd ShortcutWall
-cp .env.example .env
-npm ci
-npm start
+npm ci && npm run lint && npm run format:check && npm test
 ```
 
-## Configuration
+## 📄 Licence
 
-Tout se règle par variables d'environnement, en général dans `.env`.
-
-| Variable | Défaut | Description |
-|----------|--------|-------------|
-| `SESSION_SECRET` | `change-me` | Secret qui signe la session d'administration. **À changer.** |
-| `ADMIN_USER` / `ADMIN_PASS` | `admin` / `admin123` | Identifiants d'administration. **À changer.** |
-| `PORT` / `HOST` | `3050` / `0.0.0.0` | Port et adresse d'écoute. |
-| `TRUST_PROXY` | `false` | À mettre à `true` derrière un reverse proxy (HTTPS, IP du client). Sans cela, tous les visiteurs partagent l'IP du proxy, et sa limite de tentatives de connexion. |
-| `APP_NAME` | `ShortcutWall` | Nom affiché dans l'en-tête et le titre des pages. |
-| `APP_DEFAULT_LOCALE` | `fr` | Langue par défaut (`fr` ou `en`). |
-| `SUPPORT_EMAIL` / `SUPPORT_PHONE` | — | Contacts de la fenêtre « Besoin d'aide ? » (masquée si vides). |
-| `LOG_LEVEL` | `info` (`debug` en développement) | `fatal`, `error`, `warn`, `info`, `debug` ou `trace`. |
-| `DATA_DIR` | `./data` | Dossier des raccourcis et des sessions. |
-| `UPLOAD_DIR` | `./public/uploads` | Dossier des logos (servis sur `/uploads`). |
-
-En production (`NODE_ENV=production`, le défaut avec Docker), l'application **refuse de démarrer** tant que
-`ADMIN_PASS` ou `SESSION_SECRET` garde sa valeur par défaut ; ailleurs, l'administration affiche un avertissement.
-La connexion est limitée à 10 échecs par IP toutes les 15 minutes.
-
-## Utilisation
-
-- **Mur** : `/`, public, sans compte.
-- **Administration** : `/admin`, pour ajouter un site, récupérer son favicon, le modifier ou le supprimer.
-- **Sauvegarde** : dans l'administration, *Exporter* télécharge `shortcutwall-AAAA-MM-JJ.json` ;
-  *Importer* restaure un tel fichier, soit en le fusionnant (les sites dont l'URL existe déjà sont
-  ignorés), soit en remplaçant tous les sites.
-- Les logos qui n'appartiennent plus à aucun site (par exemple un favicon récupéré dans une pop-up
-  annulée) sont supprimés automatiquement, au démarrage puis une fois par jour.
-
-### Limite connue
-
-Pour éviter les attaques SSRF, le serveur refuse de contacter les adresses du réseau privé
-(`192.168.x.x`, `10.x.x.x`, `localhost`…). Les sites hébergés sur votre réseau local ne peuvent donc
-pas encore être ajoutés.
-
-## Développement
-
-```bash
-npm ci
-npm run dev          # redémarre à chaque modification (node --watch)
-npm test             # Vitest
-npm run lint         # ESLint
-npm run format:check # Prettier
-```
-
-La CI lance le lint, le formatage, les tests et `npm audit` à chaque push.
-
-## Technologies
-
-| Catégorie | Technologies |
-|-----------|--------------|
-| Backend | Node.js 26, Express 5 |
-| Vues | EJS, CSS et JavaScript natifs (sans étape de build) |
-| Stockage | Fichiers JSON, sessions sur disque |
-| Images | sharp (redimensionnement), Multer (imports) |
-| Sécurité | Helmet, express-rate-limit, jetons CSRF, garde-fou SSRF |
-| Tests | Vitest, Supertest |
-| Conteneurs | Docker, Docker Compose |
-
-## Structure du projet
-
-```
-.
-├── server.js              # point d'entrée
-├── src/
-│   ├── app.js             # application Express (middlewares, routes)
-│   ├── config.js          # variables d'environnement
-│   ├── lib/               # favicon, import/redimensionnement des logos, garde-fou SSRF, stockage…
-│   ├── locales/           # fr.json, en.json
-│   ├── middleware/
-│   └── routes/            # pages, admin, sites, sauvegarde, favicon…
-├── views/                 # gabarits EJS et partiels
-├── public/                # styles.css, scripts.js, theme.js, images
-├── tests/                 # tests unitaires et d'intégration
-├── data/                  # raccourcis et sessions (créé à l'exécution)
-└── docker-compose.yml     # image publiée ; docker-compose-dev.yml la construit
-```
-
-## Contribuer
-
-Les issues et pull requests sont les bienvenues. Merci de garder le style de code existant et de
-vérifier que `npm run lint`, `npm run format:check` et `npm test` passent.
-
-## Licence
-
-[MIT](LICENSE)
-
-## Contact
-
-- [MrDDream](https://github.com/MrDDream)
+[MIT](LICENSE) © [MrDDream](https://github.com/MrDDream)
