@@ -14,8 +14,11 @@ router.get('/', (req, res) => {
   });
 });
 
-// Only redirects back to a same-origin path: trusting a client-controlled
+// Only redirects back to a path of this same site: trusting a client-controlled
 // Referer header for the redirect target would otherwise allow an open redirect.
+// The host alone is compared, not the scheme: behind an HTTPS reverse proxy
+// without TRUST_PROXY the app sees plain http while the browser's Referer says
+// https, which used to send every language switch back to the home page.
 function resolveSameOriginRedirect(req) {
   const referer = req.get('Referer');
   if (!referer) {
@@ -24,8 +27,7 @@ function resolveSameOriginRedirect(req) {
 
   try {
     const refererUrl = new URL(referer);
-    const currentOrigin = `${req.protocol}://${req.get('host')}`;
-    if (refererUrl.origin !== currentOrigin) {
+    if (refererUrl.host !== req.get('host')) {
       return '/';
     }
     return `${refererUrl.pathname}${refererUrl.search}`;

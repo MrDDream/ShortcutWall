@@ -29,10 +29,19 @@ describe('config', () => {
     expect(defaultSecret.status).not.toBe(0);
   });
 
+  it('refuses to start in production with a session secret shorter than 32 characters', () => {
+    const shortSecret = loadConfig({
+      NODE_ENV: 'production',
+      ADMIN_PASS: 'a-real-password',
+      SESSION_SECRET: 'short-but-not-default',
+    });
+    expect(shortSecret.status).not.toBe(0);
+    expect(shortSecret.stderr).toMatch(/shorter than 32 characters/);
+  });
+
   it('starts in production with custom credentials, and outside production with defaults', () => {
     expect(
-      loadConfig({ NODE_ENV: 'production', ADMIN_PASS: 'a-real-password', SESSION_SECRET: 'a-long-random-secret' })
-        .status,
+      loadConfig({ NODE_ENV: 'production', ADMIN_PASS: 'a-real-password', SESSION_SECRET: 'x'.repeat(32) }).status,
     ).toBe(0);
     expect(loadConfig({ NODE_ENV: 'development' }).status).toBe(0);
   });

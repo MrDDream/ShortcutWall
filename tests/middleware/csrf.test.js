@@ -1,12 +1,24 @@
 import { describe, it, expect, vi } from 'vitest';
 
-import { attachCsrfToken, verifyCsrfToken } from '../../src/middleware/csrf.js';
+import {
+  attachCsrfToken,
+  verifyCsrfToken,
+  issueLoginCsrfToken,
+  verifyLoginCsrfToken,
+} from '../../src/middleware/csrf.js';
 
 function mockRes() {
   return {
     locals: { t: (key) => key },
     statusCode: null,
     body: null,
+    cookies: {},
+    cookie(name, value) {
+      this.cookies[name] = value;
+    },
+    clearCookie(name) {
+      this.cookies[name] = null;
+    },
     status(code) {
       this.statusCode = code;
       return this;
@@ -40,13 +52,14 @@ describe('attachCsrfToken', () => {
     expect(res.locals.csrfToken).toBe(req.session.csrfToken);
   });
 
-  it('generates a token on the login page for an unauthenticated session', () => {
+  it('never stores a token in an anonymous session, even on the login page', () => {
     const req = { session: {}, path: '/admin/login' };
     const res = mockRes();
 
     attachCsrfToken(req, res, () => {});
 
-    expect(res.locals.csrfToken).toBeDefined();
+    expect(req.session).toEqual({});
+    expect(res.locals.csrfToken).toBeUndefined();
   });
 
   it('does not generate a token for an unauthenticated, non-login page', () => {
@@ -121,5 +134,45 @@ describe('verifyCsrfToken', () => {
 
     expect(next).toHaveBeenCalledOnce();
     expect(res.statusCode).toBeNull();
+  });
+});
+
+describe('login CSRF token (signed cookie, no session)', () => {
+  const issue = () => {
+    const res = mockRes();
+    issueLoginCsrfToken({ secure: false }, res, () => {});
+    return res.cookies.login_csrf;
+  };
+  const verify = (cookieToken, submitted) => {
+    const req = {
+      headers: { cookie: cookieToken ? `login_csrf=${encodeURIComponent(cookieToken)}` : '' },
+      body: { _csrf: submitted },
+    };
+    const res = mockRes();
+    const next = vi.fn();
+    verifyLoginCsrfToken(req, res, next);
+    return { next, res };
+  };
+
+  it('issues the same signed token in the cookie and the form', () => {
+    const res = mockRes();
+    issueLoginCsrfToken({ secure: false }, res, () => {});
+    expect(res.cookies.login_csrf).toMatch(/^[0-9a-f]{64}\.[0-9a-f]{64}$/);
+    expect(res.locals.csrfToken).toBe(res.cookies.login_csrf);
+  });
+
+  it('accepts a genuine token submitted with its cookie, then clears the cookie', () => {
+    const token = issue();
+    const { next, res } = verify(token, token);
+    expect(next).toHaveBeenCalledOnce();
+    expect(res.cookies.login_csrf).toBeNull();
+  });
+
+  it('rejects a tampered signature, a missing cookie and a form/cookie mismatch', () => {
+    const token = issue();
+    const tampered = `${token.split('.')[0]}.${'0'.repeat(64)}`;
+    expect(verify(tampered, tampered).res.statusCode).toBe(403);
+    expect(verify(null, token).res.statusCode).toBe(403);
+    expect(verify(token, issue()).res.statusCode).toBe(403);
   });
 });

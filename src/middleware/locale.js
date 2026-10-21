@@ -1,19 +1,6 @@
+const { readCookie } = require('../lib/cookies');
 const { normalizeLocale, translate, DEFAULT_LOCALE, SUPPORTED_LOCALES } = require('../lib/i18n');
 const { APP_NAME, SUPPORT_EMAIL, SUPPORT_PHONE, LANGUAGE_FLAGS, PROJECT_URL, LANGUAGE_COOKIE } = require('../config');
-
-function readCookie(req, name) {
-  for (const part of (req.headers.cookie || '').split(';')) {
-    const separator = part.indexOf('=');
-    if (separator !== -1 && part.slice(0, separator).trim() === name) {
-      try {
-        return decodeURIComponent(part.slice(separator + 1).trim());
-      } catch {
-        return null;
-      }
-    }
-  }
-  return null;
-}
 
 // The language comes from the "lang" cookie (set by /language/:locale), then
 // from a session written by older versions, then the configured default. It is

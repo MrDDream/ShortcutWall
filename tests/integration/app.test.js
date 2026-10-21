@@ -85,6 +85,20 @@ describe('ShortcutWall app', () => {
     expect(res.headers['referrer-policy']).toBe('same-origin');
   });
 
+  it('brings the visitor back after a language switch behind an HTTPS proxy too', async () => {
+    const res = await request(app)
+      .get('/language/en')
+      .set('Host', 'wall.example')
+      .set('Referer', 'https://wall.example/admin');
+    expect(res.headers.location).toBe('/admin');
+
+    const foreign = await request(app)
+      .get('/language/en')
+      .set('Host', 'wall.example')
+      .set('Referer', 'https://evil.example/admin');
+    expect(foreign.headers.location).toBe('/');
+  });
+
   it('brings the visitor back to the page they switched language from', async () => {
     const res = await request(app)
       .get('/language/fr')
@@ -149,6 +163,26 @@ describe('ShortcutWall app', () => {
 
     expect(res.status).toBe(401);
     expect(res.text).toMatch(/invalid/i);
+  });
+
+  it('serves the login form without creating a session, its CSRF token in a signed cookie', async () => {
+    const res = await request(app).get('/admin/login');
+    const cookies = res.headers['set-cookie'] || [];
+    expect(cookies.some((cookie) => cookie.startsWith('connect.sid='))).toBe(false);
+    const loginCookie = cookies.find((cookie) => cookie.startsWith('login_csrf='));
+    expect(loginCookie).toMatch(/HttpOnly/i);
+    expect(loginCookie).toMatch(/SameSite=Strict/i);
+    expect(extractCsrfToken(res.text)).toBe(decodeURIComponent(loginCookie.split(';')[0].split('=')[1]));
+  });
+
+  it('rejects a forged login CSRF token (matching cookie, bad signature)', async () => {
+    const forged = `${'a'.repeat(64)}.${'b'.repeat(64)}`;
+    const res = await request(app)
+      .post('/admin/login')
+      .set('Cookie', `login_csrf=${forged}`)
+      .type('form')
+      .send({ username: 'testadmin', password: 'testpassword123', _csrf: forged });
+    expect(res.status).toBe(403);
   });
 
   it('answers a malformed (non-ASCII) CSRF token with 403, not a crash', async () => {

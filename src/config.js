@@ -54,12 +54,22 @@ const LANGUAGE_FLAGS = {
 // read the source could log in, or sign a session cookie.
 const USES_DEFAULT_CREDENTIALS = SESSION_SECRET === DEFAULT_SESSION_SECRET || ADMIN_PASS === DEFAULT_ADMIN_PASS;
 
+// Signs session cookies and the login form's CSRF token: a short one could be
+// brute-forced offline.
+const MIN_SESSION_SECRET_LENGTH = 32;
+
 // Refuse to serve a production instance with them (outside production, e.g. a
 // quick local try, the admin area shows a warning banner instead).
 if (IS_PRODUCTION && USES_DEFAULT_CREDENTIALS) {
   throw new Error(
     'Refusing to start in production with the default ADMIN_PASS or SESSION_SECRET. ' +
       'Set your own values in .env (see .env.example).',
+  );
+}
+if (IS_PRODUCTION && SESSION_SECRET.length < MIN_SESSION_SECRET_LENGTH) {
+  throw new Error(
+    `Refusing to start in production with a SESSION_SECRET shorter than ${MIN_SESSION_SECRET_LENGTH} characters. ` +
+      'Generate one with: openssl rand -hex 32',
   );
 }
 

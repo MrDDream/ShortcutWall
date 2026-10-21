@@ -4,7 +4,7 @@ const rateLimit = require('express-rate-limit');
 
 const { ADMIN_USER, ADMIN_PASS } = require('../config');
 const { ensureAuthenticated } = require('../middleware/auth');
-const { verifyCsrfToken } = require('../middleware/csrf');
+const { verifyCsrfToken, issueLoginCsrfToken, verifyLoginCsrfToken } = require('../middleware/csrf');
 const logger = require('../lib/logger');
 
 const router = express.Router();
@@ -41,14 +41,14 @@ function isValidCredentials(username, password) {
   return validUsername && validPassword;
 }
 
-router.get('/login', (req, res) => {
+router.get('/login', issueLoginCsrfToken, (req, res) => {
   if (req.session?.isAuthenticated) {
     return res.redirect('/admin');
   }
   res.render('login', { pageTitle: res.locals.t('app.loginTitle'), errorKey: null });
 });
 
-router.post('/login', loginLimiter, verifyCsrfToken, (req, res) => {
+router.post('/login', loginLimiter, verifyLoginCsrfToken, (req, res) => {
   const { username, password } = req.body;
 
   if (isValidCredentials(username, password)) {
@@ -63,6 +63,8 @@ router.post('/login', loginLimiter, verifyCsrfToken, (req, res) => {
     });
   }
 
+  // A fresh token for the re-rendered form (the submitted one was consumed).
+  issueLoginCsrfToken(req, res, () => {});
   res.status(401).render('login', {
     pageTitle: res.locals.t('app.loginTitle'),
     errorKey: 'login.invalidCredentials',
