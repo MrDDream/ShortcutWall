@@ -23,9 +23,12 @@ RUN --mount=type=secret,id=cacert,required=false \
 
 COPY . .
 
-# Writable at runtime by the non-root user below; volume-mounted directories
-# (see docker-compose.yml) may need matching host ownership (uid/gid 1000).
-RUN mkdir -p data/sessions public/uploads && chown -R node:node /app
+# The code stays owned by root, read-only for the app; only the data and logo
+# directories are writable by the non-root user below. (A chown -R of /app used
+# to copy all of node_modules into an extra 37 MB layer.) Volume-mounted
+# directories (see docker-compose.yml) may need matching host ownership
+# (uid/gid 1000).
+RUN mkdir -p data/sessions public/uploads && chown -R node:node data public/uploads
 
 USER node
 
@@ -34,4 +37,6 @@ EXPOSE 3050
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget -qO- "http://127.0.0.1:${PORT:-3050}/healthz" || exit 1
 
-CMD ["npm", "run", "start"]
+# Node directly rather than through npm: it receives the stop signal itself and
+# shuts down gracefully (see server.js).
+CMD ["node", "server.js"]

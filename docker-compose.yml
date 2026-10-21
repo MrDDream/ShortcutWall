@@ -1,10 +1,11 @@
-version: "3.9"
 services:
   raccourci:
     image: ghcr.io/mrddream/shortcutwall:latest
     container_name: ShortcutWall
     ports:
       - "${PORT:-3050}:${PORT:-3050}"
+    # ADMIN_USER, ADMIN_PASS, SESSION_SECRET… come from .env (see .env.example):
+    # the app refuses to start in production without real values.
     env_file:
       - path: .env
         required: false
@@ -12,9 +13,6 @@ services:
       NODE_ENV: production
       PORT: ${PORT:-3050}
       HOST: ${HOST:-0.0.0.0}
-      ADMIN_USER: ${ADMIN_USER:-admin}
-      ADMIN_PASS: ${ADMIN_PASS:-admin123}
-      SESSION_SECRET: ${SESSION_SECRET:-change-me}
     volumes:
       - ./data:/app/data
       - ./public/uploads:/app/public/uploads

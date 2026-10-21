@@ -10,3 +10,14 @@ Dockerfile
 data
 public/uploads
 coverage
+# Not needed to run the app
+tests
+screenshots
+.github
+*.md
+docker-compose*.yml
+eslint.config.js
+vitest.config.js
+.prettierrc.json
+.prettierignore
+.nvmrc

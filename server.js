@@ -5,7 +5,7 @@ const { scheduleOrphanUploadsCleanup } = require('./src/lib/uploadsCleanup');
 
 const app = createApp();
 
-app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, () => {
   const hostText = HOST === '0.0.0.0' ? '127.0.0.1' : HOST;
   logger.info(`Serveur pret sur http://${hostText}:${PORT}`);
   if (!IS_PRODUCTION) {
@@ -13,3 +13,15 @@ app.listen(PORT, HOST, () => {
   }
   scheduleOrphanUploadsCleanup();
 });
+
+// docker stop / Ctrl-C: stop accepting connections and let in-flight requests
+// finish (a save in progress, a favicon lookup) before exiting, with a hard
+// deadline in case a connection lingers.
+function shutdown(signal) {
+  logger.info(`${signal} received, shutting down`);
+  server.close(() => process.exit(0));
+  setTimeout(() => process.exit(0), 8000).unref();
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
