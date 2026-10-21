@@ -12,10 +12,20 @@
       <h2 class="admin-header__title"><%= t('app.adminTitle') %></h2>
       <p class="admin-header__subtitle"><%= t('admin.subtitle') %></p>
     </div>
-    <button type="button" class="btn btn--primary btn--lg" data-modal-open="modal-site-new">
-      <%- include('partials/icon', { name: 'plus' }) %>
-      <%= t('admin.addSite') %>
-    </button>
+    <div class="admin-header__actions">
+      <a class="btn btn--secondary btn--lg" href="/admin/export" title="<%= t('admin.exportTitle') %>">
+        <%- include('partials/icon', { name: 'download' }) %>
+        <%= t('admin.export') %>
+      </a>
+      <button type="button" class="btn btn--secondary btn--lg" data-modal-open="modal-import">
+        <%- include('partials/icon', { name: 'upload' }) %>
+        <%= t('admin.import') %>
+      </button>
+      <button type="button" class="btn btn--primary btn--lg" data-modal-open="modal-site-new">
+        <%- include('partials/icon', { name: 'plus' }) %>
+        <%= t('admin.addSite') %>
+      </button>
+    </div>
   </div>
 
   <section class="card admin-card">
@@ -109,6 +119,7 @@
   </section>
 
   <%- include('partials/site-modal', { site: null }) %>
+  <%- include('partials/import-modal') %>
   <% sites.forEach((site) => { %>
     <%- include('partials/site-modal', { site }) %>
   <% }); %>
@@ -117,7 +128,7 @@
     <div class="toast-region">
       <p class="toast" role="status" data-toast>
         <%- include('partials/icon', { name: 'check' }) %>
-        <span class="toast__message"><%= t(statusKey) %></span>
+        <span class="toast__message"><%= t(statusKey, typeof statusVars !== 'undefined' ? statusVars : {}) %></span>
         <% if (typeof undoToken !== 'undefined' && undoToken) { %>
           <button type="button" class="toast__action admin-banner__undo" data-undo-token="<%= undoToken %>"><%= t('admin.undo') %></button>
         <% } %>

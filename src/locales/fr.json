@@ -48,7 +48,20 @@
     "undo": "Annuler",
     "defaultCredentialsWarning": "Les identifiants admin ou le secret de session sont encore aux valeurs par défaut du dépôt. Changez ADMIN_PASS et SESSION_SECRET avant toute exposition publique.",
     "subtitle": "Gérez les raccourcis affichés sur le mur.",
-    "editSite": "Modifier le site"
+    "editSite": "Modifier le site",
+    "export": "Exporter",
+    "exportTitle": "Télécharger une sauvegarde de tous les raccourcis, logos inclus",
+    "import": "Importer",
+    "importTitle": "Importer une sauvegarde",
+    "importFile": "Choisir un fichier de sauvegarde",
+    "importHint": "Fichier .json créé par « Exporter » (logos inclus).",
+    "importMode": "Mode d’import",
+    "importModeMerge": "Fusionner",
+    "importModeMergeHint": "Ajoute les sites du fichier sans toucher aux sites actuels. Ceux dont l’URL existe déjà sont ignorés.",
+    "importModeReplace": "Remplacer",
+    "importModeReplaceHint": "Supprime tous les sites actuels et les remplace par ceux du fichier.",
+    "importSubmit": "Importer",
+    "statusImported": "{count} raccourci(s) importé(s)."
   },
   "forms": {
     "name": "Nom",
@@ -105,7 +118,10 @@
     "tooManyAttempts": "Trop de tentatives. Veuillez réessayer dans quelques minutes.",
     "sessionError": "Impossible de créer la session. Veuillez réessayer.",
     "unexpected": "Une erreur inattendue est survenue. Veuillez réessayer.",
-    "unsupportedFileType": "Seuls les fichiers image (png, jpg, gif, webp) sont autorisés."
+    "unsupportedFileType": "Seuls les fichiers image (png, jpg, gif, webp) sont autorisés.",
+    "importInvalidFile": "Ce fichier n’est pas une sauvegarde ShortcutWall valide.",
+    "importInvalidSite": "Site invalide dans la sauvegarde : « {name} » (nom ou URL manquant ou incorrect).",
+    "importTooLarge": "Fichier trop volumineux (20 Mo maximum)."
   },
   "language": {
     "name": {

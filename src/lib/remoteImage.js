@@ -59,6 +59,28 @@ function detectImageType(buffer) {
   return null;
 }
 
+// Stores image bytes (a download, a backup being imported) in /uploads and
+// returns the local path, or null if they aren't a supported raster image or
+// exceed MAX_IMAGE_BYTES. Oversized logos are stored downsized (see
+// shrinkLogo); ICO icons are small by nature and not decodable by sharp, so
+// they are kept as-is.
+async function saveImageBuffer(buffer) {
+  if (!buffer || buffer.length > MAX_IMAGE_BYTES) {
+    return null;
+  }
+  const type = detectImageType(buffer);
+  if (!type) {
+    return null;
+  }
+
+  const shrunk = type === 'ico' ? null : await shrinkLogo(buffer);
+  const extension = shrunk ? 'webp' : type;
+
+  const filename = `logo-${Date.now()}-${crypto.randomBytes(4).toString('hex')}.${extension}`;
+  await fs.writeFile(path.join(UPLOAD_DIR, filename), shrunk || buffer);
+  return buildUploadedPath(filename);
+}
+
 // Reads a response body, giving up (null) as soon as it exceeds `limit`.
 async function readCapped(response, limit) {
   const reader = response.body.getReader();
@@ -115,20 +137,7 @@ async function importRemoteImage(remoteUrl) {
       return null;
     }
 
-    const buffer = await readCapped(response, MAX_IMAGE_BYTES);
-    const type = buffer && detectImageType(buffer);
-    if (!type) {
-      return null;
-    }
-
-    // Oversized logos are stored downsized (see shrinkLogo); ICO icons are
-    // small by nature and not decodable by sharp, so they are kept as-is.
-    const shrunk = type === 'ico' ? null : await shrinkLogo(buffer);
-    const extension = shrunk ? 'webp' : type;
-
-    const filename = `logo-${Date.now()}-${crypto.randomBytes(4).toString('hex')}.${extension}`;
-    await fs.writeFile(path.join(UPLOAD_DIR, filename), shrunk || buffer);
-    return buildUploadedPath(filename);
+    return await saveImageBuffer(await readCapped(response, MAX_IMAGE_BYTES));
   } catch {
     return null;
   } finally {
@@ -136,4 +145,4 @@ async function importRemoteImage(remoteUrl) {
   }
 }
 
-module.exports = { guardedFetch, importRemoteImage, detectImageType };
+module.exports = { guardedFetch, importRemoteImage, saveImageBuffer, detectImageType };

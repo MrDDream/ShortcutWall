@@ -14,6 +14,7 @@ const { InvalidFileError } = require('./lib/uploads');
 const pagesRouter = require('./routes/pages');
 const adminAuthRouter = require('./routes/adminAuth');
 const adminDashboardRouter = require('./routes/adminDashboard');
+const backupRouter = require('./routes/backup');
 const sitesRouter = require('./routes/sites');
 const faviconRouter = require('./routes/favicon');
 const healthRouter = require('./routes/health');
@@ -95,6 +96,7 @@ function createApp() {
   app.use('/', pagesRouter);
   app.use('/admin', adminAuthRouter);
   app.use('/admin', adminDashboardRouter);
+  app.use('/admin', backupRouter);
   app.use('/admin/site', sitesRouter);
   app.use('/admin/trash', trashRouter);
   app.use('/api/favicon', faviconRouter);

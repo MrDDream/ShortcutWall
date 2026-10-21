@@ -1,0 +1,50 @@
+<%
+  // Restores a backup made with "Export" (see src/routes/backup.js). Submitted
+  // via fetch like the site dialogs, so an invalid file is reported in place.
+%>
+<dialog class="modal modal--sm" id="modal-import" aria-labelledby="modal-import-title">
+  <div class="modal__header">
+    <span class="card__icon"><%- include('icon', { name: 'upload' }) %></span>
+    <h2 class="modal__title" id="modal-import-title"><%= t('admin.importTitle') %></h2>
+    <button type="button" class="icon-btn icon-btn--plain" data-modal-close aria-label="<%= t('help.close') %>">
+      <%- include('icon', { name: 'close' }) %>
+    </button>
+  </div>
+  <form class="admin-form modal__body" id="import-form" method="post" action="/admin/import" enctype="multipart/form-data">
+    <p class="callout callout--error" role="alert" data-form-error hidden>
+      <%- include('icon', { name: 'alert' }) %>
+      <span data-form-error-text></span>
+    </p>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+    <label class="dropzone file-field">
+      <span class="dropzone__icon"><%- include('icon', { name: 'upload' }) %></span>
+      <span class="dropzone__text">
+        <span class="dropzone__title" data-file-name><%= t('admin.importFile') %></span>
+        <span class="dropzone__hint"><%= t('admin.importHint') %></span>
+      </span>
+      <input class="dropzone__input" type="file" name="backupFile" accept="application/json,.json" required />
+    </label>
+    <fieldset class="choice-group">
+      <legend class="field__label"><%= t('admin.importMode') %></legend>
+      <label class="choice">
+        <input type="radio" name="mode" value="merge" checked />
+        <span class="choice__body">
+          <span class="choice__title"><%= t('admin.importModeMerge') %></span>
+          <span class="choice__hint"><%= t('admin.importModeMergeHint') %></span>
+        </span>
+      </label>
+      <label class="choice choice--danger">
+        <input type="radio" name="mode" value="replace" />
+        <span class="choice__body">
+          <span class="choice__title"><%= t('admin.importModeReplace') %></span>
+          <span class="choice__hint"><%= t('admin.importModeReplaceHint') %></span>
+        </span>
+      </label>
+    </fieldset>
+  </form>
+  <div class="modal__footer">
+    <span class="modal__spacer"></span>
+    <button type="button" class="btn btn--secondary" data-modal-close><%= t('forms.cancel') %></button>
+    <button type="submit" form="import-form" class="btn btn--primary"><%= t('admin.importSubmit') %></button>
+  </div>
+</dialog>

@@ -1,8 +1,9 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import request from 'supertest';
+import sharp from 'sharp';
 
 // ES module imports are hoisted above all other top-level statements, so
 // setting process.env here would run *after* a statically-imported src/app.js
@@ -246,6 +247,120 @@ describe('ShortcutWall app', () => {
       const sites = readData('shortcuts.json');
       expect(sites).toHaveLength(1);
       expect(sites[0].name).toBe('Example');
+    });
+
+    describe('backup export / import', () => {
+      const uploadDir = process.env.UPLOAD_DIR;
+      let logoBytes;
+
+      const backupFile = (sites, extra = {}) =>
+        Buffer.from(JSON.stringify({ app: 'ShortcutWall', version: 1, exportedAt: '', sites, ...extra }));
+
+      const importBackup = async (buffer, mode = 'merge') => {
+        const csrf = extractCsrfToken((await agent.get('/admin')).text);
+        return agent
+          .post('/admin/import')
+          .field('_csrf', csrf)
+          .field('mode', mode)
+          .attach('backupFile', buffer, 'backup.json');
+      };
+
+      beforeAll(async () => {
+        logoBytes = await sharp({ create: { width: 32, height: 32, channels: 3, background: '#5b55ea' } })
+          .png()
+          .toBuffer();
+      });
+
+      afterEach(() => {
+        writeData('shortcuts.json', []);
+      });
+
+      it('exports every site, embedding local logos and keeping remote logo URLs', async () => {
+        fs.writeFileSync(path.join(uploadDir, 'export-test.png'), logoBytes);
+        writeData('shortcuts.json', [
+          seededSite({ id: 'a', name: 'Local logo', imageUrl: '/uploads/export-test.png' }),
+          seededSite({
+            id: 'b',
+            name: 'Remote logo',
+            targetUrl: 'https://b.example/',
+            imageUrl: 'https://b.example/l.png',
+          }),
+        ]);
+
+        const res = await agent.get('/admin/export');
+
+        expect(res.status).toBe(200);
+        expect(res.headers['content-disposition']).toMatch(
+          /attachment; filename="shortcutwall-\d{4}-\d{2}-\d{2}\.json"/,
+        );
+        const backup = JSON.parse(res.text);
+        expect(backup).toMatchObject({ app: 'ShortcutWall', version: 1 });
+        const [local, remote] = backup.sites;
+        expect(local.imageUrl).toBeNull();
+        expect(Buffer.from(local.image.data, 'base64').equals(logoBytes)).toBe(true);
+        expect(remote).toMatchObject({ imageUrl: 'https://b.example/l.png', image: null });
+        expect(res.text).not.toContain('/uploads/');
+        fs.rmSync(path.join(uploadDir, 'export-test.png'), { force: true });
+      });
+
+      it('merges a backup: adds new sites with their logos, skips URLs already present', async () => {
+        writeData('shortcuts.json', [seededSite({ id: 'kept', targetUrl: 'https://dup.example/' })]);
+
+        const res = await importBackup(
+          backupFile([
+            { name: 'New', targetUrl: 'https://new.example/', image: { data: logoBytes.toString('base64') } },
+            { name: 'Duplicate', targetUrl: 'https://dup.example/' },
+          ]),
+        );
+
+        expect(res.status).toBe(302);
+        expect(res.headers.location).toBe('/admin?status=imported&count=1');
+        const sites = readData('shortcuts.json');
+        expect(sites.map((site) => site.name)).toEqual(['Site', 'New']);
+        expect(sites[1].imageUrl).toMatch(/^\/uploads\/logo-.+\.png$/);
+        expect(fs.existsSync(path.join(uploadDir, path.basename(sites[1].imageUrl)))).toBe(true);
+      });
+
+      it('replaces every site in "replace" mode', async () => {
+        writeData('shortcuts.json', [seededSite({ id: 'old', name: 'Old' })]);
+
+        const res = await importBackup(backupFile([{ name: 'Fresh', targetUrl: 'https://fresh.example/' }]), 'replace');
+
+        expect(res.headers.location).toBe('/admin?status=imported&count=1');
+        expect(readData('shortcuts.json').map((site) => site.name)).toEqual(['Fresh']);
+      });
+
+      it('drops an embedded logo that is not a raster image (e.g. SVG)', async () => {
+        const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
+
+        await importBackup(
+          backupFile([{ name: 'Svg', targetUrl: 'https://svg.example/', image: { data: svg.toString('base64') } }]),
+        );
+
+        expect(readData('shortcuts.json')[0].imageUrl).toBe('');
+      });
+
+      it('rejects an invalid file or site without importing anything', async () => {
+        const notJson = await importBackup(Buffer.from('not json'));
+        expect(notJson.status).toBe(400);
+        expect(notJson.text).toMatch(/valid ShortcutWall backup/);
+
+        const badSite = await importBackup(
+          backupFile([
+            { name: 'Good', targetUrl: 'https://good.example/' },
+            { name: 'Bad', targetUrl: 'javascript:alert(1)' },
+          ]),
+        );
+        expect(badSite.status).toBe(400);
+        expect(badSite.text).toContain('Bad');
+        expect(readData('shortcuts.json')).toHaveLength(0);
+      });
+
+      it('requires authentication', async () => {
+        const res = await request(app).get('/admin/export');
+        expect(res.status).toBe(302);
+        expect(res.headers.location).toBe('/admin/login');
+      });
     });
 
     it('logs out and revokes access to /admin', async () => {

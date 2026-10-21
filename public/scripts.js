@@ -643,17 +643,15 @@ function setupFaviconThumbnails() {
   });
 }
 
-// Shows a live preview of a chosen file before the admin form is submitted.
+// Shows the chosen file's name in its dropzone and, for images, a live preview
+// before the admin form is submitted.
 function setupImageFilePreview() {
-  const inputs = Array.from(document.querySelectorAll('[data-file-preview-input]'));
+  const inputs = Array.from(document.querySelectorAll('.dropzone__input'));
 
   inputs.forEach((input) => {
     const group = input.closest('.image-upload-group');
     const preview = group?.querySelector('[data-file-preview]');
     const previewImg = preview?.querySelector('[data-file-preview-img]');
-    if (!preview || !previewImg) {
-      return;
-    }
 
     // The file input is stretched invisibly over its dropzone, so native
     // drag-and-drop works; these only drive the hover styling and file name.
@@ -684,6 +682,10 @@ function setupImageFilePreview() {
       const file = input.files?.[0];
       if (fileName) {
         fileName.textContent = file ? file.name : defaultFileName;
+      }
+
+      if (!preview || !previewImg) {
+        return;
       }
 
       if (!file) {

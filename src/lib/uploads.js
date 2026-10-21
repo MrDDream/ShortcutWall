@@ -91,6 +91,20 @@ function isUploadedAsset(value) {
   return resolveUploadPath(value) !== null;
 }
 
+// Returns the bytes of a stored `/uploads/...` asset, or null if it isn't a
+// legitimate uploaded asset or the file is gone.
+async function readUploadedAsset(value) {
+  const absolutePath = resolveUploadPath(value);
+  if (!absolutePath) {
+    return null;
+  }
+  try {
+    return await fs.readFile(absolutePath);
+  } catch {
+    return null;
+  }
+}
+
 async function deleteUploadedAsset(value) {
   const absolutePath = resolveUploadPath(value);
   if (!absolutePath) {
@@ -110,6 +124,7 @@ module.exports = {
   buildUploadedPath,
   shrinkUploadedLogo,
   isUploadedAsset,
+  readUploadedAsset,
   deleteUploadedAsset,
   InvalidFileError,
 };

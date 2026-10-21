@@ -10,6 +10,7 @@ const STATUS_KEYS = {
   updated: 'admin.statusUpdated',
   deleted: 'admin.statusDeleted',
   restored: 'admin.statusRestored',
+  imported: 'admin.statusImported',
 };
 
 router.get('/', ensureAuthenticated, (req, res) => {
@@ -21,6 +22,7 @@ router.get('/', ensureAuthenticated, (req, res) => {
   res.render('admin', {
     sites: res.locals.sites,
     statusKey,
+    statusVars: { count: Number.parseInt(req.query.count, 10) || 0 },
     undoToken,
     usesDefaultCredentials: USES_DEFAULT_CREDENTIALS,
     pageTitle: res.locals.t('app.adminTitle'),

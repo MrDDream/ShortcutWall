@@ -48,7 +48,20 @@
     "undo": "Undo",
     "defaultCredentialsWarning": "The admin credentials or session secret are still at this repo's default values. Set ADMIN_PASS and SESSION_SECRET before exposing this publicly.",
     "subtitle": "Manage the shortcuts shown on the wall.",
-    "editSite": "Edit website"
+    "editSite": "Edit website",
+    "export": "Export",
+    "exportTitle": "Download a backup of every shortcut, logos included",
+    "import": "Import",
+    "importTitle": "Import a backup",
+    "importFile": "Choose a backup file",
+    "importHint": ".json file created with “Export” (logos included).",
+    "importMode": "Import mode",
+    "importModeMerge": "Merge",
+    "importModeMergeHint": "Adds the file’s sites without touching the current ones. Sites whose URL already exists are skipped.",
+    "importModeReplace": "Replace",
+    "importModeReplaceHint": "Deletes every current site and replaces them with the file’s.",
+    "importSubmit": "Import",
+    "statusImported": "{count} shortcut(s) imported."
   },
   "forms": {
     "name": "Name",
@@ -105,7 +118,10 @@
     "tooManyAttempts": "Too many attempts. Please try again in a few minutes.",
     "sessionError": "Unable to create the session. Please try again.",
     "unexpected": "An unexpected error occurred. Please try again.",
-    "unsupportedFileType": "Only image files (png, jpg, gif, webp) are allowed."
+    "unsupportedFileType": "Only image files (png, jpg, gif, webp) are allowed.",
+    "importInvalidFile": "This file isn’t a valid ShortcutWall backup.",
+    "importInvalidSite": "Invalid site in the backup: “{name}” (missing or incorrect name or URL).",
+    "importTooLarge": "File too large (20 MB maximum)."
   },
   "language": {
     "name": {
