@@ -61,7 +61,6 @@
     "fetchFavicon": "Récupérer le favicon",
     "uploadFile": "Importer une image",
     "uploadHint": "Un fichier téléversé remplace l'URL ci-dessus.",
-    "currentImage": "Aperçu actuel",
     "newImagePreview": "Aperçu du nouveau fichier",
     "confirmDelete": "Voulez-vous vraiment supprimer cet élément ? Vous aurez 15 secondes pour annuler.",
     "saving": "Enregistrement...",
@@ -69,7 +68,8 @@
     "edit": "Modifier",
     "discardChanges": "Abandonner les modifications non enregistrées ?",
     "discard": "Abandonner",
-    "keepEditing": "Continuer l’édition"
+    "keepEditing": "Continuer l’édition",
+    "logoPreview": "Aperçu du logo"
   },
   "login": {
     "adminArea": "Espace administrateur",

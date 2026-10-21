@@ -69,6 +69,10 @@
         </button>
       </div>
       <p class="field-feedback" data-favicon-feedback hidden></p>
+      <figure class="image-preview" data-logo-preview <%= hasLogo ? '' : 'hidden' %>>
+        <img data-logo-preview-img alt="" <% if (hasLogo) { %>src="<%= site.imageUrl %>"<% } %> />
+        <figcaption><%= t('forms.logoPreview') %></figcaption>
+      </figure>
     </div>
     <div class="image-upload-group">
       <label class="dropzone file-field">
@@ -83,12 +87,6 @@
         <img data-file-preview-img alt="" />
         <figcaption><%= t('forms.newImagePreview') %></figcaption>
       </figure>
-      <% if (hasLogo) { %>
-        <figure class="image-preview">
-          <img src="<%= site.imageUrl %>" alt="<%= site.name %>" loading="lazy" />
-          <figcaption><%= t('forms.currentImage') %></figcaption>
-        </figure>
-      <% } %>
     </div>
   </form>
   <div class="modal__footer">

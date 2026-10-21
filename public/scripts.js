@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupFaviconButtons();
   setupFaviconThumbnails();
   setupImageFilePreview();
+  setupLogoPreview();
   setupHelpModal();
   setupDeleteConfirmation();
   setupFormSubmitFeedback();
@@ -567,7 +568,7 @@ function setupFaviconButtons() {
         return;
       }
 
-      const originalText = button.textContent;
+      const originalLabel = button.innerHTML;
 
       button.disabled = true;
       button.textContent = clientTranslations.faviconLoading;
@@ -600,7 +601,7 @@ function setupFaviconButtons() {
         showFeedback(clientTranslations.faviconError);
       } finally {
         button.disabled = false;
-        button.textContent = originalText;
+        button.innerHTML = originalLabel;
       }
     });
   });
@@ -689,6 +690,46 @@ function setupImageFilePreview() {
       previewImg.src = objectUrl;
       preview.hidden = false;
     });
+  });
+}
+
+// Live preview of the logo URL field, so a fetched favicon (or a pasted URL)
+// is visibly confirmed before saving. Hidden while empty or if the image fails.
+function setupLogoPreview() {
+  document.querySelectorAll('[data-logo-preview]').forEach((preview) => {
+    const img = preview.querySelector('[data-logo-preview-img]');
+    const input = preview.closest('.image-field')?.querySelector('input[name="imageUrl"]');
+    if (!img || !input) {
+      return;
+    }
+
+    let timer = null;
+
+    const update = () => {
+      const value = input.value.trim();
+      if (!value) {
+        preview.hidden = true;
+        img.removeAttribute('src');
+        return;
+      }
+      if (img.getAttribute('src') !== value) {
+        img.src = value;
+      }
+    };
+
+    img.addEventListener('load', () => {
+      preview.hidden = !input.value.trim();
+    });
+    img.addEventListener('error', () => {
+      preview.hidden = true;
+    });
+
+    input.addEventListener('input', () => {
+      clearTimeout(timer);
+      timer = setTimeout(update, 300);
+    });
+    // form.reset() restores the stored URL without an "input" event.
+    input.form?.addEventListener('reset', () => setTimeout(update));
   });
 }
 

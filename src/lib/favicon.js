@@ -1,135 +1,189 @@
 const { FAVICON_FETCH_TIMEOUT } = require('../config');
 const { assertPublicHost } = require('./ssrfGuard');
 
-// Checks if a resource exists by sending a HEAD request, and falls back to GET if necessary.
-// Rejects non-public hosts up front to prevent SSRF (see ssrfGuard.js); this is
-// redundant with the reachability check already performed by the caller, kept
-// here as defense in depth so this function stays safe to call on its own.
-async function resourceExists(resourceUrl) {
-  try {
-    await assertPublicHost(resourceUrl.toString());
-  } catch {
-    return false;
-  }
+const USER_AGENT = 'Mozilla/5.0 ShortcutWall/1.0';
+// Only the best few icons are probed, to bound the request count.
+const MAX_CANDIDATES_CHECKED = 5;
+// Conventional locations, probed even when the page doesn't declare them:
+// many sites serve a 180px apple-touch-icon but only declare a 16px .ico.
+const CONVENTIONAL_ICONS = [
+  { path: '/apple-touch-icon.png', score: 180 },
+  { path: '/favicon.ico', score: 16 },
+];
+const IMAGE_EXTENSION = /\.(ico|png|svg|jpe?g|gif|webp|avif)$/i;
+
+// fetch() with the app's timeout and user agent. Rejects non-public hosts up
+// front to prevent SSRF (see ssrfGuard.js).
+async function guardedFetch(resourceUrl, options = {}) {
+  await assertPublicHost(resourceUrl.toString());
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FAVICON_FETCH_TIMEOUT);
 
-  const requestOptions = {
-    signal: controller.signal,
-    redirect: 'follow',
-    headers: {
-      'User-Agent': 'Mozilla/5.0 ShortcutWall/1.0',
-    },
-  };
-
   try {
-    let response = await fetch(resourceUrl, {
-      ...requestOptions,
-      method: 'HEAD',
+    return await fetch(resourceUrl, {
+      redirect: 'follow',
+      ...options,
+      signal: controller.signal,
+      headers: { 'User-Agent': USER_AGENT, ...(options.headers || {}) },
     });
-
-    if (response.status === 405 || response.status === 501) {
-      response = await fetch(resourceUrl, {
-        ...requestOptions,
-        method: 'GET',
-      });
-
-      return response.ok;
-    }
-
-    return response.ok;
-  } catch {
-    return false;
   } finally {
     clearTimeout(timeout);
   }
 }
 
-// Extracts the favicon URL from the HTML content of a webpage, if declared in a <link> tag.
-function extractFaviconFromHtml(html, baseUrl) {
-  const linkRegex = /<link\b[^>]*>/gi;
-  const links = html.match(linkRegex) || [];
+// Servers label icons inconsistently (an .ico is often served as
+// application/octet-stream), so trust the extension when the type is
+// generic, but never accept an HTML page (soft 404s, login walls, bot
+// challenges all answer 200/403 with HTML).
+function looksLikeImage(response, resourceUrl) {
+  const type = (response.headers.get('content-type') || '').toLowerCase();
+  if (type.startsWith('image/')) {
+    return true;
+  }
+  if (type.includes('html') || type.includes('json') || type.startsWith('text/')) {
+    return false;
+  }
+  return IMAGE_EXTENSION.test(new URL(resourceUrl).pathname);
+}
 
-  for (const link of links) {
-    const relMatch = link.match(/\brel\s*=\s*["']([^"']+)["']/i);
-    const hrefMatch = link.match(/\bhref\s*=\s*["']([^"']+)["']/i);
+// True when the URL answers with an actual image. Tries HEAD first and only
+// falls back to GET (discarding the body) when HEAD is refused or inconclusive.
+async function imageExists(resourceUrl) {
+  try {
+    const head = await guardedFetch(resourceUrl, { method: 'HEAD' });
+    if (head.ok && looksLikeImage(head, resourceUrl)) {
+      return true;
+    }
+    if (head.ok || ![403, 405, 501].includes(head.status)) {
+      return false;
+    }
 
-    if (!relMatch || !hrefMatch) {
+    const get = await guardedFetch(resourceUrl, { method: 'GET' });
+    const valid = get.ok && looksLikeImage(get, resourceUrl);
+    await get.body?.cancel().catch(() => {});
+    return valid;
+  } catch {
+    return false;
+  }
+}
+
+function readAttribute(tag, name) {
+  const match = tag.match(new RegExp(`\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'>]+))`, 'i'));
+  if (!match) {
+    return null;
+  }
+  return (match[1] ?? match[2] ?? match[3]).replace(/&amp;/gi, '&').trim();
+}
+
+// Rough pixel size used to rank icons: the largest raster wins, an SVG (or
+// sizes="any") beats any raster, and an undeclared size gets a guess based on
+// what that kind of icon usually is.
+function scoreIcon({ rel, href, sizes, type }) {
+  const isSvg = /svg/i.test(type || '') || /\.svg(\?|#|$)/i.test(href);
+  if (isSvg || /\bany\b/i.test(sizes || '')) {
+    return 1000;
+  }
+
+  const declared = (sizes || '')
+    .split(/\s+/)
+    .map((size) => Number.parseInt(size.split(/x/i)[0], 10))
+    .filter(Number.isFinite);
+  if (declared.length) {
+    return Math.max(...declared);
+  }
+
+  if (rel.includes('apple-touch-icon') || rel.includes('apple-touch-icon-precomposed')) {
+    return 180;
+  }
+  return /\.ico(\?|#|$)/i.test(href) ? 16 : 32;
+}
+
+// Lists every icon declared in the page's <link> tags as { url, score },
+// best (largest) first.
+function extractFaviconCandidates(html, baseUrl) {
+  const links = html.match(/<link\b[^>]*>/gi) || [];
+  const candidates = [];
+
+  for (const tag of links) {
+    const rel = (readAttribute(tag, 'rel') || '').toLowerCase().split(/\s+/);
+    const href = readAttribute(tag, 'href');
+    const isIcon =
+      rel.includes('icon') || rel.includes('apple-touch-icon') || rel.includes('apple-touch-icon-precomposed');
+    if (!isIcon || !href || href.startsWith('data:')) {
       continue;
     }
 
-    const relValues = relMatch[1].toLowerCase().split(/\s+/);
-    const isFavicon = relValues.includes('icon') || (relValues.includes('shortcut') && relValues.includes('icon'));
-
-    if (!isFavicon) {
-      continue;
-    }
-
+    let url;
     try {
-      return new URL(hrefMatch[1], baseUrl).toString();
+      url = new URL(href, baseUrl);
     } catch {
       continue;
     }
-  }
-
-  return null;
-}
-
-// Attempts to fetch the favicon declared in the HTML of the target URL.
-async function findDeclaredFavicon(targetUrl) {
-  try {
-    await assertPublicHost(targetUrl);
-  } catch {
-    return null;
-  }
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), FAVICON_FETCH_TIMEOUT);
-
-  try {
-    const response = await fetch(targetUrl, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 ShortcutWall/1.0',
-      },
-    });
-
-    if (!response.ok) {
-      return null;
+    if (!['http:', 'https:'].includes(url.protocol)) {
+      continue;
     }
 
+    const candidate = {
+      rel,
+      href: url.toString(),
+      sizes: readAttribute(tag, 'sizes'),
+      type: readAttribute(tag, 'type'),
+    };
+    candidates.push({ url: candidate.href, score: scoreIcon(candidate) });
+  }
+
+  return dedupeByUrl(candidates.sort((a, b) => b.score - a.score));
+}
+
+function dedupeByUrl(candidates) {
+  const seen = new Set();
+  return candidates.filter(({ url }) => !seen.has(url) && seen.add(url));
+}
+
+// Fetches the page and returns its declared icons, resolved against the final
+// URL after redirects (a relative href means nothing against the typed URL
+// once the site has redirected elsewhere).
+async function findDeclaredFavicons(targetUrl) {
+  try {
+    const response = await guardedFetch(targetUrl, { method: 'GET' });
+    if (!response.ok) {
+      await response.body?.cancel().catch(() => {});
+      return [];
+    }
     const html = await response.text();
-    return extractFaviconFromHtml(html, targetUrl);
+    return extractFaviconCandidates(html, response.url || targetUrl);
   } catch {
-    return null;
-  } finally {
-    clearTimeout(timeout);
+    return [];
   }
 }
 
-// Try retrieving the favicon via Google if the other methods do not work.
+// Last resort: Google's favicon service, which answers 404 (with a generic
+// globe image) when it knows no icon for the domain.
 function buildGoogleFaviconUrl(targetUrl) {
   const url = new URL(targetUrl);
   return `https://www.google.com/s2/favicons?domain_url=${encodeURIComponent(url.origin)}&sz=128`;
 }
 
-// Attempts to retrieve the favicon using several fallback methods, in order of preference.
+// Returns the best verified icon URL for a site, or null when none is found:
+// declared and conventional icons ranked together by size (largest first,
+// declared ones winning ties), each checked to really be an image, then Google.
 async function findFavicon(targetUrl) {
-  const pageFavicon = await findDeclaredFavicon(targetUrl);
+  const declared = await findDeclaredFavicons(targetUrl);
+  const conventional = CONVENTIONAL_ICONS.map(({ path, score }) => ({
+    url: new URL(path, targetUrl).toString(),
+    score,
+  }));
+  const ranked = dedupeByUrl([...declared, ...conventional]).sort((a, b) => b.score - a.score);
 
-  if (pageFavicon) {
-    return pageFavicon;
+  for (const { url } of ranked.slice(0, MAX_CANDIDATES_CHECKED)) {
+    if (await imageExists(url)) {
+      return url;
+    }
   }
 
-  const defaultFavicon = new URL('/favicon.ico', targetUrl);
-  const defaultFaviconExists = await resourceExists(defaultFavicon);
-
-  if (defaultFaviconExists) {
-    return defaultFavicon.toString();
-  }
-
-  return buildGoogleFaviconUrl(targetUrl);
+  const google = buildGoogleFaviconUrl(targetUrl);
+  return (await imageExists(google)) ? google : null;
 }
 
-module.exports = { findFavicon };
+module.exports = { findFavicon, extractFaviconCandidates };
