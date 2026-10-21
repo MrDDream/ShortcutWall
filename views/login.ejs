@@ -1,22 +1,30 @@
-<%- include('partials/head', { pageTitle, bodyClass: 'theme-light', includeViewSwitch: false }) %>
-<main class="page-container auth">
-  <section class="admin-card">
+<%- include('partials/head', { pageTitle, bodyClass: 'page-auth', includeViewSwitch: false }) %>
+<main class="page page--center auth" id="main">
+  <section class="card auth-card">
+    <img class="auth-card__logo" src="/images/logo.svg" alt="" width="52" height="52" />
     <h2><%= t('login.adminArea') %></h2>
+    <p class="auth-card__subtitle"><%= t('login.subtitle') %></p>
     <% if (errorKey) { %>
-      <p class="alert-error"><%= t(errorKey) %></p>
+      <p class="callout callout--error alert-error" role="alert">
+        <%- include('partials/icon', { name: 'alert' }) %>
+        <span><%= t(errorKey) %></span>
+      </p>
     <% } %>
     <form class="admin-form" method="post" action="/admin/login">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-      <label>
-        <%= t('login.username') %>
-        <input type="text" name="username" required />
-      </label>
-      <label>
-        <%= t('login.password') %>
-        <input type="password" name="password" required />
-      </label>
+      <div class="field">
+        <label class="field__label" for="login-username"><%= t('login.username') %></label>
+        <input class="input" type="text" name="username" id="login-username" autocomplete="username" autofocus required />
+      </div>
+      <div class="field">
+        <label class="field__label" for="login-password"><%= t('login.password') %></label>
+        <input class="input" type="password" name="password" id="login-password" autocomplete="current-password" required />
+      </div>
       <div class="form-actions">
-        <button type="submit" class="btn-primary"><%= t('login.submit') %></button>
+        <button type="submit" class="btn btn--primary btn--lg btn--block">
+          <%- include('partials/icon', { name: 'lock' }) %>
+          <%= t('login.submit') %>
+        </button>
       </div>
     </form>
   </section>

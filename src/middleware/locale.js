@@ -31,6 +31,8 @@ function localeMiddleware(req, res, next) {
     faviconNotFound: translate(sessionLocale, 'alerts.faviconNotFound'),
     faviconError: translate(sessionLocale, 'alerts.faviconError'),
     confirmDelete: translate(sessionLocale, 'forms.confirmDelete'),
+    confirmDeleteAction: translate(sessionLocale, 'forms.delete'),
+    cancel: translate(sessionLocale, 'forms.cancel'),
     searchNoResults: translate(sessionLocale, 'search.noResults'),
     saving: translate(sessionLocale, 'forms.saving'),
   };

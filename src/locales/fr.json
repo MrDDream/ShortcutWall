@@ -6,12 +6,14 @@
     "notFoundTitle": "Page introuvable"
   },
   "header": {
-    "viewSites": "Raccourci Internet",
-    "viewFolders": "Raccourci Dossier",
+    "viewSites": "Sites web",
+    "viewFolders": "Dossiers",
     "login": "Connexion",
     "logout": "Se déconnecter",
     "adminLink": "Administration",
-    "themeToggle": "Changer de thème"
+    "themeToggle": "Changer de thème",
+    "viewSwitchLabel": "Type de raccourci",
+    "skipToContent": "Aller au contenu"
   },
   "search": {
     "label": "Recherche",
@@ -34,7 +36,10 @@
     "siteEmpty": "Aucun raccourci Internet pour le moment.",
     "folderEmpty": "Aucun raccourci dossier pour le moment.",
     "siteDownloadTitle": "Télécharger",
-    "siteAccessTitle": "Accéder au site"
+    "siteAccessTitle": "Accéder au site",
+    "folderDownloadTitle": "Télécharger le raccourci du dossier",
+    "emptyHint": "Ajoutez-en depuis l’espace d’administration.",
+    "emptyCta": "Ajouter un raccourci"
   },
   "admin": {
     "tabsSites": "Gestion des sites",
@@ -50,7 +55,8 @@
     "statusDeleted": "Élément supprimé avec succès.",
     "statusRestored": "Élément restauré.",
     "undo": "Annuler",
-    "defaultCredentialsWarning": "Les identifiants admin ou le secret de session sont encore aux valeurs par défaut du dépôt. Changez ADMIN_PASS et SESSION_SECRET avant toute exposition publique."
+    "defaultCredentialsWarning": "Les identifiants admin ou le secret de session sont encore aux valeurs par défaut du dépôt. Changez ADMIN_PASS et SESSION_SECRET avant toute exposition publique.",
+    "subtitle": "Gérez les raccourcis affichés sur le mur."
   },
   "forms": {
     "name": "Nom",
@@ -69,15 +75,17 @@
     "uploadHint": "Un fichier téléversé remplace l'URL ci-dessus.",
     "currentImage": "Aperçu actuel",
     "newImagePreview": "Aperçu du nouveau fichier",
-    "confirmDelete": "Voulez-vous vraiment supprimer cet élément ? Cette action est irréversible.",
-    "saving": "Enregistrement..."
+    "confirmDelete": "Voulez-vous vraiment supprimer cet élément ? Vous aurez 15 secondes pour annuler.",
+    "saving": "Enregistrement...",
+    "cancel": "Annuler"
   },
   "login": {
     "adminArea": "Espace administrateur",
     "username": "Nom d'utilisateur",
     "password": "Mot de passe",
     "submit": "Se connecter",
-    "invalidCredentials": "Identifiants invalides"
+    "invalidCredentials": "Identifiants invalides",
+    "subtitle": "Connectez-vous pour gérer les raccourcis."
   },
   "notFound": {
     "message": "La ressource demandée est introuvable.",
@@ -107,7 +115,10 @@
     "unsupportedFileType": "Seuls les fichiers image (png, jpg, gif, webp) sont autorisés."
   },
   "language": {
-    "name": { "fr": "Français", "en": "Anglais" },
+    "name": {
+      "fr": "Français",
+      "en": "Anglais"
+    },
     "switch": "Passer en {language}"
   }
 }

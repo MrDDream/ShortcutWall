@@ -1,9 +1,13 @@
-<%- include('partials/head', { pageTitle, bodyClass: 'theme-light', includeViewSwitch: false }) %>
-<main class="page-container">
-  <section class="admin-card centered">
-    <h2>404</h2>
-    <p><%= t('notFound.message') %></p>
-    <a class="btn-secondary" href="/"><%= t('notFound.backHome') %></a>
+<%- include('partials/head', { pageTitle, bodyClass: 'page-error', includeViewSwitch: false }) %>
+<main class="page page--center" id="main">
+  <section class="card auth-card error-card">
+    <p class="error-code">404</p>
+    <h2><%= t('app.notFoundTitle') %></h2>
+    <p class="auth-card__subtitle"><%= t('notFound.message') %></p>
+    <a class="btn btn--primary" href="/">
+      <%- include('partials/icon', { name: 'arrowLeft' }) %>
+      <%= t('notFound.backHome') %>
+    </a>
   </section>
 </main>
 <%- include('partials/footer') %>

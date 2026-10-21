@@ -27,43 +27,29 @@ document.addEventListener('DOMContentLoaded', () => {
   setupFormSubmitFeedback();
   setupAdminSearch();
   setupUndoDelete();
+  setupToasts();
   setupUnsavedChangesWarning();
 });
 
+// The initial theme (saved choice, else the OS preference) is already applied
+// to <html data-theme> by theme.js before first paint; this only handles the
+// toggle. The sun/moon icon swap is pure CSS, keyed off the same attribute.
 function initThemeToggle() {
-  const body = document.body;
+  const root = document.documentElement;
   const toggle = document.getElementById('theme-toggle');
   if (!toggle) {
     return;
   }
 
-  const savedTheme = localStorage.getItem('theme');
-  const hasSavedTheme = savedTheme === 'theme-dark' || savedTheme === 'theme-light';
-  // First visit, no explicit choice yet: follow the OS/browser preference
-  // instead of always defaulting to light.
-  const prefersDark = !hasSavedTheme && window.matchMedia?.('(prefers-color-scheme: dark)').matches;
-  const effectiveTheme = hasSavedTheme ? savedTheme : prefersDark ? 'theme-dark' : 'theme-light';
-
-  body.classList.remove('theme-dark', 'theme-light');
-  body.classList.add(effectiveTheme);
-
-  updateThemeIcon(toggle, body.classList.contains('theme-dark'));
-
   toggle.addEventListener('click', () => {
-    const isDark = body.classList.toggle('theme-dark');
-    if (!isDark) {
-      body.classList.add('theme-light');
-    } else {
-      body.classList.remove('theme-light');
+    const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    root.dataset.theme = next;
+    try {
+      localStorage.setItem('theme', `theme-${next}`);
+    } catch {
+      // Storage unavailable: the choice simply won't persist across pages.
     }
-
-    localStorage.setItem('theme', isDark ? 'theme-dark' : 'theme-light');
-    updateThemeIcon(toggle, isDark);
   });
-}
-
-function updateThemeIcon(button, isDark) {
-  button.textContent = isDark ? '☀' : '☾';
 }
 
 function setupViewSwitch() {
@@ -238,8 +224,13 @@ function applySorting(view) {
     }
 
     const cards = Array.from(grid.querySelectorAll('.shortcut-card'));
-    cards.sort((cardA, cardB) => compareCards(cardA, cardB, currentSort));
-    cards.forEach((card) => grid.appendChild(card));
+    const sorted = [...cards].sort((cardA, cardB) => compareCards(cardA, cardB, currentSort));
+    // Re-appending a card restarts its entrance animation, so leave the DOM
+    // alone when the order is unchanged (e.g. on every search keystroke).
+    if (sorted.every((card, index) => card === cards[index])) {
+      return;
+    }
+    sorted.forEach((card) => grid.appendChild(card));
   });
 }
 
@@ -351,12 +342,77 @@ function setupDeleteConfirmation() {
   }
 
   forms.forEach((form) => {
-    form.addEventListener('submit', (event) => {
-      const confirmed = window.confirm(clientTranslations.confirmDelete || '');
-      if (!confirmed) {
-        event.preventDefault();
+    form.addEventListener('submit', async (event) => {
+      if (form.dataset.confirmed === 'true') {
+        return;
+      }
+      event.preventDefault();
+
+      const confirmed = await confirmDialog(clientTranslations.confirmDelete || '');
+      if (confirmed) {
+        form.dataset.confirmed = 'true';
+        form.requestSubmit();
       }
     });
+  });
+}
+
+// Styled replacement for window.confirm(), built on the native <dialog>
+// element (focus trapping, Escape and ::backdrop for free). Falls back to
+// window.confirm() on browsers without showModal().
+function confirmDialog(message) {
+  const dialog = document.createElement('dialog');
+  if (typeof dialog.showModal !== 'function') {
+    return Promise.resolve(window.confirm(message));
+  }
+
+  dialog.className = 'confirm-dialog';
+
+  const icon = document.createElement('span');
+  icon.className = 'confirm-dialog__icon';
+  icon.setAttribute('aria-hidden', 'true');
+  const trashIcon = document.querySelector('.delete-form .icon');
+  if (trashIcon) {
+    icon.appendChild(trashIcon.cloneNode(true));
+  }
+
+  const text = document.createElement('p');
+  text.className = 'confirm-dialog__message';
+  text.textContent = message;
+
+  const actions = document.createElement('form');
+  actions.method = 'dialog';
+  actions.className = 'confirm-dialog__actions';
+
+  const cancel = document.createElement('button');
+  cancel.type = 'submit';
+  cancel.value = 'cancel';
+  cancel.className = 'btn btn--secondary';
+  cancel.textContent = clientTranslations.cancel || 'Cancel';
+
+  const confirm = document.createElement('button');
+  confirm.type = 'submit';
+  confirm.value = 'confirm';
+  confirm.className = 'btn btn--danger-solid';
+  confirm.textContent = clientTranslations.confirmDeleteAction || 'OK';
+
+  actions.append(cancel, confirm);
+  dialog.append(icon, text, actions);
+  document.body.appendChild(dialog);
+
+  return new Promise((resolve) => {
+    dialog.addEventListener('close', () => {
+      resolve(dialog.returnValue === 'confirm');
+      dialog.remove();
+    });
+    // A click on the backdrop lands on the <dialog> element itself.
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog) {
+        dialog.close('cancel');
+      }
+    });
+    dialog.showModal();
+    cancel.focus();
   });
 }
 
@@ -367,8 +423,10 @@ function setupFormSubmitFeedback() {
   }
 
   forms.forEach((form) => {
-    form.addEventListener('submit', () => {
-      const submitButton = form.querySelector('button[type="submit"]');
+    form.addEventListener('submit', (event) => {
+      // The admin edit forms' submit button sits outside the <form> (form="…"),
+      // so prefer the button that actually triggered the submission.
+      const submitButton = event.submitter || form.querySelector('button[type="submit"]');
       if (!submitButton || submitButton.disabled) {
         return;
       }
@@ -536,6 +594,19 @@ function setupImageFilePreview() {
       return;
     }
 
+    // The file input is stretched invisibly over its dropzone, so native
+    // drag-and-drop works; these only drive the hover styling and file name.
+    const dropzone = input.closest('.dropzone');
+    const fileName = dropzone?.querySelector('[data-file-name]');
+    const defaultFileName = fileName?.textContent || '';
+
+    if (dropzone) {
+      input.addEventListener('dragenter', () => dropzone.classList.add('is-dragover'));
+      ['dragleave', 'drop'].forEach((type) => {
+        input.addEventListener(type, () => dropzone.classList.remove('is-dragover'));
+      });
+    }
+
     let objectUrl = null;
 
     input.addEventListener('change', () => {
@@ -545,6 +616,10 @@ function setupImageFilePreview() {
       }
 
       const file = input.files?.[0];
+      if (fileName) {
+        fileName.textContent = file ? file.name : defaultFileName;
+      }
+
       if (!file) {
         preview.hidden = true;
         previewImg.removeAttribute('src');
@@ -660,7 +735,7 @@ function setupAdminSearch() {
       let visibleCount = 0;
 
       items.forEach((item) => {
-        const summaryText = item.querySelector('summary')?.textContent.toLowerCase() || '';
+        const summaryText = item.querySelector('.admin-item__text, summary')?.textContent.toLowerCase() || '';
         const matches = !term || summaryText.includes(term);
         item.style.display = matches ? '' : 'none';
         if (matches) {
@@ -729,6 +804,46 @@ function setupUndoDelete() {
     } finally {
       button.disabled = false;
     }
+  });
+}
+
+// Admin status toasts (created/updated/deleted…) dismiss themselves; one
+// carrying an undo button stays for the whole undo window. The status query
+// parameters are dropped from the URL so a reload doesn't replay the toast.
+function setupToasts() {
+  const toasts = Array.from(document.querySelectorAll('[data-toast]'));
+  if (!toasts.length) {
+    return;
+  }
+
+  const url = new URL(window.location.href);
+  if (url.searchParams.has('status') || url.searchParams.has('undoToken')) {
+    url.searchParams.delete('status');
+    url.searchParams.delete('undoToken');
+    window.history.replaceState({}, '', url);
+  }
+
+  toasts.forEach((toast) => {
+    const hasUndo = Boolean(toast.querySelector('[data-undo-token]'));
+    let dismissed = false;
+
+    const dismiss = () => {
+      if (dismissed) {
+        return;
+      }
+      dismissed = true;
+      toast.classList.add('is-leaving');
+      toast.addEventListener('animationend', () => toast.remove(), { once: true });
+      // Reduced-motion or interrupted animations: make sure it still goes away.
+      setTimeout(() => toast.remove(), 400);
+    };
+
+    const timer = setTimeout(dismiss, hasUndo ? 15000 : 5000);
+
+    toast.querySelector('[data-toast-close]')?.addEventListener('click', () => {
+      clearTimeout(timer);
+      dismiss();
+    });
   });
 }
 

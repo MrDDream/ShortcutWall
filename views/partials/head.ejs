@@ -5,34 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <% const fullTitle = pageTitle ? `${pageTitle} - ${appName}` : appName; %>
     <title><%= fullTitle %></title>
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f5f6fa" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#09090f" media="(prefers-color-scheme: dark)" />
     <link rel="icon" type="image/svg+xml" href="/images/logo.svg" />
+    <script src="/theme.js"></script>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body class="<%= bodyClass || '' %>">
-    <header class="page-header">
-      <div class="header-content">
-        <h1 class="page-title">
+    <a class="skip-link" href="#main"><%= t('header.skipToContent') %></a>
+    <header class="site-header">
+      <div class="site-header__inner">
+        <h1 class="brand">
           <a href="/">
-            <img class="page-title__icon" src="/images/logo.svg" alt="" aria-hidden="true" />
-            <span><%= appName %></span>
+            <img class="brand__logo" src="/images/logo.svg" alt="" width="34" height="34" />
+            <span class="brand__name"><%= appName %></span>
           </a>
         </h1>
         <% const showViewSwitch = typeof includeViewSwitch !== 'undefined' && includeViewSwitch; %>
         <% if (showViewSwitch) { %>
-          <nav class="view-switch header-switch">
+          <nav class="segmented view-switch header-switch" aria-label="<%= t('header.viewSwitchLabel') %>">
             <a
-              class="view-switch__button <%= viewMode === 'sites' ? 'is-active' : '' %>"
+              class="segmented__item view-switch__button <%= viewMode === 'sites' ? 'is-active' : '' %>"
               href="/?type=sites"
               data-view="sites"
             >
-              <%= t('header.viewSites') %>
+              <%- include('icon', { name: 'globe' }) %>
+              <span><%= t('header.viewSites') %></span>
+              <span class="segmented__count"><%= typeof sites !== 'undefined' ? sites.length : 0 %></span>
             </a>
             <a
-              class="view-switch__button <%= viewMode === 'folders' ? 'is-active' : '' %>"
+              class="segmented__item view-switch__button <%= viewMode === 'folders' ? 'is-active' : '' %>"
               href="/?type=folders"
               data-view="folders"
             >
-              <%= t('header.viewFolders') %>
+              <%- include('icon', { name: 'folder' }) %>
+              <span><%= t('header.viewFolders') %></span>
+              <span class="segmented__count"><%= typeof folders !== 'undefined' ? folders.length : 0 %></span>
             </a>
           </nav>
         <% } %>
@@ -40,13 +49,16 @@
           <button
             type="button"
             id="theme-toggle"
-            class="btn-secondary"
+            class="icon-btn theme-toggle"
             aria-label="<%= t('header.themeToggle') %>"
             title="<%= t('header.themeToggle') %>"
-          >&#x263E;</button>
+          >
+            <%- include('icon', { name: 'moon', className: 'icon-moon' }) %>
+            <%- include('icon', { name: 'sun', className: 'icon-sun' }) %>
+          </button>
           <% if (languageToggle) { %>
             <a
-              class="btn-secondary language-toggle"
+              class="icon-btn language-toggle"
               href="/language/<%= languageToggle.next %>"
               title="<%= languageToggle.title %>"
               aria-label="<%= languageToggle.title %>"
@@ -60,23 +72,38 @@
           <% } %>
           <% if (isAuthenticated) { %>
             <div class="header-admin-menu">
-              <a class="btn-secondary header-admin-menu__link" href="/admin"><%= t('header.adminLink') %></a>
+              <a
+                class="btn btn--secondary header-admin-menu__link"
+                href="/admin"
+                title="<%= t('header.adminLink') %>"
+              >
+                <%- include('icon', { name: 'shield' }) %>
+                <span class="hide-sm"><%= t('header.adminLink') %></span>
+              </a>
               <button
                 type="button"
-                class="btn-secondary header-admin-menu__toggle"
+                class="icon-btn header-admin-menu__toggle"
                 aria-haspopup="true"
                 aria-expanded="false"
                 aria-label="<%= t('header.logout') %>"
-              >&#x25BE;</button>
-              <div class="header-admin-menu__dropdown" hidden>
+              >
+                <%- include('icon', { name: 'chevronDown' }) %>
+              </button>
+              <div class="menu header-admin-menu__dropdown" hidden>
                 <form action="/admin/logout" method="post">
                   <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-                  <button type="submit" class="btn-secondary header-admin-menu__logout"><%= t('header.logout') %></button>
+                  <button type="submit" class="menu__item menu__item--danger header-admin-menu__logout">
+                    <%- include('icon', { name: 'logout' }) %>
+                    <%= t('header.logout') %>
+                  </button>
                 </form>
               </div>
             </div>
           <% } else { %>
-            <a class="btn-secondary" href="/admin"><%= t('header.login') %></a>
+            <a class="btn btn--secondary header-login" href="/admin" title="<%= t('header.login') %>">
+              <%- include('icon', { name: 'user' }) %>
+              <span class="hide-sm"><%= t('header.login') %></span>
+            </a>
           <% } %>
         </div>
       </div>

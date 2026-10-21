@@ -6,12 +6,14 @@
     "notFoundTitle": "Page not found"
   },
   "header": {
-    "viewSites": "Website Shortcuts",
-    "viewFolders": "Folder Shortcuts",
+    "viewSites": "Websites",
+    "viewFolders": "Folders",
     "login": "Sign in",
     "logout": "Sign out",
     "adminLink": "Admin",
-    "themeToggle": "Toggle theme"
+    "themeToggle": "Toggle theme",
+    "viewSwitchLabel": "Shortcut type",
+    "skipToContent": "Skip to content"
   },
   "search": {
     "label": "Search",
@@ -34,7 +36,10 @@
     "siteEmpty": "No website shortcuts yet.",
     "folderEmpty": "No folder shortcuts yet.",
     "siteDownloadTitle": "Download",
-    "siteAccessTitle": "Open site"
+    "siteAccessTitle": "Open site",
+    "folderDownloadTitle": "Download the folder shortcut",
+    "emptyHint": "Add some from the admin area.",
+    "emptyCta": "Add a shortcut"
   },
   "admin": {
     "tabsSites": "Website management",
@@ -50,7 +55,8 @@
     "statusDeleted": "Item deleted successfully.",
     "statusRestored": "Item restored.",
     "undo": "Undo",
-    "defaultCredentialsWarning": "The admin credentials or session secret are still at this repo's default values. Set ADMIN_PASS and SESSION_SECRET before exposing this publicly."
+    "defaultCredentialsWarning": "The admin credentials or session secret are still at this repo's default values. Set ADMIN_PASS and SESSION_SECRET before exposing this publicly.",
+    "subtitle": "Manage the shortcuts shown on the wall."
   },
   "forms": {
     "name": "Name",
@@ -69,15 +75,17 @@
     "uploadHint": "An uploaded file replaces the URL above.",
     "currentImage": "Current preview",
     "newImagePreview": "New file preview",
-    "confirmDelete": "Are you sure you want to delete this item? This action cannot be undone.",
-    "saving": "Saving..."
+    "confirmDelete": "Are you sure you want to delete this item? You will have 15 seconds to undo.",
+    "saving": "Saving...",
+    "cancel": "Cancel"
   },
   "login": {
     "adminArea": "Administrator area",
     "username": "Username",
     "password": "Password",
     "submit": "Sign in",
-    "invalidCredentials": "Invalid credentials"
+    "invalidCredentials": "Invalid credentials",
+    "subtitle": "Sign in to manage the shortcuts."
   },
   "notFound": {
     "message": "The requested resource could not be found.",
@@ -107,7 +115,10 @@
     "unsupportedFileType": "Only image files (png, jpg, gif, webp) are allowed."
   },
   "language": {
-    "name": { "fr": "French", "en": "English" },
+    "name": {
+      "fr": "French",
+      "en": "English"
+    },
     "switch": "Switch to {language}"
   }
 }
