@@ -93,7 +93,7 @@ docker compose pull && docker compose up -d
 ```
 
 Pour rester sur une version précise, remplacez `latest` par un numéro de version, par exemple
-`ghcr.io/mrddream/shortcutwall:1.1.0`. Les versions disponibles sont listées sur la
+`ghcr.io/mrddream/shortcutwall:1.2.0`. Les versions disponibles sont listées sur la
 [page des releases](https://github.com/MrDDream/ShortcutWall/releases).
 
 ## 📸 Captures d'écran
@@ -127,6 +127,8 @@ Tous les réglages se font dans le fichier `.env` à côté de `docker-compose.y
 - **Mur** (`/`) : public, sans compte. Un clic sur une carte ouvre le site.
 - **Administration** (`/admin`) : *Ajouter un site*, puis *Récupérer le favicon* pour obtenir son logo
   automatiquement ; un clic sur une tuile permet de la modifier.
+- **Sites internes** : saisissez l'adresse par laquelle la machine Docker les joint (`http://192.168.1.10:8080`,
+  `https://nas.lan`) ; les certificats auto-signés sont acceptés sur le réseau local.
 - **Sauvegarde** : *Exporter* télécharge `shortcutwall-AAAA-MM-JJ.json` (logos inclus) ; *Importer* le
   restaure, en le fusionnant avec les sites actuels ou en les remplaçant (annulable pendant 15 secondes).
 - **Données** : les raccourcis sont dans `./data`, les logos dans `./public/uploads`. Sauvegardez ces deux

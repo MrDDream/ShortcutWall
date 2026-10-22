@@ -93,7 +93,7 @@ docker compose pull && docker compose up -d
 ```
 
 To stay on a given version, replace `latest` with a version number, for example
-`ghcr.io/mrddream/shortcutwall:1.1.0`. The available versions are listed on the
+`ghcr.io/mrddream/shortcutwall:1.2.0`. The available versions are listed on the
 [releases page](https://github.com/MrDDream/ShortcutWall/releases).
 
 ## 📸 Screenshots
@@ -126,6 +126,8 @@ All settings go in the `.env` file next to `docker-compose.yml`, then `docker co
 - **Wall** (`/`): public, no account needed. Click a card to open the site.
 - **Admin** (`/admin`): *Add a website*, then *Fetch favicon* to get its logo automatically; click a tile
   to edit it.
+- **Internal sites**: enter the address the Docker host uses to reach them (`http://192.168.1.10:8080`,
+  `https://nas.lan`); self-signed certificates are accepted on the local network.
 - **Backup**: *Export* downloads `shortcutwall-YYYY-MM-DD.json` (logos included); *Import* restores it,
   either merging it with the current sites or replacing them (that can be undone for 15 seconds).
 - **Data**: shortcuts live in `./data`, logos in `./public/uploads`. Back up these two folders, or use *Export*.
