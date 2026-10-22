@@ -1,5 +1,8 @@
+import fs from 'fs';
 import http from 'http';
+import https from 'https';
 import { createRequire } from 'module';
+import path from 'path';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 // Loaded through require() like the app does, so error classes are the same
@@ -21,6 +24,8 @@ const client = createHttpClient({
 let server;
 let base;
 let port;
+let tlsServer;
+let tlsPort;
 
 beforeAll(async () => {
   server = http.createServer((req, res) => {
@@ -53,11 +58,25 @@ beforeAll(async () => {
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   port = server.address().port;
   base = `http://127.0.0.1:${port}`;
+
+  // Like an internal site (router, NAS…): HTTPS with a self-signed certificate.
+  const fixtures = path.resolve(__dirname, '../fixtures');
+  tlsServer = https.createServer(
+    {
+      key: fs.readFileSync(path.join(fixtures, 'self-signed-key.pem')),
+      cert: fs.readFileSync(path.join(fixtures, 'self-signed-cert.pem')),
+    },
+    (req, res) => res.end('internal'),
+  );
+  await new Promise((resolve) => tlsServer.listen(0, '127.0.0.1', resolve));
+  tlsPort = tlsServer.address().port;
 });
 
 afterAll(() => {
   server.closeAllConnections();
   server.close();
+  tlsServer.closeAllConnections();
+  tlsServer.close();
 });
 
 describe('httpClient.request', () => {
@@ -101,5 +120,23 @@ describe('httpClient.request', () => {
 
   it('the default client refuses loopback outright', async () => {
     await expect(httpClientModule.request(`${base}/ok`)).rejects.toBeInstanceOf(BlockedHostError);
+  });
+
+  it('accepts a self-signed certificate on a private-network address', async () => {
+    // Loopback stands in for the LAN: allowed and counted as private here.
+    const lan = createHttpClient({ isBlocked: () => false, isPrivate: () => true, timeoutMs: 500 });
+    for (const host of ['127.0.0.1', 'localhost']) {
+      const res = await lan.request(`https://${host}:${tlsPort}/`, { maxBytes: 100 });
+      expect(res.body.toString(), host).toBe('internal');
+    }
+  });
+
+  it('still verifies the certificate of a public address', async () => {
+    const internet = createHttpClient({ isBlocked: () => false, isPrivate: () => false, timeoutMs: 500 });
+    for (const host of ['127.0.0.1', 'localhost']) {
+      const error = await internet.request(`https://${host}:${tlsPort}/`).catch((e) => e);
+      expect(error, host).not.toBeInstanceOf(BlockedHostError);
+      expect(error?.cause?.code, host).toBe('DEPTH_ZERO_SELF_SIGNED_CERT');
+    }
   });
 });

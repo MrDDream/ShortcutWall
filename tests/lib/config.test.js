@@ -10,9 +10,13 @@ const configPath = path.resolve(__dirname, '../../src/config.js');
 // developer's own .env never leaks into these checks.
 const emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'shortcutwall-config-'));
 
-// Loads the config in a fresh process with exactly the given environment.
-function loadConfig(env) {
-  return spawnSync(process.execPath, ['-e', `require(${JSON.stringify(configPath)})`], {
+// Loads the config in a fresh process with exactly the given environment;
+// `print` names a setting to write to stdout.
+function loadConfig(env, print = null) {
+  const script = print
+    ? `console.log(require(${JSON.stringify(configPath)}).${print})`
+    : `require(${JSON.stringify(configPath)})`;
+  return spawnSync(process.execPath, ['-e', script], {
     cwd: emptyDir,
     env: { PATH: process.env.PATH, DOTENV_CONFIG_QUIET: 'true', ...env },
     encoding: 'utf-8',
@@ -44,5 +48,10 @@ describe('config', () => {
       loadConfig({ NODE_ENV: 'production', ADMIN_PASS: 'a-real-password', SESSION_SECRET: 'x'.repeat(32) }).status,
     ).toBe(0);
     expect(loadConfig({ NODE_ENV: 'development' }).status).toBe(0);
+  });
+
+  it('allows private networks unless ALLOW_PRIVATE_NETWORKS is false', () => {
+    expect(loadConfig({}, 'ALLOW_PRIVATE_NETWORKS').stdout.trim()).toBe('true');
+    expect(loadConfig({ ALLOW_PRIVATE_NETWORKS: 'false' }, 'ALLOW_PRIVATE_NETWORKS').stdout.trim()).toBe('false');
   });
 });

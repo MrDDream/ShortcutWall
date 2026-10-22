@@ -26,6 +26,7 @@ English · [Français](README.fr.md)
 - 🛠️ **Admin in dialogs**: add, edit and delete without leaving the list; a deletion can be undone for 15 seconds.
 - 💾 **Export / import**: one JSON file with every shortcut and its logos, to back up or move an install.
 - 🌗 **Light and dark themes**, 🌐 **French and English**, 📱 **mobile-friendly**.
+- 🏠 **Internal sites too**: shortcuts to your router, NAS or Proxmox on the local network, self-signed certificates included.
 - 🔒 **Secure by default**: CSRF protection, strict CSP, login rate limiting, SSRF guard, refuses to start with default credentials.
 
 ## 🚀 Installation
@@ -114,6 +115,7 @@ All settings go in the `.env` file next to `docker-compose.yml`, then `docker co
 | `SESSION_SECRET` | — | Random secret of at least 32 characters (`openssl rand -hex 32`). **Required.** |
 | `PORT` | `3050` | Port of the app (and of the published port). |
 | `TRUST_PROXY` | `false` | Set to `true` behind a reverse proxy (HTTPS, real client IP for the login rate limit). |
+| `ALLOW_PRIVATE_NETWORKS` | `true` | Lets you add sites hosted on your local network or VPN (`192.168.x.x`, `10.x.x.x`, `nas.lan`…). Set to `false` if people you don't trust can reach the admin area. |
 | `APP_NAME` | `ShortcutWall` | Name shown in the header and page titles. |
 | `APP_DEFAULT_LOCALE` | `fr` | Default language: `fr` or `en`. |
 | `SUPPORT_EMAIL` / `SUPPORT_PHONE` | — | Contacts shown in a "Need help?" dialog (hidden when empty). |
@@ -133,13 +135,11 @@ All settings go in the `.env` file next to `docker-compose.yml`, then `docker co
 - Admin password, session secret: required in production; sessions are only created on login.
 - CSRF tokens on every form, strict Content-Security-Policy, cookies `HttpOnly` / `SameSite`.
 - Login limited to 10 failed attempts per IP every 15 minutes.
-- Outgoing requests (favicons, logos) can't reach private networks or follow redirects to them (SSRF guard).
+- Outgoing requests (favicons, logos) can never reach the app's own host or cloud metadata endpoints, even
+  through a redirect (SSRF guard). Local networks are allowed so internal sites can be added; set
+  `ALLOW_PRIVATE_NETWORKS=false` to block them too. Certificates are always verified for public sites.
 - Uploaded files are checked to really be images, and stored under generated names.
 - The image runs as a non-root user, with the application code read-only.
-
-> [!NOTE]
-> Because of the SSRF guard, websites hosted on your local network (`192.168.x.x`, `10.x.x.x`…) can't be
-> added for now.
 
 ## 🩺 Troubleshooting
 
@@ -147,6 +147,9 @@ All settings go in the `.env` file next to `docker-compose.yml`, then `docker co
   `root`. Fix it with `sudo chown -R 1000:1000 data public/uploads`, then `docker compose up -d`.
 - **It refuses to start ("Refusing to start in production…")**: `ADMIN_PASS` or `SESSION_SECRET` is missing,
   left at its default value, or the secret is shorter than 32 characters. Check the `.env` file.
+- **"The website is unreachable" for an internal site**: the check runs from the container, so the site
+  must be reachable from the Docker host. `localhost` means the container itself: use the host's
+  network address instead (e.g. `http://192.168.1.10:8080`).
 - **Logs**: `docker compose logs -f`.
 
 ## 🛠️ Contributing

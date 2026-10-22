@@ -33,6 +33,12 @@ const APP_NAME = (process.env.APP_NAME && process.env.APP_NAME.trim()) || 'Short
 const SUPPORT_EMAIL = (process.env.SUPPORT_EMAIL && process.env.SUPPORT_EMAIL.trim()) || '';
 const SUPPORT_PHONE = (process.env.SUPPORT_PHONE && process.env.SUPPORT_PHONE.trim()) || '';
 
+// Lets the server reach sites on private networks (192.168.x.x, 10.x.x.x,
+// VPNs…) to check them and fetch their logo. Loopback and cloud metadata
+// addresses stay blocked either way; set to false on an instance exposed to
+// people who shouldn't be able to probe its network.
+const ALLOW_PRIVATE_NETWORKS = process.env.ALLOW_PRIVATE_NETWORKS !== 'false';
+
 // Whole outgoing HTTP exchange (reachability checks, favicons, logo imports),
 // response body included.
 const HTTP_TIMEOUT_MS = 10000;
@@ -90,6 +96,7 @@ module.exports = {
   APP_NAME,
   SUPPORT_EMAIL,
   SUPPORT_PHONE,
+  ALLOW_PRIVATE_NETWORKS,
   HTTP_TIMEOUT_MS,
   SUPPORTED_LOCALES,
   DEFAULT_LOCALE_RAW,

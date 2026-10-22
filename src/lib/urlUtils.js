@@ -22,7 +22,7 @@ function isReachableStatus(status) {
 
 // Sends requests to websites to verify their reachability, using a HEAD request
 // first and falling back to GET if necessary (some servers reject HEAD outright).
-// Non-public hosts (directly or through a redirect) count as unreachable: see
+// Blocked hosts (directly or through a redirect) count as unreachable: see
 // httpClient.js.
 async function isUrlReachable(targetUrl) {
   try {

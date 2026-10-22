@@ -1,6 +1,20 @@
 import { describe, it, expect } from 'vitest';
 
-import { isBlockedAddress, createGuardedLookup, BlockedHostError } from '../../src/lib/ssrfGuard.js';
+import {
+  isBlockedAddress,
+  isPrivateNetworkAddress,
+  createGuardedLookup,
+  BlockedHostError,
+} from '../../src/lib/ssrfGuard.js';
+
+const PRIVATE_ADDRESSES = [
+  ['10.0.0.5', 4],
+  ['172.20.3.4', 4],
+  ['192.168.1.1', 4],
+  ['100.64.0.1', 4],
+  ['fd12:3456:789a::1', 6],
+  ['::ffff:192.168.1.1', 6],
+];
 
 describe('ssrfGuard.isBlockedAddress', () => {
   it('allows public IPv4 and IPv6 addresses', () => {
@@ -8,14 +22,21 @@ describe('ssrfGuard.isBlockedAddress', () => {
     expect(isBlockedAddress('2606:2800:220:1:248:1893:25c8:1946', 6)).toBe(false);
   });
 
-  it('blocks loopback, private and carrier-grade NAT ranges', () => {
-    for (const address of ['127.0.0.1', '10.0.0.5', '172.20.3.4', '192.168.1.1', '100.64.0.1', '0.0.0.0']) {
-      expect(isBlockedAddress(address, 4), address).toBe(true);
+  it('always blocks loopback and the "this" network', () => {
+    for (const address of ['127.0.0.1', '0.0.0.0']) {
+      expect(isBlockedAddress(address, 4, { allowPrivate: true }), address).toBe(true);
     }
   });
 
-  it('blocks the cloud metadata link-local address', () => {
-    expect(isBlockedAddress('169.254.169.254', 4)).toBe(true);
+  it('blocks private networks only when they are not allowed', () => {
+    for (const [address, family] of PRIVATE_ADDRESSES) {
+      expect(isBlockedAddress(address, family, { allowPrivate: true }), address).toBe(false);
+      expect(isBlockedAddress(address, family, { allowPrivate: false }), address).toBe(true);
+    }
+  });
+
+  it('blocks the cloud metadata link-local address, even with private networks allowed', () => {
+    expect(isBlockedAddress('169.254.169.254', 4, { allowPrivate: true })).toBe(true);
   });
 
   it('does not block a public address adjacent to a private range (regression test)', () => {
@@ -31,9 +52,28 @@ describe('ssrfGuard.isBlockedAddress', () => {
     expect(isBlockedAddress('::ffff:93.184.216.34', 6)).toBe(false);
   });
 
-  it('blocks IPv6 loopback, unique-local, link-local, NAT64 and 6to4 addresses', () => {
-    for (const address of ['::1', 'fd12:3456:789a::1', 'fe80::1', '64:ff9b::a9fe:a9fe', '2002:c0a8:101::1']) {
-      expect(isBlockedAddress(address, 6), address).toBe(true);
+  it('blocks IPv6 loopback, link-local, NAT64 and 6to4 addresses, even with private networks allowed', () => {
+    for (const address of ['::1', 'fe80::1', '64:ff9b::a9fe:a9fe', '2002:c0a8:101::1']) {
+      expect(isBlockedAddress(address, 6, { allowPrivate: true }), address).toBe(true);
+    }
+  });
+});
+
+describe('ssrfGuard.isPrivateNetworkAddress', () => {
+  it('recognises private, carrier-grade NAT and unique-local addresses', () => {
+    for (const [address, family] of PRIVATE_ADDRESSES) {
+      expect(isPrivateNetworkAddress(address, family), address).toBe(true);
+    }
+  });
+
+  it('does not count public, loopback or link-local addresses as private', () => {
+    for (const [address, family] of [
+      ['93.184.216.34', 4],
+      ['127.0.0.1', 4],
+      ['169.254.169.254', 4],
+      ['fe80::1', 6],
+    ]) {
+      expect(isPrivateNetworkAddress(address, family), address).toBe(false);
     }
   });
 });

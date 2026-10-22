@@ -26,6 +26,7 @@ Une page avec tous les sites utiles et leur logo, et une administration simple p
 - 🛠️ **Administration en pop-ups** : ajout, modification et suppression sans quitter la liste ; une suppression s'annule pendant 15 secondes.
 - 💾 **Export / import** : un fichier JSON avec tous les raccourcis et leurs logos, pour sauvegarder ou déménager une installation.
 - 🌗 **Thèmes clair et sombre**, 🌐 **français et anglais**, 📱 **adapté au mobile**.
+- 🏠 **Sites internes aussi** : raccourcis vers votre box, NAS ou Proxmox du réseau local, certificats auto-signés compris.
 - 🔒 **Sécurisé par défaut** : protection CSRF, CSP stricte, limitation des tentatives de connexion, garde-fou SSRF, refus de démarrer avec les identifiants par défaut.
 
 ## 🚀 Installation
@@ -115,6 +116,7 @@ Tous les réglages se font dans le fichier `.env` à côté de `docker-compose.y
 | `SESSION_SECRET` | — | Secret aléatoire d'au moins 32 caractères (`openssl rand -hex 32`). **Obligatoire.** |
 | `PORT` | `3050` | Port de l'application (et port publié). |
 | `TRUST_PROXY` | `false` | À mettre à `true` derrière un reverse proxy (HTTPS, vraie IP du client pour la limite de connexion). |
+| `ALLOW_PRIVATE_NETWORKS` | `true` | Permet d'ajouter des sites hébergés sur votre réseau local ou VPN (`192.168.x.x`, `10.x.x.x`, `nas.lan`…). À mettre à `false` si des personnes de confiance limitée accèdent à l'administration. |
 | `APP_NAME` | `ShortcutWall` | Nom affiché dans l'en-tête et le titre des pages. |
 | `APP_DEFAULT_LOCALE` | `fr` | Langue par défaut : `fr` ou `en`. |
 | `SUPPORT_EMAIL` / `SUPPORT_PHONE` | — | Contacts affichés dans une fenêtre « Besoin d'aide ? » (masquée si vides). |
@@ -136,14 +138,12 @@ Tous les réglages se font dans le fichier `.env` à côté de `docker-compose.y
   qu'à la connexion.
 - Jetons CSRF sur tous les formulaires, Content-Security-Policy stricte, cookies `HttpOnly` / `SameSite`.
 - Connexion limitée à 10 échecs par IP toutes les 15 minutes.
-- Les requêtes sortantes (favicons, logos) ne peuvent pas atteindre les réseaux privés, ni être redirigées
-  vers eux (garde-fou SSRF).
+- Les requêtes sortantes (favicons, logos) ne peuvent jamais atteindre la machine de l'application ni les
+  services de métadonnées cloud, même via une redirection (garde-fou SSRF). Les réseaux locaux sont autorisés
+  pour pouvoir ajouter des sites internes ; `ALLOW_PRIVATE_NETWORKS=false` les bloque aussi. Les certificats
+  des sites publics sont toujours vérifiés.
 - Les fichiers téléversés sont vérifiés comme étant de vraies images et stockés sous des noms générés.
 - L'image tourne avec un utilisateur non root, le code de l'application en lecture seule.
-
-> [!NOTE]
-> À cause du garde-fou SSRF, les sites hébergés sur votre réseau local (`192.168.x.x`, `10.x.x.x`…) ne
-> peuvent pas encore être ajoutés.
 
 ## 🩺 Dépannage
 
@@ -151,6 +151,9 @@ Tous les réglages se font dans le fichier `.env` à côté de `docker-compose.y
   appartient à `root`. Corrigez avec `sudo chown -R 1000:1000 data public/uploads`, puis `docker compose up -d`.
 - **Il refuse de démarrer (« Refusing to start in production… »)** : `ADMIN_PASS` ou `SESSION_SECRET`
   manque, garde sa valeur par défaut, ou le secret fait moins de 32 caractères. Vérifiez le fichier `.env`.
+- **« Le site est inaccessible » pour un site interne** : la vérification part du conteneur, le site doit donc
+  être joignable depuis la machine Docker. `localhost` désigne le conteneur lui-même : utilisez l'adresse
+  réseau de la machine (par exemple `http://192.168.1.10:8080`).
 - **Logs** : `docker compose logs -f`.
 
 ## 🛠️ Contribuer

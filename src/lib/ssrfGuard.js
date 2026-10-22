@@ -1,21 +1,33 @@
 const dns = require('dns');
 const net = require('net');
 
-// Blocks loopback, private, link-local, and other non-public IP ranges so that
+const { ALLOW_PRIVATE_NETWORKS } = require('../config');
+
+// Blocks loopback, link-local, and other non-public IP ranges so that
 // admin-supplied URLs (site creation, favicon fetch) cannot be used to reach
-// internal services or cloud metadata endpoints (SSRF).
+// the app's own host or cloud metadata endpoints (SSRF). Private networks
+// (home LAN, VPN) are a separate list: blocked only when ALLOW_PRIVATE_NETWORKS
+// is false, so internal sites can be added by default.
 const blockList = new net.BlockList();
+const privateNetworks = new net.BlockList();
+
+const IPV4_PRIVATE_SUBNETS = [
+  ['10.0.0.0', 8], // private
+  ['100.64.0.0', 10], // carrier-grade NAT (also used by VPNs such as Tailscale)
+  ['172.16.0.0', 12], // private
+  ['192.168.0.0', 16], // private
+];
+
+const IPV6_PRIVATE_SUBNETS = [
+  ['fc00::', 7], // unique local
+];
 
 const IPV4_BLOCKED_SUBNETS = [
   ['0.0.0.0', 8], // "this" network
-  ['10.0.0.0', 8], // private
-  ['100.64.0.0', 10], // carrier-grade NAT
   ['127.0.0.0', 8], // loopback
   ['169.254.0.0', 16], // link-local (incl. cloud metadata, e.g. 169.254.169.254)
-  ['172.16.0.0', 12], // private
   ['192.0.0.0', 24], // IETF protocol assignments
   ['192.0.2.0', 24], // documentation (TEST-NET-1)
-  ['192.168.0.0', 16], // private
   ['198.18.0.0', 15], // benchmarking
   ['198.51.100.0', 24], // documentation (TEST-NET-2)
   ['203.0.113.0', 24], // documentation (TEST-NET-3)
@@ -27,7 +39,6 @@ const IPV4_BLOCKED_SUBNETS = [
 const IPV6_BLOCKED_SUBNETS = [
   ['::1', 128], // loopback
   ['::', 128], // unspecified
-  ['fc00::', 7], // unique local
   ['fe80::', 10], // link-local
   ['64:ff9b::', 96], // NAT64: would reach any IPv4 address, private ones included
   ['2002::', 16], // 6to4: embeds an arbitrary IPv4 address
@@ -38,6 +49,12 @@ for (const [subnet, prefix] of IPV4_BLOCKED_SUBNETS) {
 }
 for (const [subnet, prefix] of IPV6_BLOCKED_SUBNETS) {
   blockList.addSubnet(subnet, prefix, 'ipv6');
+}
+for (const [subnet, prefix] of IPV4_PRIVATE_SUBNETS) {
+  privateNetworks.addSubnet(subnet, prefix, 'ipv4');
+}
+for (const [subnet, prefix] of IPV6_PRIVATE_SUBNETS) {
+  privateNetworks.addSubnet(subnet, prefix, 'ipv6');
 }
 
 class BlockedHostError extends Error {}
@@ -58,9 +75,18 @@ function toCheckableAddress(address, family) {
   return { address, type: family === 6 ? 'ipv6' : 'ipv4' };
 }
 
-function isBlockedAddress(address, family) {
+function isPrivateNetworkAddress(address, family) {
   const checkable = toCheckableAddress(address, family);
-  return blockList.check(checkable.address, checkable.type);
+  return privateNetworks.check(checkable.address, checkable.type);
+}
+
+// `allowPrivate` exists for tests only; the app follows ALLOW_PRIVATE_NETWORKS.
+function isBlockedAddress(address, family, { allowPrivate = ALLOW_PRIVATE_NETWORKS } = {}) {
+  const checkable = toCheckableAddress(address, family);
+  if (blockList.check(checkable.address, checkable.type)) {
+    return true;
+  }
+  return !allowPrivate && isPrivateNetworkAddress(address, family);
 }
 
 // Builds a drop-in replacement for dns.lookup, given to the HTTP client's
@@ -88,4 +114,4 @@ function createGuardedLookup(isBlocked = isBlockedAddress) {
   };
 }
 
-module.exports = { isBlockedAddress, createGuardedLookup, BlockedHostError };
+module.exports = { isBlockedAddress, isPrivateNetworkAddress, createGuardedLookup, BlockedHostError };

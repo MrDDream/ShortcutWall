@@ -1,11 +1,29 @@
 const { Agent, fetch } = require('undici');
 
 const { HTTP_TIMEOUT_MS } = require('../config');
-const { isBlockedAddress, createGuardedLookup, BlockedHostError } = require('./ssrfGuard');
+const { isBlockedAddress, isPrivateNetworkAddress, createGuardedLookup, BlockedHostError } = require('./ssrfGuard');
 
 const USER_AGENT = 'Mozilla/5.0 ShortcutWall/1.0';
 const MAX_REDIRECTS = 5;
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
+
+// TLS failures caused by the certificate itself (self-signed, private CA,
+// expired, or issued for a name rather than the IP typed), as opposed to a
+// failed connection.
+const CERTIFICATE_ERROR_CODES = new Set([
+  'DEPTH_ZERO_SELF_SIGNED_CERT',
+  'SELF_SIGNED_CERT_IN_CHAIN',
+  'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
+  'UNABLE_TO_GET_ISSUER_CERT',
+  'UNABLE_TO_GET_ISSUER_CERT_LOCALLY',
+  'CERT_HAS_EXPIRED',
+  'CERT_NOT_YET_VALID',
+  'ERR_TLS_CERT_ALTNAME_INVALID',
+]);
+
+function isCertificateError(error) {
+  return CERTIFICATE_ERROR_CODES.has(error?.cause?.code ?? error?.code);
+}
 
 class ResponseTooLargeError extends Error {}
 
@@ -43,9 +61,51 @@ async function readCapped(body, maxBytes) {
 // followed by hand so each hop's IP-literal host is checked too (literals never
 // go through DNS). One timeout covers the whole exchange, body included, and
 // bodies are capped, so a huge or endless response can't exhaust memory or
-// hang a request. `isBlocked` exists for tests only.
-function createHttpClient({ isBlocked = isBlockedAddress, timeoutMs = HTTP_TIMEOUT_MS } = {}) {
+// hang a request. Internal sites often use a self-signed certificate: when a
+// certificate is refused, the request is retried without verifying it, through
+// a dispatcher that can only connect to private-network addresses (public sites
+// are always verified). `isBlocked` and `isPrivate` exist for tests only.
+function createHttpClient({
+  isBlocked = isBlockedAddress,
+  isPrivate = isPrivateNetworkAddress,
+  timeoutMs = HTTP_TIMEOUT_MS,
+} = {}) {
   const dispatcher = new Agent({ connect: { lookup: createGuardedLookup(isBlocked) }, connections: 16 });
+  const isNotAllowedPrivate = (address, family) => isBlocked(address, family) || !isPrivate(address, family);
+  const privateNetworkDispatcher = new Agent({
+    connect: { lookup: createGuardedLookup(isNotAllowedPrivate), rejectUnauthorized: false },
+    connections: 4,
+  });
+
+  function send(url, method, signal, via) {
+    return fetch(url, {
+      method,
+      redirect: 'manual',
+      dispatcher: via,
+      signal,
+      headers: { 'User-Agent': USER_AGENT },
+    }).catch((error) => {
+      // undici reports a refused connection as a generic "fetch failed":
+      // surface the guard's own error instead.
+      throw error?.cause instanceof BlockedHostError ? error.cause : error;
+    });
+  }
+
+  async function sendAllowingPrivateCertificates(url, method, signal) {
+    try {
+      return await send(url, method, signal, dispatcher);
+    } catch (error) {
+      const literal = hostIpLiteral(url);
+      if (!isCertificateError(error) || (literal && isNotAllowedPrivate(literal.address, literal.family))) {
+        throw error;
+      }
+      // A host name resolving to a public address is refused by the retry's
+      // lookup: report the original certificate problem instead.
+      return send(url, method, signal, privateNetworkDispatcher).catch((retryError) => {
+        throw retryError instanceof BlockedHostError ? error : retryError;
+      });
+    }
+  }
 
   // Returns { status, ok, headers, url, body }: `url` is the final URL after
   // redirects; `body` is a Buffer when `maxBytes` is given, otherwise null and
@@ -66,17 +126,7 @@ function createHttpClient({ isBlocked = isBlockedAddress, timeoutMs = HTTP_TIMEO
           throw new BlockedHostError(`Blocked non-public address: ${literal.address}`);
         }
 
-        const response = await fetch(url, {
-          method,
-          redirect: 'manual',
-          dispatcher,
-          signal: controller.signal,
-          headers: { 'User-Agent': USER_AGENT },
-        }).catch((error) => {
-          // undici reports a refused connection as a generic "fetch failed":
-          // surface the guard's own error instead.
-          throw error?.cause instanceof BlockedHostError ? error.cause : error;
-        });
+        const response = await sendAllowingPrivateCertificates(url, method, controller.signal);
 
         const location = response.headers.get('location');
         if (REDIRECT_STATUSES.has(response.status) && location) {
