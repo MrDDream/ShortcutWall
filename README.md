@@ -93,7 +93,7 @@ docker compose pull && docker compose up -d
 ```
 
 To stay on a given version, replace `latest` with a version number, for example
-`ghcr.io/mrddream/shortcutwall:1.2.0`. The available versions are listed on the
+`ghcr.io/mrddream/shortcutwall:1.2.1`. The available versions are listed on the
 [releases page](https://github.com/MrDDream/ShortcutWall/releases).
 
 ## 📸 Screenshots

@@ -1,6 +1,6 @@
 {
   "name": "shortcutwall",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Self-hosted wall of website shortcuts with an admin area",
   "main": "server.js",
   "scripts": {
