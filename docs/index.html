@@ -1,0 +1,1816 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ShortcutWall</title>
+    <meta
+      name="description"
+      content="A self-hosted wall of website shortcuts with automatic logos, a simple admin area and a ready-to-use Docker image."
+    />
+    <meta name="theme-color" content="#6366f1" />
+    <meta property="og:title" content="ShortcutWall" />
+    <meta property="og:description" content="Your self-hosted wall of website shortcuts." />
+    <meta property="og:image" content="https://mrddream.github.io/ShortcutWall/img/og.png" />
+    <link rel="icon" href="img/logo.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      // Theme before first paint: saved choice, else the system's.
+      (function () {
+        let theme = null;
+        try {
+          theme = localStorage.getItem('sw-theme');
+        } catch (e) {}
+        if (theme !== 'light' && theme !== 'dark') {
+          theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+    <style>
+      :root {
+        color-scheme: light;
+        --font: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        --mono: ui-monospace, 'SFMono-Regular', 'Cascadia Code', 'JetBrains Mono', Menlo, Consolas, monospace;
+
+        --bg: #f5f6fa;
+        --glow-1: rgba(99, 102, 241, 0.16);
+        --glow-2: rgba(168, 85, 247, 0.12);
+        --surface: #ffffff;
+        --surface-muted: #f0f1f7;
+        --header-bg: rgba(245, 246, 250, 0.78);
+        --text: #0f172a;
+        --text-muted: #556076;
+        --text-subtle: #8a93a6;
+        --border: rgba(15, 23, 42, 0.08);
+        --border-strong: rgba(15, 23, 42, 0.14);
+        --accent: #5b55ea;
+        --accent-soft: rgba(91, 85, 234, 0.1);
+        --accent-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+        --success: #15803d;
+        --success-soft: rgba(21, 128, 61, 0.1);
+        --code-bg: #0f1020;
+        --code-text: #e2e4f3;
+        --code-muted: #8b8fb3;
+        --frame: #e7e8f0;
+        --frame-bar: #f7f7fb;
+        --shadow-md: 0 6px 16px rgba(15, 23, 42, 0.06), 0 16px 40px rgba(15, 23, 42, 0.08);
+        --shadow-lg: 0 30px 80px rgba(15, 23, 42, 0.18), 0 10px 30px rgba(15, 23, 42, 0.08);
+        --radius: 14px;
+        --radius-lg: 22px;
+      }
+
+      :root[data-theme='dark'] {
+        color-scheme: dark;
+        --bg: #09090f;
+        --glow-1: rgba(99, 102, 241, 0.2);
+        --glow-2: rgba(168, 85, 247, 0.13);
+        --surface: #12131b;
+        --surface-muted: #1a1c27;
+        --header-bg: rgba(9, 9, 15, 0.75);
+        --text: #eef0f8;
+        --text-muted: #a3a9be;
+        --text-subtle: #6f7690;
+        --border: rgba(255, 255, 255, 0.07);
+        --border-strong: rgba(255, 255, 255, 0.13);
+        --accent: #8b87ff;
+        --accent-soft: rgba(139, 135, 255, 0.13);
+        --success: #4ade80;
+        --success-soft: rgba(74, 222, 128, 0.12);
+        --code-bg: #0c0d16;
+        --frame: #232533;
+        --frame-bar: #1a1c27;
+        --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.3), 0 16px 40px rgba(0, 0, 0, 0.3);
+        --shadow-lg: 0 30px 80px rgba(0, 0, 0, 0.55), 0 10px 30px rgba(0, 0, 0, 0.35);
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+        scroll-padding-top: 84px;
+      }
+
+      body {
+        margin: 0;
+        font-family: var(--font);
+        font-size: 16px;
+        line-height: 1.6;
+        color: var(--text);
+        background:
+          radial-gradient(1100px 600px at 12% -10%, var(--glow-1), transparent 60%),
+          radial-gradient(900px 500px at 95% 0%, var(--glow-2), transparent 60%), var(--bg);
+        background-repeat: no-repeat;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+        border-radius: 6px;
+      }
+
+      .container {
+        width: min(1180px, 100% - 32px);
+        margin-inline: auto;
+      }
+
+      /* Theme-specific screenshots */
+      [data-theme='light'] .only-dark,
+      [data-theme='dark'] .only-light {
+        display: none;
+      }
+
+      /* ---------- Header ---------- */
+      .header {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: var(--header-bg);
+        backdrop-filter: saturate(160%) blur(14px);
+        -webkit-backdrop-filter: saturate(160%) blur(14px);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .header__inner {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        height: 68px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        font-size: 1.08rem;
+        text-decoration: none;
+        letter-spacing: -0.01em;
+      }
+
+      .brand img {
+        width: 34px;
+        height: 34px;
+        filter: drop-shadow(0 4px 10px rgba(99, 102, 241, 0.35));
+      }
+
+      .nav {
+        display: flex;
+        gap: 4px;
+        margin-left: 12px;
+      }
+
+      .nav a {
+        padding: 8px 12px;
+        border-radius: 10px;
+        color: var(--text-muted);
+        font-weight: 500;
+        font-size: 0.94rem;
+        text-decoration: none;
+        transition:
+          color 0.15s,
+          background 0.15s;
+      }
+
+      .nav a:hover {
+        color: var(--text);
+        background: var(--accent-soft);
+      }
+
+      .header__actions {
+        display: flex;
+        gap: 8px;
+        margin-left: auto;
+      }
+
+      .icon-btn,
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        height: 40px;
+        border: 1px solid var(--border-strong);
+        border-radius: 12px;
+        background: var(--surface);
+        color: var(--text);
+        font: 600 0.92rem var(--font);
+        text-decoration: none;
+        cursor: pointer;
+        transition:
+          transform 0.15s,
+          box-shadow 0.15s,
+          background 0.15s;
+      }
+
+      .icon-btn {
+        min-width: 40px;
+        padding: 0 10px;
+      }
+
+      .icon-btn:hover,
+      .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+      }
+
+      .icon-btn svg,
+      .btn svg {
+        width: 18px;
+        height: 18px;
+        flex: none;
+      }
+
+      [data-theme='light'] .icon-sun,
+      [data-theme='dark'] .icon-moon {
+        display: none;
+      }
+
+      .btn {
+        height: 48px;
+        padding: 0 22px;
+        font-size: 1rem;
+        border-radius: 14px;
+      }
+
+      .btn--primary {
+        border: 0;
+        color: #fff;
+        background: var(--accent-gradient);
+        box-shadow: 0 10px 30px rgba(99, 102, 241, 0.35);
+      }
+
+      .btn--primary:hover {
+        box-shadow: 0 14px 36px rgba(99, 102, 241, 0.45);
+      }
+
+      /* ---------- Hero ---------- */
+      .hero {
+        padding: 72px 0 40px;
+        text-align: center;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 14px 6px 6px;
+        border: 1px solid var(--border-strong);
+        border-radius: 999px;
+        background: var(--surface);
+        color: var(--text-muted);
+        font-size: 0.88rem;
+        font-weight: 500;
+        text-decoration: none;
+        box-shadow: var(--shadow-md);
+      }
+
+      .pill strong {
+        padding: 2px 10px;
+        border-radius: 999px;
+        background: var(--accent-gradient);
+        color: #fff;
+        font-size: 0.8rem;
+        font-weight: 700;
+      }
+
+      .hero h1 {
+        max-width: 860px;
+        margin: 26px auto 18px;
+        font-size: clamp(2.3rem, 6vw, 4.1rem);
+        line-height: 1.06;
+        letter-spacing: -0.035em;
+        font-weight: 800;
+      }
+
+      .gradient-text {
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        white-space: nowrap;
+      }
+
+      .hero__lead {
+        max-width: 640px;
+        margin: 0 auto 32px;
+        color: var(--text-muted);
+        font-size: clamp(1.05rem, 2.2vw, 1.22rem);
+      }
+
+      .hero__ctas {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 12px;
+      }
+
+      .hero__meta {
+        margin-top: 18px;
+        color: var(--text-subtle);
+        font-size: 0.9rem;
+      }
+
+      /* ---------- Device mockups ---------- */
+      .stage {
+        position: relative;
+        max-width: 1080px;
+        margin: 64px auto 0;
+        padding-bottom: 40px;
+      }
+
+      .stage::before {
+        content: '';
+        position: absolute;
+        inset: 8% 6% 0;
+        background: var(--accent-gradient);
+        filter: blur(90px);
+        opacity: 0.28;
+        border-radius: 50%;
+        z-index: -1;
+      }
+
+      .browser {
+        overflow: hidden;
+        border: 1px solid var(--border-strong);
+        border-radius: 16px;
+        background: var(--frame);
+        box-shadow: var(--shadow-lg);
+        text-align: left;
+      }
+
+      .browser__bar {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        height: 42px;
+        padding: 0 16px;
+        background: var(--frame-bar);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .browser__dots {
+        display: flex;
+        gap: 7px;
+      }
+
+      .browser__dots span {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        background: #ff5f57;
+      }
+
+      .browser__dots span:nth-child(2) {
+        background: #febc2e;
+      }
+
+      .browser__dots span:nth-child(3) {
+        background: #28c840;
+      }
+
+      .browser__url {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex: 0 1 380px;
+        height: 26px;
+        margin-inline: auto;
+        padding: 0 12px;
+        border-radius: 8px;
+        background: var(--surface-muted);
+        color: var(--text-subtle);
+        font-size: 0.78rem;
+        white-space: nowrap;
+        overflow: hidden;
+      }
+
+      .browser__url svg {
+        width: 12px;
+        height: 12px;
+        flex: none;
+      }
+
+      .browser__spacer {
+        width: 47px;
+      }
+
+      .phone {
+        position: absolute;
+        right: -2%;
+        bottom: 0;
+        width: 23%;
+        min-width: 150px;
+        padding: 9px;
+        border-radius: 38px;
+        background: #0b0b12;
+        box-shadow:
+          var(--shadow-lg),
+          inset 0 0 0 1.5px #2b2d3a;
+      }
+
+      .phone::before {
+        content: '';
+        position: absolute;
+        top: 17px;
+        left: 50%;
+        width: 30%;
+        height: 16px;
+        border-radius: 999px;
+        background: #0b0b12;
+        transform: translateX(-50%);
+        z-index: 1;
+      }
+
+      .phone img {
+        border-radius: 30px;
+        aspect-ratio: 390 / 844;
+        object-fit: cover;
+        object-position: top;
+      }
+
+      .float-card {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        border: 1px solid var(--border-strong);
+        border-radius: 16px;
+        background: var(--surface);
+        box-shadow: var(--shadow-lg);
+        text-align: left;
+        font-size: 0.86rem;
+        line-height: 1.35;
+        animation: float 6s ease-in-out infinite;
+      }
+
+      .float-card b {
+        display: block;
+        font-size: 0.92rem;
+      }
+
+      .float-card span {
+        color: var(--text-muted);
+      }
+
+      .float-card__icon {
+        display: grid;
+        place-items: center;
+        width: 36px;
+        height: 36px;
+        flex: none;
+        border-radius: 10px;
+        background: var(--success-soft);
+        color: var(--success);
+      }
+
+      .float-card__icon svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      .float-card--left {
+        left: -4%;
+        bottom: 18%;
+      }
+
+      @keyframes float {
+        50% {
+          transform: translateY(-8px);
+        }
+      }
+
+      /* ---------- Sections ---------- */
+      section {
+        padding: 96px 0;
+      }
+
+      .section-head {
+        max-width: 680px;
+        margin: 0 auto 52px;
+        text-align: center;
+      }
+
+      .eyebrow {
+        color: var(--accent);
+        font-weight: 700;
+        font-size: 0.82rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      h2 {
+        margin: 10px 0 14px;
+        font-size: clamp(1.8rem, 4vw, 2.6rem);
+        line-height: 1.12;
+        letter-spacing: -0.03em;
+        font-weight: 800;
+      }
+
+      h3 {
+        margin: 0 0 6px;
+        font-size: 1.08rem;
+        letter-spacing: -0.01em;
+      }
+
+      .muted {
+        color: var(--text-muted);
+      }
+
+      .features {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 16px;
+      }
+
+      .feature {
+        padding: 24px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        background: var(--surface);
+        box-shadow: var(--shadow-md);
+        transition: transform 0.2s;
+      }
+
+      .feature:hover {
+        transform: translateY(-3px);
+      }
+
+      .feature p {
+        margin: 0;
+        color: var(--text-muted);
+        font-size: 0.95rem;
+      }
+
+      .feature__icon {
+        display: grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        margin-bottom: 16px;
+        border-radius: 13px;
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+
+      .feature__icon svg {
+        width: 22px;
+        height: 22px;
+      }
+
+      .showcase {
+        display: grid;
+        grid-template-columns: 1fr 1.35fr;
+        align-items: center;
+        gap: 56px;
+      }
+
+      .showcase + .showcase {
+        margin-top: 110px;
+      }
+
+      .showcase--reverse {
+        grid-template-columns: 1.35fr 1fr;
+      }
+
+      .showcase--reverse .showcase__text {
+        order: 2;
+      }
+
+      .checklist {
+        margin: 22px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .checklist li {
+        position: relative;
+        margin: 10px 0;
+        padding-left: 30px;
+        color: var(--text-muted);
+      }
+
+      .checklist li::before {
+        content: '';
+        position: absolute;
+        top: 4px;
+        left: 0;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background:
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E")
+            center / 11px no-repeat,
+          var(--accent-gradient);
+      }
+
+      /* Light / dark comparison slider */
+      .compare {
+        position: relative;
+        overflow: hidden;
+        user-select: none;
+        touch-action: pan-y;
+      }
+
+      .compare img {
+        pointer-events: none;
+      }
+
+      .compare__top {
+        position: absolute;
+        inset: 0;
+        clip-path: inset(0 calc(100% - var(--pos, 50%)) 0 0);
+      }
+
+      .compare__top img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .compare__handle {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: var(--pos, 50%);
+        width: 2px;
+        background: #fff;
+        box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.2);
+        transform: translateX(-1px);
+      }
+
+      .compare__handle::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        background:
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235b55ea' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18-6-6 6-6M15 6l6 6-6 6'/%3E%3C/svg%3E")
+            center / 22px no-repeat,
+          #fff;
+        box-shadow: 0 6px 20px rgba(15, 23, 42, 0.3);
+      }
+
+      .compare input {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        opacity: 0;
+        cursor: ew-resize;
+      }
+
+      .compare__labels {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 12px;
+        color: var(--text-subtle);
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+
+      /* Internal sites mockup */
+      .lan {
+        padding: 10px;
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-lg);
+        background: var(--surface);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .lan__row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px;
+        border-radius: 14px;
+      }
+
+      .lan__row + .lan__row {
+        border-top: 1px solid var(--border);
+      }
+
+      .lan__logo {
+        display: grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        flex: none;
+        border-radius: 12px;
+        color: #fff;
+        font-weight: 800;
+      }
+
+      .lan__name {
+        flex: 1;
+        min-width: 0;
+        line-height: 1.35;
+      }
+
+      .lan__name b {
+        display: block;
+      }
+
+      .lan__name code {
+        color: var(--text-muted);
+        font: 0.84rem var(--mono);
+        overflow-wrap: anywhere;
+      }
+
+      .tag {
+        flex: none;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: var(--success-soft);
+        color: var(--success);
+        font-size: 0.78rem;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .tag--accent {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+
+      /* ---------- Install ---------- */
+      .steps {
+        display: grid;
+        gap: 22px;
+        max-width: 860px;
+        margin: 0 auto;
+        counter-reset: step;
+      }
+
+      .step {
+        display: grid;
+        grid-template-columns: 44px 1fr;
+        gap: 18px;
+      }
+
+      .step::before {
+        counter-increment: step;
+        content: counter(step);
+        display: grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        background: var(--accent-gradient);
+        color: #fff;
+        font-weight: 800;
+        box-shadow: 0 8px 22px rgba(99, 102, 241, 0.35);
+      }
+
+      .step h3 {
+        margin-top: 9px;
+      }
+
+      .step p {
+        margin: 0 0 12px;
+        color: var(--text-muted);
+      }
+
+      .step > div {
+        min-width: 0;
+      }
+
+      .code {
+        position: relative;
+        margin: 0 0 10px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: var(--radius);
+        background: var(--code-bg);
+        box-shadow: var(--shadow-md);
+      }
+
+      .code__head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 8px 8px 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+        color: var(--code-muted);
+        font: 0.8rem var(--mono);
+      }
+
+      .code pre {
+        margin: 0;
+        padding: 16px;
+        overflow-x: auto;
+        color: var(--code-text);
+        font: 0.86rem/1.65 var(--mono);
+      }
+
+      .code .c {
+        color: var(--code-muted);
+      }
+
+      .code .k {
+        color: #a5b4fc;
+      }
+
+      .code .s {
+        color: #86efac;
+      }
+
+      .copy {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 28px;
+        padding: 0 10px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--code-text);
+        font: 600 0.78rem var(--font);
+        cursor: pointer;
+      }
+
+      .copy:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .copy svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      .callout {
+        max-width: 860px;
+        margin: 34px auto 0;
+        padding: 18px 22px;
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius);
+        background: var(--surface);
+        color: var(--text-muted);
+        text-align: center;
+      }
+
+      .callout code,
+      .inline-code {
+        padding: 2px 6px;
+        border-radius: 6px;
+        background: var(--surface-muted);
+        color: var(--text);
+        font: 0.88em var(--mono);
+      }
+
+      /* ---------- CTA + footer ---------- */
+      .cta {
+        position: relative;
+        overflow: hidden;
+        padding: 64px 32px;
+        border-radius: 28px;
+        background: var(--accent-gradient);
+        color: #fff;
+        text-align: center;
+        box-shadow: 0 30px 80px rgba(99, 102, 241, 0.35);
+      }
+
+      .cta h2 {
+        margin-top: 0;
+      }
+
+      .cta p {
+        max-width: 560px;
+        margin: 0 auto 28px;
+        opacity: 0.9;
+      }
+
+      .cta .btn {
+        border: 0;
+        background: #fff;
+        color: #4338ca;
+      }
+
+      footer {
+        padding: 48px 0 56px;
+        color: var(--text-subtle);
+        font-size: 0.9rem;
+      }
+
+      .footer__inner {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      footer nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+      }
+
+      footer a {
+        text-decoration: none;
+      }
+
+      footer a:hover {
+        color: var(--text);
+      }
+
+      /* ---------- Responsive ---------- */
+      @media (max-width: 900px) {
+        .nav {
+          display: none;
+        }
+
+        .showcase,
+        .showcase--reverse {
+          grid-template-columns: 1fr;
+          gap: 32px;
+        }
+
+        .showcase--reverse .showcase__text {
+          order: 0;
+        }
+
+        .float-card--left {
+          display: none;
+        }
+
+        section {
+          padding: 72px 0;
+        }
+      }
+
+      @media (max-width: 600px) {
+        .hero {
+          padding-top: 44px;
+        }
+
+        .stage {
+          padding-bottom: 90px;
+        }
+
+        .phone {
+          right: 4%;
+          width: 34%;
+          min-width: 0;
+          padding: 6px;
+          border-radius: 26px;
+        }
+
+        .phone img {
+          border-radius: 21px;
+        }
+
+        .phone::before {
+          top: 12px;
+          height: 10px;
+        }
+
+        .browser__bar {
+          height: 34px;
+        }
+
+        .browser__url {
+          display: none;
+        }
+
+        .github-label {
+          display: none;
+        }
+
+        .step {
+          grid-template-columns: 1fr;
+          gap: 10px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="header">
+      <div class="container header__inner">
+        <a class="brand" href="#top">
+          <img src="img/logo.svg" alt="" width="34" height="34" />
+          ShortcutWall
+        </a>
+        <nav class="nav" aria-label="Sections">
+          <a href="#features" data-i18n="nav.features">Features</a>
+          <a href="#tour" data-i18n="nav.tour">Tour</a>
+          <a href="#install" data-i18n="nav.install">Install</a>
+        </nav>
+        <div class="header__actions">
+          <button class="icon-btn" type="button" data-lang-toggle aria-label="Français">FR</button>
+          <button class="icon-btn" type="button" data-theme-toggle aria-label="Toggle theme">
+            <svg
+              class="icon-moon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+            </svg>
+            <svg
+              class="icon-sun"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="4" />
+              <path
+                d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"
+              />
+            </svg>
+          </button>
+          <a class="icon-btn" href="https://github.com/MrDDream/ShortcutWall">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path
+                d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.56-.29-5.25-1.28-5.25-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.7 5.38-5.26 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"
+              />
+            </svg>
+            <span class="github-label">GitHub</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main id="top">
+      <!-- Hero -->
+      <div class="hero container">
+        <a class="pill" href="https://github.com/MrDDream/ShortcutWall/releases/latest">
+          <strong>v1.2.0</strong>
+          <span data-i18n="hero.pill">Now with sites on your local network</span>
+        </a>
+        <h1 data-i18n-html="hero.title">Every website you need, <span class="gradient-text">on one wall.</span></h1>
+        <p class="hero__lead" data-i18n="hero.lead">
+          ShortcutWall is a self-hosted page of website shortcuts with their logos, and a simple admin area to manage
+          them. One Docker image, ready in a minute.
+        </p>
+        <div class="hero__ctas">
+          <a class="btn btn--primary" href="#install">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M12 3v12M7 10l5 5 5-5M5 21h14" />
+            </svg>
+            <span data-i18n="hero.install">Install with Docker</span>
+          </a>
+          <a class="btn" href="https://github.com/MrDDream/ShortcutWall">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path
+                d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.56-.29-5.25-1.28-5.25-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.7 5.38-5.26 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"
+              />
+            </svg>
+            <span data-i18n="hero.github">View on GitHub</span>
+          </a>
+        </div>
+        <p class="hero__meta" data-i18n="hero.meta">
+          Free and open source (MIT) · amd64 &amp; arm64 · French &amp; English
+        </p>
+
+        <div class="stage">
+          <div class="browser">
+            <div class="browser__bar">
+              <div class="browser__dots"><span></span><span></span><span></span></div>
+              <div class="browser__url">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.4"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect x="4" y="11" width="16" height="10" rx="2" />
+                  <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+                </svg>
+                wall.home.lan
+              </div>
+              <div class="browser__spacer"></div>
+            </div>
+            <img
+              class="only-light"
+              src="img/wall-light.webp"
+              width="1680"
+              height="875"
+              alt="The ShortcutWall wall: cards with the logo, name and description of each website"
+            />
+            <img
+              class="only-dark"
+              src="img/wall-dark.webp"
+              width="1680"
+              height="875"
+              alt="The ShortcutWall wall in dark theme"
+            />
+          </div>
+          <div class="phone">
+            <img
+              class="only-light"
+              src="img/mobile-light.webp"
+              width="640"
+              height="1385"
+              alt="ShortcutWall on a phone"
+            />
+            <img
+              class="only-dark"
+              src="img/mobile-dark.webp"
+              width="640"
+              height="1385"
+              alt="ShortcutWall on a phone, dark theme"
+            />
+          </div>
+          <div class="float-card float-card--left" aria-hidden="true">
+            <div class="float-card__icon">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+            </div>
+            <div>
+              <b data-i18n="float.title">Favicon fetched</b>
+              <span data-i18n="float.text">Resized to 256 px · 9 KB</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Features -->
+      <section id="features">
+        <div class="container">
+          <div class="section-head">
+            <div class="eyebrow" data-i18n="features.eyebrow">Features</div>
+            <h2 data-i18n="features.title">Everything a start page needs, nothing it doesn't</h2>
+            <p class="muted" data-i18n="features.lead">
+              No database, no account to create for visitors: a JSON file, your logos, and a fast page.
+            </p>
+          </div>
+          <div class="features">
+            <article class="feature">
+              <div class="feature__icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="3" y="3" width="7" height="7" rx="2" />
+                  <rect x="14" y="3" width="7" height="7" rx="2" />
+                  <rect x="3" y="14" width="7" height="7" rx="2" />
+                  <rect x="14" y="14" width="7" height="7" rx="2" />
+                </svg>
+              </div>
+              <h3 data-i18n="f1.title">Shortcut wall</h3>
+              <p data-i18n="f1.text">Large cards with logo, name and description. One click opens the site.</p>
+            </article>
+            <article class="feature">
+              <div class="feature__icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m20 20-3.5-3.5" />
+                </svg>
+              </div>
+              <h3 data-i18n="f2.title">Instant search &amp; sort</h3>
+              <p data-i18n-html="f2.text">
+                Press <span class="inline-code">/</span> to search names, descriptions and domains; sort A–Z or by most
+                recent.
+              </p>
+            </article>
+            <article class="feature">
+              <div class="feature__icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="3" />
+                  <circle cx="9" cy="9" r="2" />
+                  <path d="m21 15-5-5L5 21" />
+                </svg>
+              </div>
+              <h3 data-i18n="f3.title">Automatic logos</h3>
+              <p data-i18n="f3.text">
+                Finds the best icon a site offers, stores it in the app and shrinks it to 256 px. No broken images.
+              </p>
+            </article>
+            <article class="feature">
+              <div class="feature__icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z" />
+                </svg>
+              </div>
+              <h3 data-i18n="f4.title">Internal sites too</h3>
+              <p data-i18n="f4.text">
+                Your router, NAS or Proxmox on the local network or a VPN, self-signed certificates included.
+              </p>
+            </article>
+            <article class="feature">
+              <div class="feature__icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                </svg>
+              </div>
+              <h3 data-i18n="f5.title">Admin in dialogs</h3>
+              <p data-i18n="f5.text">
+                Add, edit and delete without leaving the list. A deletion can be undone for 15 s.
+              </p>
+            </article>
+            <article class="feature">
+              <div class="feature__icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                </svg>
+              </div>
+              <h3 data-i18n="f6.title">Export / import</h3>
+              <p data-i18n="f6.text">One JSON file with every shortcut and its logos, to back up or move an install.</p>
+            </article>
+            <article class="feature">
+              <div class="feature__icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 3a9 9 0 0 0 0 18Z" fill="currentColor" />
+                </svg>
+              </div>
+              <h3 data-i18n="f7.title">Light, dark, mobile</h3>
+              <p data-i18n="f7.text">Follows the system theme, in French or English, on any screen size.</p>
+            </article>
+            <article class="feature">
+              <div class="feature__icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6Z" />
+                  <path d="m9 12 2 2 4-4" />
+                </svg>
+              </div>
+              <h3 data-i18n="f8.title">Secure by default</h3>
+              <p data-i18n="f8.text">
+                CSRF tokens, strict CSP, login rate limiting, SSRF guard, non-root image. No default password.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tour -->
+      <section id="tour">
+        <div class="container">
+          <div class="showcase">
+            <div class="showcase__text">
+              <div class="eyebrow" data-i18n="t1.eyebrow">Administration</div>
+              <h2 data-i18n="t1.title">Add a site in a few seconds</h2>
+              <p class="muted" data-i18n="t1.lead">
+                Type the address, click “Fetch favicon”, done. Everything happens in a dialog, without losing your
+                place.
+              </p>
+              <ul class="checklist">
+                <li data-i18n="t1.l1">The best icon of the site, checked and resized</li>
+                <li data-i18n="t1.l2">Or upload your own image, PNG, JPEG or WebP</li>
+                <li data-i18n="t1.l3">Errors show in the dialog, your input is kept</li>
+              </ul>
+            </div>
+            <div class="browser">
+              <div class="browser__bar">
+                <div class="browser__dots"><span></span><span></span><span></span></div>
+                <div class="browser__url">wall.home.lan/admin</div>
+                <div class="browser__spacer"></div>
+              </div>
+              <img
+                class="only-light"
+                src="img/edit-light.webp"
+                width="1680"
+                height="875"
+                loading="lazy"
+                alt="The dialog to edit a website, with its logo preview"
+              />
+              <img
+                class="only-dark"
+                src="img/edit-dark.webp"
+                width="1680"
+                height="875"
+                loading="lazy"
+                alt="The dialog to edit a website, dark theme"
+              />
+            </div>
+          </div>
+
+          <div class="showcase showcase--reverse">
+            <div class="showcase__text">
+              <div class="eyebrow" data-i18n="t2.eyebrow">Local network</div>
+              <h2 data-i18n="t2.title">Your home lab has its place</h2>
+              <p class="muted" data-i18n-html="t2.lead">
+                Private addresses (<span class="inline-code">192.168.x.x</span>,
+                <span class="inline-code">10.x.x.x</span>, Tailscale…) are allowed. Internal sites with a self-signed
+                certificate are accepted, public sites are always verified.
+              </p>
+              <ul class="checklist">
+                <li data-i18n="t2.l1">The app's own host and cloud metadata stay blocked</li>
+                <li data-i18n-html="t2.l2">
+                  <span class="inline-code">ALLOW_PRIVATE_NETWORKS=false</span> to lock it down
+                </li>
+              </ul>
+            </div>
+            <div class="lan" role="img" aria-label="Examples of internal sites recognised by ShortcutWall">
+              <div class="lan__row">
+                <div class="lan__logo" style="background: linear-gradient(135deg, #e5484d, #b91c1c)">F</div>
+                <div class="lan__name">
+                  <b data-i18n="lan.router">Router</b>
+                  <code>http://192.168.1.254</code>
+                </div>
+                <span class="tag" data-i18n="lan.ok">Reachable</span>
+              </div>
+              <div class="lan__row">
+                <div class="lan__logo" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8)">N</div>
+                <div class="lan__name">
+                  <b>NAS</b>
+                  <code>https://nas.lan:5001</code>
+                </div>
+                <span class="tag tag--accent" data-i18n="lan.selfsigned">Self-signed ✓</span>
+              </div>
+              <div class="lan__row">
+                <div class="lan__logo" style="background: linear-gradient(135deg, #f97316, #c2410c)">P</div>
+                <div class="lan__name">
+                  <b>Proxmox</b>
+                  <code>https://10.0.0.5:8006</code>
+                </div>
+                <span class="tag tag--accent" data-i18n="lan.selfsigned">Self-signed ✓</span>
+              </div>
+              <div class="lan__row">
+                <div class="lan__logo" style="background: linear-gradient(135deg, #22c55e, #15803d)">H</div>
+                <div class="lan__name">
+                  <b>Home Assistant</b>
+                  <code>http://100.88.12.4:8123</code>
+                </div>
+                <span class="tag" data-i18n="lan.vpn">Via VPN</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="showcase">
+            <div class="showcase__text">
+              <div class="eyebrow" data-i18n="t3.eyebrow">Themes</div>
+              <h2 data-i18n="t3.title">Light or dark, your call</h2>
+              <p class="muted" data-i18n="t3.lead">
+                The theme follows the system and can be switched in one click. Drag the slider to compare.
+              </p>
+              <ul class="checklist">
+                <li data-i18n="t3.l1">No flash of the wrong theme on load</li>
+                <li data-i18n="t3.l2">Logos keep a light tile in dark mode, so they stay readable</li>
+              </ul>
+            </div>
+            <div>
+              <div class="browser">
+                <div class="browser__bar">
+                  <div class="browser__dots"><span></span><span></span><span></span></div>
+                  <div class="browser__url">wall.home.lan</div>
+                  <div class="browser__spacer"></div>
+                </div>
+                <div class="compare" data-compare>
+                  <img src="img/wall-dark.webp" width="1680" height="875" loading="lazy" alt="Wall in dark theme" />
+                  <div class="compare__top">
+                    <img src="img/wall-light.webp" width="1680" height="875" loading="lazy" alt="Wall in light theme" />
+                  </div>
+                  <div class="compare__handle" aria-hidden="true"></div>
+                  <input type="range" min="0" max="100" value="50" aria-label="Compare light and dark themes" />
+                </div>
+              </div>
+              <div class="compare__labels">
+                <span data-i18n="t3.light">Light</span><span data-i18n="t3.dark">Dark</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="showcase showcase--reverse">
+            <div class="showcase__text">
+              <div class="eyebrow" data-i18n="t4.eyebrow">Overview</div>
+              <h2 data-i18n="t4.title">All your shortcuts at a glance</h2>
+              <p class="muted" data-i18n="t4.lead">
+                A compact list to search, edit, export or import. Replacing everything with a backup can be undone for
+                15 seconds.
+              </p>
+            </div>
+            <div class="browser">
+              <div class="browser__bar">
+                <div class="browser__dots"><span></span><span></span><span></span></div>
+                <div class="browser__url">wall.home.lan/admin</div>
+                <div class="browser__spacer"></div>
+              </div>
+              <img
+                class="only-light"
+                src="img/admin-light.webp"
+                width="1680"
+                height="875"
+                loading="lazy"
+                alt="The administration page listing every website"
+              />
+              <img
+                class="only-dark"
+                src="img/admin-dark.webp"
+                width="1680"
+                height="875"
+                loading="lazy"
+                alt="The administration page, dark theme"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Install -->
+      <section id="install">
+        <div class="container">
+          <div class="section-head">
+            <div class="eyebrow" data-i18n="install.eyebrow">Installation</div>
+            <h2 data-i18n="install.title">Up and running in three steps</h2>
+            <p class="muted" data-i18n-html="install.lead">
+              A prebuilt image for <span class="inline-code">linux/amd64</span> and
+              <span class="inline-code">linux/arm64</span> (Raspberry Pi). All you need is Docker with Compose.
+            </p>
+          </div>
+
+          <div class="steps">
+            <div class="step">
+              <div>
+                <h3 data-i18n="s1.title">Create a folder with this docker-compose.yml</h3>
+                <div class="code">
+                  <div class="code__head">
+                    <span>docker-compose.yml</span>
+                    <button class="copy" type="button" data-copy><span data-i18n="copy">Copy</span></button>
+                  </div>
+                  <pre><code><span class="k">services:</span>
+  <span class="k">shortcutwall:</span>
+    <span class="k">image:</span> <span class="s">ghcr.io/mrddream/shortcutwall:latest</span>
+    <span class="k">container_name:</span> ShortcutWall
+    <span class="k">ports:</span>
+      - <span class="s">"${PORT:-3050}:${PORT:-3050}"</span>
+    <span class="c"># ADMIN_USER, ADMIN_PASS, SESSION_SECRET… come from .env (see .env.example):</span>
+    <span class="c"># the app refuses to start in production without real values.</span>
+    <span class="k">env_file:</span>
+      - <span class="k">path:</span> .env
+        <span class="k">required:</span> false
+    <span class="k">environment:</span>
+      <span class="k">NODE_ENV:</span> production
+      <span class="k">PORT:</span> ${PORT:-3050}
+      <span class="k">HOST:</span> ${HOST:-0.0.0.0}
+    <span class="k">volumes:</span>
+      - ./data:/app/data
+      - ./public/uploads:/app/public/uploads
+    <span class="k">restart:</span> unless-stopped</code></pre>
+                </div>
+              </div>
+            </div>
+
+            <div class="step">
+              <div>
+                <h3 data-i18n="s2.title">Create the data folders and the .env file</h3>
+                <p data-i18n="s2.text">
+                  The container runs as uid 1000: create the folders yourself, then pick your admin password.
+                </p>
+                <div class="code">
+                  <div class="code__head">
+                    <span>bash</span>
+                    <button class="copy" type="button" data-copy><span data-i18n="copy">Copy</span></button>
+                  </div>
+                  <pre><code>mkdir -p data public/uploads
+printf <span class="s">'ADMIN_USER=admin\nADMIN_PASS=%s\nSESSION_SECRET=%s\n'</span> <span class="s">'choose-a-strong-password'</span> <span class="s">"$(openssl rand -hex 32)"</span> &gt; .env</code></pre>
+                </div>
+              </div>
+            </div>
+
+            <div class="step">
+              <div>
+                <h3 data-i18n="s3.title">Start</h3>
+                <div class="code">
+                  <div class="code__head">
+                    <span>bash</span>
+                    <button class="copy" type="button" data-copy><span data-i18n="copy">Copy</span></button>
+                  </div>
+                  <pre><code>docker compose up -d</code></pre>
+                </div>
+                <p data-i18n-html="s3.text">
+                  The wall is at <span class="inline-code">http://localhost:3050</span>, the admin area at
+                  <span class="inline-code">/admin</span>. To update:
+                  <span class="inline-code">docker compose pull &amp;&amp; docker compose up -d</span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <p class="callout" data-i18n-html="install.more">
+            Configuration, security and troubleshooting are in the
+            <a href="https://github.com/MrDDream/ShortcutWall#readme">README</a>.
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <div class="container">
+          <div class="cta">
+            <h2 data-i18n="cta.title">Give your bookmarks a home</h2>
+            <p data-i18n="cta.text">Free, open source and self-hosted. Your shortcuts stay on your server.</p>
+            <a class="btn" href="https://github.com/MrDDream/ShortcutWall">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8-6.2-3.2L5.8 21 7 14.2 2 9.3l6.9-1Z" />
+              </svg>
+              <span data-i18n="cta.button">Star it on GitHub</span>
+            </a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="container footer__inner">
+        <span>MIT © <a href="https://github.com/MrDDream">MrDDream</a></span>
+        <nav aria-label="Links">
+          <a href="https://github.com/MrDDream/ShortcutWall">GitHub</a>
+          <a href="https://github.com/MrDDream/ShortcutWall/releases" data-i18n="footer.releases">Releases</a>
+          <a href="https://github.com/MrDDream/ShortcutWall/pkgs/container/shortcutwall" data-i18n="footer.image"
+            >Docker image</a
+          >
+          <a href="https://github.com/MrDDream/ShortcutWall/issues" data-i18n="footer.issues">Report an issue</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        const root = document.documentElement;
+
+        function store(key, value) {
+          try {
+            localStorage.setItem(key, value);
+          } catch (e) {}
+        }
+
+        function read(key) {
+          try {
+            return localStorage.getItem(key);
+          } catch (e) {
+            return null;
+          }
+        }
+
+        // Theme toggle
+        document.querySelector('[data-theme-toggle]').addEventListener('click', function () {
+          const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+          root.dataset.theme = next;
+          store('sw-theme', next);
+        });
+
+        // Light / dark comparison slider
+        document.querySelectorAll('[data-compare]').forEach(function (compare) {
+          const input = compare.querySelector('input');
+          const update = function () {
+            compare.style.setProperty('--pos', input.value + '%');
+          };
+          input.addEventListener('input', update);
+          update();
+        });
+
+        // Copy buttons
+        document.querySelectorAll('[data-copy]').forEach(function (button) {
+          button.addEventListener('click', function () {
+            const text = button.closest('.code').querySelector('pre').innerText;
+            const label = button.querySelector('span');
+            navigator.clipboard.writeText(text).then(function () {
+              label.textContent = t('copied');
+              setTimeout(function () {
+                label.textContent = t('copy');
+              }, 1600);
+            });
+          });
+        });
+
+        // English is written in the page; French replaces it.
+        const fr = {
+          'nav.features': 'Fonctionnalités',
+          'nav.tour': 'Visite',
+          'nav.install': 'Installation',
+          'hero.pill': 'Maintenant avec les sites de votre réseau local',
+          'hero.title': 'Tous vos sites utiles, <span class="gradient-text">sur un seul mur.</span>',
+          'hero.lead':
+            'ShortcutWall est une page auto-hébergée de raccourcis web avec leur logo, et une administration simple pour les gérer. Une image Docker, prête en une minute.',
+          'hero.install': 'Installer avec Docker',
+          'hero.github': 'Voir sur GitHub',
+          'hero.meta': 'Libre et open source (MIT) · amd64 et arm64 · français et anglais',
+          'float.title': 'Favicon récupéré',
+          'float.text': 'Réduit à 256 px · 9 Ko',
+          'features.eyebrow': 'Fonctionnalités',
+          'features.title': 'Tout ce qu’il faut à une page d’accueil, rien de plus',
+          'features.lead':
+            'Pas de base de données, pas de compte pour les visiteurs : un fichier JSON, vos logos et une page rapide.',
+          'f1.title': 'Mur de raccourcis',
+          'f1.text': 'De grandes cartes avec logo, nom et description. Un clic ouvre le site.',
+          'f2.title': 'Recherche et tri instantanés',
+          'f2.text':
+            'Touche <span class="inline-code">/</span> pour chercher dans les noms, descriptions et domaines ; tri A–Z ou du plus récent.',
+          'f3.title': 'Logos automatiques',
+          'f3.text':
+            'Trouve la meilleure icône du site, la stocke dans l’app et la réduit à 256 px. Plus d’image cassée.',
+          'f4.title': 'Sites internes aussi',
+          'f4.text': 'Votre box, NAS ou Proxmox du réseau local ou d’un VPN, certificats auto-signés compris.',
+          'f5.title': 'Administration en pop-ups',
+          'f5.text': 'Ajout, modification et suppression sans quitter la liste. Une suppression s’annule pendant 15 s.',
+          'f6.title': 'Export / import',
+          'f6.text': 'Un fichier JSON avec tous les raccourcis et leurs logos, pour sauvegarder ou déménager.',
+          'f7.title': 'Clair, sombre, mobile',
+          'f7.text': 'Suit le thème du système, en français ou en anglais, sur tous les écrans.',
+          'f8.title': 'Sécurisé par défaut',
+          'f8.text':
+            'Jetons CSRF, CSP stricte, limite de connexion, garde-fou SSRF, image non root. Pas de mot de passe par défaut.',
+          't1.eyebrow': 'Administration',
+          't1.title': 'Ajoutez un site en quelques secondes',
+          't1.lead':
+            'Saisissez l’adresse, cliquez sur « Récupérer le favicon », c’est fait. Tout se passe dans une pop-up, sans perdre le fil.',
+          't1.l1': 'La meilleure icône du site, vérifiée et redimensionnée',
+          't1.l2': 'Ou téléversez votre propre image, PNG, JPEG ou WebP',
+          't1.l3': 'Les erreurs s’affichent dans la pop-up, votre saisie est conservée',
+          't2.eyebrow': 'Réseau local',
+          't2.title': 'Votre home lab a sa place',
+          't2.lead':
+            'Les adresses privées (<span class="inline-code">192.168.x.x</span>, <span class="inline-code">10.x.x.x</span>, Tailscale…) sont autorisées. Les sites internes en certificat auto-signé sont acceptés, ceux d’Internet toujours vérifiés.',
+          't2.l1': 'La machine de l’app et les métadonnées cloud restent bloquées',
+          't2.l2': '<span class="inline-code">ALLOW_PRIVATE_NETWORKS=false</span> pour tout verrouiller',
+          'lan.router': 'Box Internet',
+          'lan.ok': 'Joignable',
+          'lan.selfsigned': 'Auto-signé ✓',
+          'lan.vpn': 'Via VPN',
+          't3.eyebrow': 'Thèmes',
+          't3.title': 'Clair ou sombre, à vous de choisir',
+          't3.lead': 'Le thème suit celui du système et se change en un clic. Faites glisser le curseur pour comparer.',
+          't3.l1': 'Aucun flash du mauvais thème au chargement',
+          't3.l2': 'En sombre, les logos gardent un fond clair pour rester lisibles',
+          't3.light': 'Clair',
+          't3.dark': 'Sombre',
+          't4.eyebrow': 'Vue d’ensemble',
+          't4.title': 'Tous vos raccourcis d’un coup d’œil',
+          't4.lead':
+            'Une liste compacte pour chercher, modifier, exporter ou importer. Remplacer tout par une sauvegarde s’annule pendant 15 secondes.',
+          'install.eyebrow': 'Installation',
+          'install.title': 'En route en trois étapes',
+          'install.lead':
+            'Une image prête à l’emploi pour <span class="inline-code">linux/amd64</span> et <span class="inline-code">linux/arm64</span> (Raspberry Pi). Il suffit de Docker avec Compose.',
+          's1.title': 'Créez un dossier avec ce docker-compose.yml',
+          's2.title': 'Créez les dossiers de données et le fichier .env',
+          's2.text':
+            'Le conteneur tourne en uid 1000 : créez les dossiers vous-même, puis choisissez votre mot de passe d’administration.',
+          's3.title': 'Lancez',
+          's3.text':
+            'Le mur est sur <span class="inline-code">http://localhost:3050</span>, l’administration sur <span class="inline-code">/admin</span>. Pour mettre à jour : <span class="inline-code">docker compose pull &amp;&amp; docker compose up -d</span>',
+          'install.more':
+            'Configuration, sécurité et dépannage sont dans le <a href="https://github.com/MrDDream/ShortcutWall/blob/main/README.fr.md">README</a>.',
+          'cta.title': 'Offrez un foyer à vos favoris',
+          'cta.text': 'Libre, open source et auto-hébergé. Vos raccourcis restent sur votre serveur.',
+          'cta.button': 'Une étoile sur GitHub',
+          'footer.releases': 'Versions',
+          'footer.image': 'Image Docker',
+          'footer.issues': 'Signaler un problème',
+          copy: 'Copier',
+          copied: 'Copié !',
+        };
+        const en = { copy: 'Copy', copied: 'Copied!' };
+
+        // Remember the English text written in the page, to switch back.
+        document.querySelectorAll('[data-i18n]').forEach(function (el) {
+          en[el.dataset.i18n] = el.textContent.trim().replace(/\s+/g, ' ');
+        });
+        document.querySelectorAll('[data-i18n-html]').forEach(function (el) {
+          en[el.dataset.i18nHtml] = el.innerHTML.trim().replace(/\s+/g, ' ');
+        });
+
+        let lang = 'en';
+
+        function t(key) {
+          return (lang === 'fr' ? fr : en)[key] || en[key] || key;
+        }
+
+        function applyLanguage(next) {
+          lang = next;
+          root.lang = next;
+          document.querySelectorAll('[data-i18n]').forEach(function (el) {
+            el.textContent = t(el.dataset.i18n);
+          });
+          document.querySelectorAll('[data-i18n-html]').forEach(function (el) {
+            el.innerHTML = t(el.dataset.i18nHtml);
+          });
+          const toggle = document.querySelector('[data-lang-toggle]');
+          toggle.textContent = next === 'fr' ? 'EN' : 'FR';
+          toggle.setAttribute('aria-label', next === 'fr' ? 'English' : 'Français');
+        }
+
+        document.querySelector('[data-lang-toggle]').addEventListener('click', function () {
+          const next = lang === 'fr' ? 'en' : 'fr';
+          store('sw-lang', next);
+          applyLanguage(next);
+        });
+
+        const saved = read('sw-lang');
+        const preferred = saved || ((navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en');
+        if (preferred === 'fr') {
+          applyLanguage('fr');
+        }
+      })();
+    </script>
+  </body>
+</html>

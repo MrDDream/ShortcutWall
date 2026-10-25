@@ -12,7 +12,7 @@ One page with every useful site and its logo, plus a simple admin area to manage
 [![Docker image](https://img.shields.io/badge/image-ghcr.io%2Fmrddream%2Fshortcutwall-2496ED?logo=docker&logoColor=white)](https://github.com/MrDDream/ShortcutWall/pkgs/container/shortcutwall)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-English · [Français](README.fr.md)
+[Website](https://mrddream.github.io/ShortcutWall/) · English · [Français](README.fr.md)
 
 <img src="screenshots/homepage.png" alt="The shortcut wall" width="900" />
 

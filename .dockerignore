@@ -21,3 +21,4 @@ vitest.config.js
 .prettierrc.json
 .prettierignore
 .nvmrc
+docs
