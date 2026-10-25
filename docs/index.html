@@ -14,12 +14,6 @@
     <meta property="og:image" content="https://mrddream.github.io/ShortcutWall/img/og.png" />
     <link rel="icon" href="img/logo.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
     <script>
       // Theme before first paint: saved choice, else the system's.
       (function () {
@@ -36,7 +30,7 @@
     <style>
       :root {
         color-scheme: light;
-        --font: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        --font: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
         --mono: ui-monospace, 'SFMono-Regular', 'Cascadia Code', 'JetBrains Mono', Menlo, Consolas, monospace;
 
         --bg: #f5f6fa;
@@ -1671,14 +1665,31 @@ printf <span class="s">'ADMIN_USER=admin\nADMIN_PASS=%s\nSESSION_SECRET=%s\n'</s
         // Copy buttons
         document.querySelectorAll('[data-copy]').forEach(function (button) {
           button.addEventListener('click', function () {
-            const text = button.closest('.code').querySelector('pre').innerText;
+            const pre = button.closest('.code').querySelector('pre');
             const label = button.querySelector('span');
-            navigator.clipboard.writeText(text).then(function () {
-              label.textContent = t('copied');
+            const flash = function (key) {
+              label.textContent = t(key);
               setTimeout(function () {
                 label.textContent = t('copy');
-              }, 1600);
-            });
+              }, 2400);
+            };
+            // No clipboard access (plain HTTP, permission refused): select the
+            // text so Ctrl+C / Cmd+C copies it.
+            const selectText = function () {
+              const range = document.createRange();
+              range.selectNodeContents(pre);
+              const selection = window.getSelection();
+              selection.removeAllRanges();
+              selection.addRange(range);
+              flash('copyManually');
+            };
+            if (!navigator.clipboard) {
+              selectText();
+              return;
+            }
+            navigator.clipboard.writeText(pre.innerText).then(function () {
+              flash('copied');
+            }, selectText);
           });
         });
 
@@ -1768,8 +1779,9 @@ printf <span class="s">'ADMIN_USER=admin\nADMIN_PASS=%s\nSESSION_SECRET=%s\n'</s
           'footer.issues': 'Signaler un problème',
           copy: 'Copier',
           copied: 'Copié !',
+          copyManually: 'Sélectionné : Ctrl+C',
         };
-        const en = { copy: 'Copy', copied: 'Copied!' };
+        const en = { copy: 'Copy', copied: 'Copied!', copyManually: 'Selected: Ctrl+C' };
 
         // Remember the English text written in the page, to switch back.
         document.querySelectorAll('[data-i18n]').forEach(function (el) {
