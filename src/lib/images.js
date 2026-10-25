@@ -28,10 +28,43 @@ async function shrinkLogo(buffer) {
   }
 }
 
+// True when the bytes are an SVG document (optionally after an XML
+// declaration, comments or a doctype).
+const SVG_START = /^\s*(<\?xml[^>]*>\s*)?(<!--[\s\S]*?-->\s*|<!DOCTYPE[^>]*>\s*)*<svg[\s>]/i;
+
+function isSvg(buffer) {
+  return SVG_START.test(
+    buffer
+      .subarray(0, 4096)
+      .toString('utf-8')
+      .replace(/^\uFEFF/, ''),
+  );
+}
+
+// Renders an SVG logo to a MAX_LOGO_SIZE WebP, or returns null if it can't be
+// read. The SVG itself is never stored or served: rendering keeps only pixels,
+// so a <script> can't survive, and the renderer loads no external resource
+// (file or URL). Rendered at the density that makes its longest side
+// MAX_LOGO_SIZE, so a 16px icon comes out sharp, not upscaled.
+async function rasterizeSvg(buffer) {
+  try {
+    const { width, height } = await sharp(buffer).metadata();
+    const longest = Math.max(width || 0, height || 0) || MAX_LOGO_SIZE;
+    const density = Math.min(Math.max((72 * MAX_LOGO_SIZE) / longest, 1), 2400);
+    return await sharp(buffer, { density })
+      .resize(MAX_LOGO_SIZE, MAX_LOGO_SIZE, { fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 90 })
+      .toBuffer();
+  } catch (error) {
+    logger.warn({ err: error }, 'Unable to render SVG logo');
+    return null;
+  }
+}
+
 // Identifies the format from the file's first bytes instead of trusting the
-// remote Content-Type. Raster formats only: SVG (or anything else) is refused
+// remote Content-Type. Raster formats only: an SVG is never stored as such
 // because it can embed scripts and /uploads is served from the app's own origin
-// (stored XSS if opened directly).
+// (stored XSS if opened directly); see rasterizeSvg.
 function detectImageType(buffer) {
   const startsWith = (bytes, offset = 0) => bytes.every((byte, index) => buffer[offset + index] === byte);
 
@@ -53,4 +86,4 @@ function detectImageType(buffer) {
   return null;
 }
 
-module.exports = { shrinkLogo, detectImageType, MAX_LOGO_SIZE };
+module.exports = { shrinkLogo, detectImageType, isSvg, rasterizeSvg, MAX_LOGO_SIZE };

@@ -24,13 +24,13 @@ function isReachableStatus(status) {
 // first and falling back to GET if necessary (some servers reject HEAD outright).
 // Blocked hosts (directly or through a redirect) count as unreachable: see
 // httpClient.js.
-async function isUrlReachable(targetUrl) {
+async function isUrlReachable(targetUrl, { signal } = {}) {
   try {
-    const head = await httpClient.request(targetUrl, { method: 'HEAD' });
+    const head = await httpClient.request(targetUrl, { method: 'HEAD', signal });
     if (isReachableStatus(head.status)) {
       return true;
     }
-    const get = await httpClient.request(targetUrl, { method: 'GET' });
+    const get = await httpClient.request(targetUrl, { method: 'GET', signal });
     return isReachableStatus(get.status);
   } catch {
     return false;

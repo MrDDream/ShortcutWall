@@ -45,4 +45,4 @@ function pendingSites() {
   return pendingPayloads().flatMap((payload) => payload?.items ?? [payload?.item]);
 }
 
-module.exports = { stash, pop, pendingPayloads, pendingSites, TTL_MS };
+module.exports = { stash, pop, pendingSites, TTL_MS };

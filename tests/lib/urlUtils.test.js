@@ -1,8 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
-
-vi.mock('../../src/lib/ssrfGuard.js', () => ({
-  assertPublicHost: vi.fn().mockResolvedValue(undefined),
-}));
+import { describe, it, expect } from 'vitest';
 
 import { normalizeTargetUrl, normalizeImageUrl } from '../../src/lib/urlUtils.js';
 

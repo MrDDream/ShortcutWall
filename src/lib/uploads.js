@@ -16,21 +16,25 @@ fsSync.mkdirSync(UPLOAD_DIR, { recursive: true });
 const ALLOWED_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);
 const ALLOWED_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp']);
 
+// Largest logo accepted, uploaded or downloaded.
+const MAX_LOGO_BYTES = 5 * 1024 * 1024;
+
 class InvalidFileError extends Error {}
 
 // Generated names, never the uploader's: characters such as "#" or "%" in a
-// file name would otherwise break the logo's URL.
+// file name would otherwise break the logo's URL. `extension` includes the dot.
+function generateLogoFilename(extension) {
+  return `logo-${Date.now()}-${crypto.randomBytes(4).toString('hex')}${extension}`;
+}
+
 const uploadStorage = multer.diskStorage({
   destination: (_, __, cb) => cb(null, UPLOAD_DIR),
-  filename: (_, file, cb) => {
-    const ext = path.extname(file.originalname || '').toLowerCase();
-    cb(null, `logo-${Date.now()}-${crypto.randomBytes(4).toString('hex')}${ext}`);
-  },
+  filename: (_, file, cb) => cb(null, generateLogoFilename(path.extname(file.originalname || '').toLowerCase())),
 });
 
 const upload = multer({
   storage: uploadStorage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: MAX_LOGO_BYTES },
   fileFilter: (_, file, cb) => {
     const ext = path.extname(file.originalname || '').toLowerCase();
     if (!ALLOWED_MIME_TYPES.has(file.mimetype) || !ALLOWED_EXTENSIONS.has(ext)) {
@@ -129,6 +133,8 @@ async function deleteUploadedAsset(value) {
 
 module.exports = {
   upload,
+  MAX_LOGO_BYTES,
+  generateLogoFilename,
   buildUploadedPath,
   shrinkUploadedLogo,
   isUploadedAsset,

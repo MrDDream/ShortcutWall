@@ -2,6 +2,7 @@ const { SITES_FILE } = require('../config');
 const { readJson } = require('../lib/store');
 const logger = require('../lib/logger');
 
+// Loads the sites, sorted by name, for the pages that list them.
 async function loadShortcuts(req, res, next) {
   try {
     const sites = await readJson(SITES_FILE);
@@ -16,7 +17,6 @@ async function loadShortcuts(req, res, next) {
     logger.error({ err: error }, 'Unable to load data files');
     res.locals.sites = [];
   }
-  res.locals.isAuthenticated = req.session?.isAuthenticated;
   next();
 }
 

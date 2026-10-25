@@ -590,14 +590,25 @@ describe('ShortcutWall app', () => {
         expect(Date.now() - Date.parse(junk.createdAt)).toBeLessThan(60_000);
       });
 
-      it('drops an embedded logo that is not a raster image (e.g. SVG)', async () => {
-        const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
+      it('stores an embedded SVG logo as a rendered WebP, and drops one that is no image at all', async () => {
+        const svg = Buffer.from(
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><script>alert(1)</script><rect width="16" height="16"/></svg>',
+        );
+        const html = Buffer.from('<html><script>alert(1)</script></html>');
 
         await importBackup(
-          backupFile([{ name: 'Svg', targetUrl: 'https://svg.example/', image: { data: svg.toString('base64') } }]),
+          backupFile([
+            { name: 'Svg', targetUrl: 'https://svg.example/', image: { data: svg.toString('base64') } },
+            { name: 'Html', targetUrl: 'https://html.example/', image: { data: html.toString('base64') } },
+          ]),
         );
 
-        expect(readData('shortcuts.json')[0].imageUrl).toBe('');
+        const [rendered, dropped] = readData('shortcuts.json');
+        expect(rendered.imageUrl).toMatch(/^\/uploads\/logo-.+\.webp$/);
+        const stored = fs.readFileSync(path.join(uploadDir, path.basename(rendered.imageUrl)));
+        expect(stored.subarray(8, 12).toString()).toBe('WEBP');
+        expect(stored.includes(Buffer.from('script'))).toBe(false);
+        expect(dropped.imageUrl).toBe('');
       });
 
       it('rejects an invalid file or site without importing anything', async () => {

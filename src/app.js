@@ -8,7 +8,7 @@ const { SESSION_SECRET, VIEWS_DIR, PUBLIC_DIR, UPLOAD_DIR, TRUST_PROXY } = requi
 const logger = require('./lib/logger');
 const sessionStore = require('./lib/sessionStore');
 const localeMiddleware = require('./middleware/locale');
-const { loadShortcuts } = require('./middleware/shortcuts');
+const { exposeAuthState } = require('./middleware/auth');
 const { attachCsrfToken } = require('./middleware/csrf');
 const { InvalidFileError } = require('./lib/uploads');
 
@@ -106,7 +106,7 @@ function createApp() {
 
   app.use(attachCsrfToken);
   app.use(localeMiddleware);
-  app.use(loadShortcuts);
+  app.use(exposeAuthState);
 
   app.use('/', pagesRouter);
   app.use('/admin', adminAuthRouter);

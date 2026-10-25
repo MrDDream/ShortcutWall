@@ -118,6 +118,15 @@ describe('httpClient.request', () => {
     expect(Date.now() - started).toBeLessThan(2000);
   });
 
+  it("stops when the caller's signal aborts, before its own timeout", async () => {
+    const patient = createHttpClient({ isBlocked: () => false, timeoutMs: 10_000 });
+    const started = Date.now();
+    await expect(
+      patient.request(`${base}/slow-body`, { maxBytes: 1000, signal: AbortSignal.timeout(200) }),
+    ).rejects.toThrow();
+    expect(Date.now() - started).toBeLessThan(2000);
+  });
+
   it('the default client refuses loopback outright', async () => {
     await expect(httpClientModule.request(`${base}/ok`)).rejects.toBeInstanceOf(BlockedHostError);
   });

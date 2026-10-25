@@ -1,6 +1,7 @@
 const express = require('express');
 
 const { ensureAuthenticated } = require('../middleware/auth');
+const { loadShortcuts } = require('../middleware/shortcuts');
 const { USES_DEFAULT_CREDENTIALS } = require('../config');
 const { FIELD_LIMITS } = require('../lib/siteFields');
 const { TTL_MS: UNDO_WINDOW_MS } = require('../lib/trash');
@@ -18,7 +19,7 @@ const STATUS_KEYS = {
   imported: 'admin.statusImported',
 };
 
-router.get('/', ensureAuthenticated, (req, res) => {
+router.get('/', ensureAuthenticated, loadShortcuts, (req, res) => {
   const statusKey = STATUS_KEYS[req.query.status] || null;
   const undoToken =
     UNDOABLE_STATUSES.has(req.query.status) && typeof req.query.undoToken === 'string' ? req.query.undoToken : null;

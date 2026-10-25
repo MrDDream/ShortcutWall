@@ -1,13 +1,14 @@
 const express = require('express');
 
 const { normalizeLocale } = require('../lib/i18n');
+const { loadShortcuts } = require('../middleware/shortcuts');
 const { LANGUAGE_COOKIE } = require('../config');
 
 const LANGUAGE_COOKIE_MAX_AGE = 365 * 24 * 60 * 60 * 1000;
 
 const router = express.Router();
 
-router.get('/', (req, res) => {
+router.get('/', loadShortcuts, (req, res) => {
   res.render('index', {
     sites: res.locals.sites,
     pageTitle: res.locals.t('app.homeTitle'),

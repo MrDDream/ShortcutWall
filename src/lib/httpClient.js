@@ -110,10 +110,12 @@ function createHttpClient({
   // Returns { status, ok, headers, url, body }: `url` is the final URL after
   // redirects; `body` is a Buffer when `maxBytes` is given, otherwise null and
   // the body is discarded. Throws on blocked hosts, network errors, timeouts
-  // and oversized bodies.
-  async function request(target, { method = 'GET', maxBytes = null } = {}) {
+  // and oversized bodies. `signal` lets the caller cancel earlier (a deadline
+  // shared by several requests).
+  async function request(target, { method = 'GET', maxBytes = null, signal = null } = {}) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    const abortSignal = signal ? AbortSignal.any([controller.signal, signal]) : controller.signal;
 
     try {
       let url = new URL(target);
@@ -126,7 +128,7 @@ function createHttpClient({
           throw new BlockedHostError(`Blocked non-public address: ${literal.address}`);
         }
 
-        const response = await sendAllowingPrivateCertificates(url, method, controller.signal);
+        const response = await sendAllowingPrivateCertificates(url, method, abortSignal);
 
         const location = response.headers.get('location');
         if (REDIRECT_STATUSES.has(response.status) && location) {

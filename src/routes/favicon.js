@@ -9,6 +9,11 @@ const logger = require('../lib/logger');
 
 const router = express.Router();
 
+// The whole lookup (reachability, page, up to a dozen icon checks, download)
+// is cut off after this, so a slow site can't keep the dialog waiting for a
+// minute or more.
+const FAVICON_LOOKUP_TIMEOUT_MS = 25000;
+
 // Finds a site's favicon and stores a local copy. A POST protected by the
 // CSRF token, since it writes a file: a cross-site link must not trigger it.
 router.post('/', ensureAuthenticated, verifyCsrfToken, async (req, res) => {
@@ -16,8 +21,13 @@ router.post('/', ensureAuthenticated, verifyCsrfToken, async (req, res) => {
 
   try {
     const targetUrl = normalizeTargetUrl(rawUrl);
+    const deadline = AbortSignal.timeout(FAVICON_LOOKUP_TIMEOUT_MS);
+    const timedOut = () => res.status(504).json({ success: false, message: res.locals.t('errors.faviconFetchFailed') });
 
-    const reachable = await isUrlReachable(targetUrl);
+    const reachable = await isUrlReachable(targetUrl, { signal: deadline });
+    if (deadline.aborted) {
+      return timedOut();
+    }
 
     if (!reachable) {
       return res.status(400).json({
@@ -26,7 +36,10 @@ router.post('/', ensureAuthenticated, verifyCsrfToken, async (req, res) => {
       });
     }
 
-    const faviconUrl = await findFavicon(targetUrl);
+    const faviconUrl = await findFavicon(targetUrl, { signal: deadline });
+    if (deadline.aborted) {
+      return timedOut();
+    }
 
     if (!faviconUrl) {
       return res.status(404).json({
@@ -37,7 +50,7 @@ router.post('/', ensureAuthenticated, verifyCsrfToken, async (req, res) => {
 
     // Served from the app when possible (see importRemoteImage), so the
     // preview and the wall work even if the site forbids embedding its images.
-    const localUrl = await importRemoteImage(faviconUrl);
+    const localUrl = await importRemoteImage(faviconUrl, { signal: deadline });
 
     return res.json({
       success: true,

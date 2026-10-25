@@ -7,7 +7,7 @@ const app = createApp();
 
 const server = app.listen(PORT, HOST, () => {
   const hostText = HOST === '0.0.0.0' ? '127.0.0.1' : HOST;
-  logger.info(`Serveur pret sur http://${hostText}:${PORT}`);
+  logger.info(`Server ready on http://${hostText}:${PORT}`);
   if (!IS_PRODUCTION) {
     logger.info(`NODE_ENV=${process.env.NODE_ENV || 'development'}`);
   }

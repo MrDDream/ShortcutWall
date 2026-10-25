@@ -32,9 +32,9 @@ function looksLikeImage(response, resourceUrl) {
 
 // True when the URL answers with an actual image. Tries HEAD first and only
 // falls back to GET (discarding the body) when HEAD is refused or inconclusive.
-async function imageExists(resourceUrl) {
+async function imageExists(resourceUrl, signal) {
   try {
-    const head = await httpClient.request(resourceUrl, { method: 'HEAD' });
+    const head = await httpClient.request(resourceUrl, { method: 'HEAD', signal });
     if (head.ok && looksLikeImage(head, resourceUrl)) {
       return true;
     }
@@ -42,7 +42,7 @@ async function imageExists(resourceUrl) {
       return false;
     }
 
-    const get = await httpClient.request(resourceUrl, { method: 'GET' });
+    const get = await httpClient.request(resourceUrl, { method: 'GET', signal });
     return get.ok && looksLikeImage(get, resourceUrl);
   } catch {
     return false;
@@ -125,9 +125,9 @@ function dedupeByUrl(candidates) {
 // Fetches the page and returns its declared icons, resolved against the final
 // URL after redirects (a relative href means nothing against the typed URL
 // once the site has redirected elsewhere).
-async function findDeclaredFavicons(targetUrl) {
+async function findDeclaredFavicons(targetUrl, signal) {
   try {
-    const response = await httpClient.request(targetUrl, { maxBytes: MAX_HTML_BYTES });
+    const response = await httpClient.request(targetUrl, { maxBytes: MAX_HTML_BYTES, signal });
     if (!response.ok) {
       return [];
     }
@@ -163,9 +163,9 @@ function buildGoogleFaviconUrl(targetUrl) {
 // Returns the best verified icon URL for a site, or null when none is found:
 // declared and conventional icons ranked together by size (largest first,
 // declared ones winning ties), each checked to really be an image, then Google
-// (public sites only).
-async function findFavicon(targetUrl) {
-  const declared = await findDeclaredFavicons(targetUrl);
+// (public sites only). `signal` cancels the whole lookup.
+async function findFavicon(targetUrl, { signal } = {}) {
+  const declared = await findDeclaredFavicons(targetUrl, signal);
   const conventional = CONVENTIONAL_ICONS.map(({ path, score }) => ({
     url: new URL(path, targetUrl).toString(),
     score,
@@ -175,7 +175,7 @@ async function findFavicon(targetUrl) {
   // Checked in parallel (one slow candidate no longer delays the others), the
   // best-ranked one that really is an image wins.
   const candidates = ranked.slice(0, MAX_CANDIDATES_CHECKED);
-  const valid = await Promise.all(candidates.map(({ url }) => imageExists(url)));
+  const valid = await Promise.all(candidates.map(({ url }) => imageExists(url, signal)));
   const best = candidates.find((_, index) => valid[index]);
   if (best) {
     return best.url;
@@ -185,7 +185,7 @@ async function findFavicon(targetUrl) {
   }
 
   const google = buildGoogleFaviconUrl(targetUrl);
-  return (await imageExists(google)) ? google : null;
+  return (await imageExists(google, signal)) ? google : null;
 }
 
 module.exports = { findFavicon, extractFaviconCandidates, isLocalHost };
