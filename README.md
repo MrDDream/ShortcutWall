@@ -137,9 +137,10 @@ All settings go in the `.env` file next to `docker-compose.yml`, then `docker co
 - Admin password, session secret: required in production; sessions are only created on login.
 - CSRF tokens on every form, strict Content-Security-Policy, cookies `HttpOnly` / `SameSite`.
 - Login limited to 10 failed attempts per IP every 15 minutes.
-- Outgoing requests (favicons, logos) can never reach the app's own host or cloud metadata endpoints, even
-  through a redirect (SSRF guard). Local networks are allowed so internal sites can be added; set
-  `ALLOW_PRIVATE_NETWORKS=false` to block them too. Certificates are always verified for public sites.
+- Outgoing requests (favicons, logos) can never reach loopback addresses (`127.0.0.1`, `::1`) or cloud
+  metadata endpoints, even through a redirect (SSRF guard). Local networks are allowed so internal sites can
+  be added, which includes the Docker host's own network address; set `ALLOW_PRIVATE_NETWORKS=false` to
+  block them too. Certificates are always verified for public sites.
 - Uploaded files are checked to really be images, and stored under generated names.
 - The image runs as a non-root user, with the application code read-only.
 

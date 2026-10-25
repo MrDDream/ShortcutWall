@@ -140,10 +140,11 @@ Tous les réglages se font dans le fichier `.env` à côté de `docker-compose.y
   qu'à la connexion.
 - Jetons CSRF sur tous les formulaires, Content-Security-Policy stricte, cookies `HttpOnly` / `SameSite`.
 - Connexion limitée à 10 échecs par IP toutes les 15 minutes.
-- Les requêtes sortantes (favicons, logos) ne peuvent jamais atteindre la machine de l'application ni les
-  services de métadonnées cloud, même via une redirection (garde-fou SSRF). Les réseaux locaux sont autorisés
-  pour pouvoir ajouter des sites internes ; `ALLOW_PRIVATE_NETWORKS=false` les bloque aussi. Les certificats
-  des sites publics sont toujours vérifiés.
+- Les requêtes sortantes (favicons, logos) ne peuvent jamais atteindre les adresses de bouclage
+  (`127.0.0.1`, `::1`) ni les services de métadonnées cloud, même via une redirection (garde-fou SSRF). Les
+  réseaux locaux sont autorisés pour pouvoir ajouter des sites internes, y compris l'adresse réseau de la
+  machine Docker ; `ALLOW_PRIVATE_NETWORKS=false` les bloque aussi. Les certificats des sites publics sont
+  toujours vérifiés.
 - Les fichiers téléversés sont vérifiés comme étant de vraies images et stockés sous des noms générés.
 - L'image tourne avec un utilisateur non root, le code de l'application en lecture seule.
 

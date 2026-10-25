@@ -18,7 +18,11 @@ router.get('/', (req, res) => {
 // Referer header for the redirect target would otherwise allow an open redirect.
 // The host alone is compared, not the scheme: behind an HTTPS reverse proxy
 // without TRUST_PROXY the app sees plain http while the browser's Referer says
-// https, which used to send every language switch back to the home page.
+// https, which used to send every language switch back to the home page. A path
+// starting with "//" (or "/\", which browsers read the same way) would be
+// followed as a protocol-relative URL to another host: a page such as
+// "//evil.example" renders this app's 404, whose language switch then pointed
+// there.
 function resolveSameOriginRedirect(req) {
   const referer = req.get('Referer');
   if (!referer) {
@@ -27,7 +31,7 @@ function resolveSameOriginRedirect(req) {
 
   try {
     const refererUrl = new URL(referer);
-    if (refererUrl.host !== req.get('host')) {
+    if (refererUrl.host !== req.get('host') || /^\/[/\\]/.test(refererUrl.pathname)) {
       return '/';
     }
     return `${refererUrl.pathname}${refererUrl.search}`;

@@ -1,4 +1,7 @@
+const net = require('net');
+
 const httpClient = require('./httpClient');
+const { isBlockedAddress } = require('./ssrfGuard');
 
 // Only the best few icons are probed, to bound the request count.
 const MAX_CANDIDATES_CHECKED = 5;
@@ -134,6 +137,22 @@ async function findDeclaredFavicons(targetUrl) {
   }
 }
 
+// Names that only exist on a local network: single-label hosts ("nas") and
+// the usual private suffixes.
+const LOCAL_SUFFIXES = /\.(lan|local|localdomain|home|home\.arpa|internal|intranet|corp)$/i;
+
+// True for an internal site: a private or otherwise non-public IP literal, or a
+// local name. Google can't know its icon, and asking would only disclose the
+// internal address to Google.
+function isLocalHost(targetUrl) {
+  const hostname = new URL(targetUrl).hostname.replace(/^\[|\]$/g, '');
+  const family = net.isIP(hostname);
+  if (family) {
+    return isBlockedAddress(hostname, family, { allowPrivate: false });
+  }
+  return !hostname.includes('.') || LOCAL_SUFFIXES.test(hostname);
+}
+
 // Last resort: Google's favicon service, which answers 404 (with a generic
 // globe image) when it knows no icon for the domain.
 function buildGoogleFaviconUrl(targetUrl) {
@@ -143,7 +162,8 @@ function buildGoogleFaviconUrl(targetUrl) {
 
 // Returns the best verified icon URL for a site, or null when none is found:
 // declared and conventional icons ranked together by size (largest first,
-// declared ones winning ties), each checked to really be an image, then Google.
+// declared ones winning ties), each checked to really be an image, then Google
+// (public sites only).
 async function findFavicon(targetUrl) {
   const declared = await findDeclaredFavicons(targetUrl);
   const conventional = CONVENTIONAL_ICONS.map(({ path, score }) => ({
@@ -160,9 +180,12 @@ async function findFavicon(targetUrl) {
   if (best) {
     return best.url;
   }
+  if (isLocalHost(targetUrl)) {
+    return null;
+  }
 
   const google = buildGoogleFaviconUrl(targetUrl);
   return (await imageExists(google)) ? google : null;
 }
 
-module.exports = { findFavicon, extractFaviconCandidates };
+module.exports = { findFavicon, extractFaviconCandidates, isLocalHost };

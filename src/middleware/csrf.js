@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const fs = require('fs').promises;
 
 const { SESSION_SECRET } = require('../config');
 const { readCookie } = require('../lib/cookies');
@@ -29,8 +30,13 @@ function attachCsrfToken(req, res, next) {
   next();
 }
 
-function verifyCsrfToken(req, res, next) {
+// Multipart forms are parsed (and their file written to disk by multer) before
+// the token can be read, so a rejected request's upload is removed here.
+async function verifyCsrfToken(req, res, next) {
   if (!constantTimeEqual(req.body?._csrf, req.session?.csrfToken)) {
+    if (req.file?.path) {
+      await fs.unlink(req.file.path).catch(() => {});
+    }
     return res.status(403).send(res.locals.t('errors.invalidCsrfToken'));
   }
   next();

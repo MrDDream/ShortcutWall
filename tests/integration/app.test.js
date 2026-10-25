@@ -99,6 +99,15 @@ describe('ShortcutWall app', () => {
     expect(foreign.headers.location).toBe('/');
   });
 
+  it('never redirects a language switch to another host through a "//" path', async () => {
+    // The 404 page of "//evil.example/x" carries the language links, so its
+    // URL can be the Referer of a language switch.
+    for (const referer of ['http://wall.example//evil.example/x', 'http://wall.example/\\evil.example']) {
+      const res = await request(app).get('/language/en').set('Host', 'wall.example').set('Referer', referer);
+      expect(res.headers.location, referer).toBe('/');
+    }
+  });
+
   it('brings the visitor back to the page they switched language from', async () => {
     const res = await request(app)
       .get('/language/fr')
@@ -337,6 +346,23 @@ describe('ShortcutWall app', () => {
       expect(site.imageUrl).toMatch(/^\/uploads\/logo-\d+-[0-9a-f]{8}\.png$/);
       expect((await request(app).get(site.imageUrl)).status).toBe(200);
       writeData('shortcuts.json', []);
+    });
+
+    it('keeps no uploaded file when the CSRF token is rejected', async () => {
+      const before = fs.readdirSync(process.env.UPLOAD_DIR).length;
+      const png = await sharp({ create: { width: 16, height: 16, channels: 3, background: '#123456' } })
+        .png()
+        .toBuffer();
+
+      const res = await agent
+        .post('/admin/site')
+        .field('_csrf', 'not-the-token')
+        .field('name', 'Forged')
+        .field('targetUrl', 'https://example.com')
+        .attach('imageFile', png, { filename: 'logo.png', contentType: 'image/png' });
+
+      expect(res.status).toBe(403);
+      expect(fs.readdirSync(process.env.UPLOAD_DIR)).toHaveLength(before);
     });
 
     it('rejects a non-image upload disguised as a PNG and keeps no file', async () => {

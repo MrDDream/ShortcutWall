@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { extractFaviconCandidates } from '../../src/lib/favicon.js';
+import { extractFaviconCandidates, isLocalHost } from '../../src/lib/favicon.js';
 
 const BASE = 'https://example.com/fr/';
 const urls = (html, base = BASE) => extractFaviconCandidates(html, base).map(({ url }) => url);
@@ -43,5 +43,28 @@ describe('favicon.extractFaviconCandidates', () => {
       <link rel="icon" href="/dup.png">`;
 
     expect(urls(html)).toEqual(['https://example.com/dup.png']);
+  });
+});
+
+describe('favicon.isLocalHost', () => {
+  it('recognises private addresses and local names, which are never sent to Google', () => {
+    for (const url of [
+      'http://192.168.1.254/',
+      'https://10.0.0.5:8006/',
+      'http://[fd12::1]/',
+      'http://127.0.0.1:8080/',
+      'http://nas:5000/',
+      'https://nas.lan/',
+      'http://printer.local/',
+      'http://router.home.arpa/',
+    ]) {
+      expect(isLocalHost(url), url).toBe(true);
+    }
+  });
+
+  it('treats public names and addresses as public', () => {
+    for (const url of ['https://github.com/', 'http://93.184.216.34/', 'https://www.lemonde.fr/']) {
+      expect(isLocalHost(url), url).toBe(false);
+    }
   });
 });
