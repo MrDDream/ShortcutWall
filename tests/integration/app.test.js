@@ -417,6 +417,16 @@ describe('ShortcutWall app', () => {
       expect(renamed.status).toBe(302);
       expect(readData('shortcuts.json')[0]).toMatchObject({ name: 'Renamed', description: 'Offline for now' });
 
+      // An older entry saved without the trailing "/" counts as unchanged too.
+      writeData('shortcuts.json', [seededSite({ id: 'down', targetUrl: 'http://127.0.0.1:1' })]);
+      const legacy = await agent
+        .post('/admin/site/down')
+        .type('form')
+        .send({ name: 'Legacy', targetUrl: 'http://127.0.0.1:1', _csrf: csrf });
+      expect(legacy.status).toBe(302);
+      expect(readData('shortcuts.json')[0].name).toBe('Legacy');
+      writeData('shortcuts.json', [seededSite({ id: 'down', targetUrl: 'http://127.0.0.1:1/' })]);
+
       const moved = await agent
         .post('/admin/site/down')
         .type('form')

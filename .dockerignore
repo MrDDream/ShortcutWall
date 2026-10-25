@@ -20,5 +20,6 @@ eslint.config.js
 vitest.config.js
 .prettierrc.json
 .prettierignore
+.gitignore
 .nvmrc
 docs

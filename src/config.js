@@ -1,4 +1,5 @@
-require('dotenv').config();
+// quiet: dotenv would otherwise print a banner line among the JSON logs.
+require('dotenv').config({ quiet: true });
 
 const path = require('path');
 

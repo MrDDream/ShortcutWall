@@ -34,6 +34,17 @@ function parseUrl(normalize, value) {
   }
 }
 
+// The stored address in its normalised form, to tell whether the admin changed
+// it (an older entry may lack the trailing "/" normalisation adds), or null if
+// it isn't a valid URL any more.
+function sameUrlOrNull(storedUrl) {
+  try {
+    return normalizeTargetUrl(storedUrl);
+  } catch {
+    return null;
+  }
+}
+
 // Keeps a local copy of a remote logo when possible (see importRemoteImage),
 // recording the new file so a failed request can remove it again.
 async function localizeLogo(imageUrl, createdFiles) {
@@ -137,7 +148,7 @@ router.post('/:id', ensureAuthenticated, upload.single('imageFile'), verifyCsrfT
       imageUrl = parseUrl(normalizeImageUrl, fields.imageUrl);
     }
 
-    if (targetUrl !== currentSite.targetUrl && !(await isUrlReachable(targetUrl))) {
+    if (targetUrl !== sameUrlOrNull(currentSite.targetUrl) && !(await isUrlReachable(targetUrl))) {
       throw invalid('errors.siteUnreachable');
     }
     imageUrl = await localizeLogo(imageUrl, createdFiles);
