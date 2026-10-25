@@ -400,6 +400,69 @@ describe('ShortcutWall app', () => {
       expect(sites[0].name).toBe('Example');
     });
 
+    it('keeps the admin signed in while active (the session window restarts on each request)', async () => {
+      const res = await agent.get('/admin');
+      const cookies = res.headers['set-cookie'] || [];
+      expect(cookies.some((cookie) => cookie.startsWith('connect.sid='))).toBe(true);
+    });
+
+    it('edits a site that is down without re-checking it, as long as its address is unchanged', async () => {
+      writeData('shortcuts.json', [seededSite({ id: 'down', targetUrl: 'http://127.0.0.1:1/' })]);
+      const csrf = extractCsrfToken((await agent.get('/admin')).text);
+
+      const renamed = await agent
+        .post('/admin/site/down')
+        .type('form')
+        .send({ name: 'Renamed', description: 'Offline for now', targetUrl: 'http://127.0.0.1:1/', _csrf: csrf });
+      expect(renamed.status).toBe(302);
+      expect(readData('shortcuts.json')[0]).toMatchObject({ name: 'Renamed', description: 'Offline for now' });
+
+      const moved = await agent
+        .post('/admin/site/down')
+        .type('form')
+        .send({ targetUrl: 'http://127.0.0.1:2/', _csrf: csrf });
+      expect(moved.status).toBe(400);
+      expect(readData('shortcuts.json')[0].targetUrl).toBe('http://127.0.0.1:1/');
+      writeData('shortcuts.json', []);
+    });
+
+    it('keeps a logo shared by two sites until neither uses it', async () => {
+      const logo = path.join(process.env.UPLOAD_DIR, 'shared.png');
+      fs.writeFileSync(logo, Buffer.from('x'));
+      writeData('shortcuts.json', [
+        seededSite({ id: 'a', imageUrl: '/uploads/shared.png' }),
+        seededSite({ id: 'b', targetUrl: 'https://b.example/', imageUrl: '/uploads/shared.png' }),
+      ]);
+      const csrf = extractCsrfToken((await agent.get('/admin')).text);
+      const clearLogo = (id) => agent.post(`/admin/site/${id}`).type('form').send({ imageUrl: '', _csrf: csrf });
+
+      expect((await clearLogo('a')).status).toBe(302);
+      expect(fs.existsSync(logo)).toBe(true);
+      expect((await clearLogo('b')).status).toBe(302);
+      expect(fs.existsSync(logo)).toBe(false);
+      writeData('shortcuts.json', []);
+    });
+
+    it('says when an uploaded logo is too large', async () => {
+      const csrf = extractCsrfToken((await agent.get('/admin')).text);
+      const res = await agent
+        .post('/admin/site')
+        .field('_csrf', csrf)
+        .field('name', 'Huge')
+        .field('targetUrl', 'https://example.com')
+        .attach('imageFile', Buffer.alloc(6 * 1024 * 1024), { filename: 'huge.png', contentType: 'image/png' });
+
+      expect(res.status).toBe(400);
+      expect(res.text).toContain('5 MB');
+    });
+
+    it('still shows the wall and the admin page for a site saved without a name', async () => {
+      writeData('shortcuts.json', [seededSite({ id: 'nameless', name: undefined })]);
+      expect((await agent.get('/')).status).toBe(200);
+      expect((await agent.get('/admin')).status).toBe(200);
+      writeData('shortcuts.json', []);
+    });
+
     describe('backup export / import', () => {
       const uploadDir = process.env.UPLOAD_DIR;
       let logoBytes;
@@ -503,6 +566,16 @@ describe('ShortcutWall app', () => {
         expect(fs.existsSync(path.join(uploadDir, path.basename(fresh.imageUrl)))).toBe(false);
         expect(fs.existsSync(path.join(uploadDir, 'old-logo.png'))).toBe(true);
         fs.rmSync(path.join(uploadDir, 'old-logo.png'), { force: true });
+      });
+
+      it('refuses to replace the wall with an empty backup', async () => {
+        writeData('shortcuts.json', [seededSite()]);
+
+        const res = await importBackup(backupFile([]), 'replace');
+
+        expect(res.status).toBe(400);
+        expect(res.text).toMatch(/no website/);
+        expect(readData('shortcuts.json')).toHaveLength(1);
       });
 
       it('keeps valid creation dates and replaces malformed ones by the import date', async () => {

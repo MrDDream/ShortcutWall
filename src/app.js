@@ -90,6 +90,9 @@ function createApp() {
       secret: SESSION_SECRET,
       resave: false,
       saveUninitialized: false,
+      // The 2 hours count from the last request, not from the login: an admin
+      // at work is never signed out mid-edit.
+      rolling: true,
       cookie: {
         maxAge: 2 * 60 * 60 * 1000, // 2 hours
         httpOnly: true,
@@ -128,6 +131,9 @@ function createApp() {
 
     if (err instanceof InvalidFileError) {
       return res.status(400).send(res.locals.t('errors.unsupportedFileType'));
+    }
+    if (err?.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).send(res.locals.t('errors.fileTooLarge'));
     }
 
     const isClientError = err?.name === 'MulterError';

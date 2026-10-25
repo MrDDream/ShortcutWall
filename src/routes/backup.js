@@ -9,6 +9,7 @@ const { readJson, updateJson } = require('../lib/store');
 const { isUploadedAsset, readUploadedAsset, deleteUploadedAsset } = require('../lib/uploads');
 const { saveImageBuffer } = require('../lib/remoteImage');
 const { stash } = require('../lib/trash');
+const { deleteAssetIfUnused } = require('../lib/uploadsCleanup');
 const { normalizeTargetUrl, normalizeImageUrl } = require('../lib/urlUtils');
 const { FIELD_LIMITS, readTextField } = require('../lib/siteFields');
 const logger = require('../lib/logger');
@@ -156,6 +157,10 @@ router.post('/import', ensureAuthenticated, receiveBackupFile, verifyCsrfToken, 
 
   try {
     const entries = parseBackup(req.file);
+    // Replacing the wall with nothing is almost certainly the wrong file.
+    if (replace && !entries.length) {
+      throw new ImportError('errors.importEmpty');
+    }
     const now = new Date().toISOString();
 
     const seen = new Set();
@@ -195,10 +200,14 @@ router.post('/import', ensureAuthenticated, receiveBackupFile, verifyCsrfToken, 
 
     const undoToken =
       replace && previousSites.length
-        ? stash({ type: 'sites', items: previousSites }, (payload) => {
-            Promise.all(payload.items.map((site) => deleteUploadedAsset(site.imageUrl))).catch((error) => {
+        ? stash({ type: 'sites', items: previousSites }, async (payload) => {
+            try {
+              for (const site of payload.items) {
+                await deleteAssetIfUnused(site.imageUrl);
+              }
+            } catch (error) {
               logger.error({ err: error }, 'Unable to clean up logos after the undo window expired');
-            });
+            }
           })
         : null;
     const undoParam = undoToken ? `&undoToken=${encodeURIComponent(undoToken)}` : '';

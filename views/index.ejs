@@ -114,7 +114,7 @@
           <% if (hasLogo) { %>
             <img class="shortcut-thumb__image" src="<%= shortcut.imageUrl %>" alt="" loading="lazy" />
           <% } %>
-          <span class="shortcut-thumb__fallback"><%= shortcut.name.charAt(0).toUpperCase() %></span>
+          <span class="shortcut-thumb__fallback"><%= (shortcut.name || '?').charAt(0).toUpperCase() %></span>
         </div>
         <h2 class="shortcut-title">
           <a

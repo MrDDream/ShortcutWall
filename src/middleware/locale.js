@@ -40,6 +40,7 @@ function localeMiddleware(req, res, next) {
     keepEditing: translate(sessionLocale, 'forms.keepEditing'),
     logoPreviewUnavailable: translate(sessionLocale, 'forms.logoPreviewUnavailable'),
     unexpectedError: translate(sessionLocale, 'errors.unexpected'),
+    sessionExpired: translate(sessionLocale, 'errors.sessionExpired'),
     searchNoResults: translate(sessionLocale, 'search.noResults'),
     saving: translate(sessionLocale, 'forms.saving'),
   };

@@ -4,6 +4,7 @@ const path = require('path');
 const { SITES_FILE, UPLOAD_DIR } = require('../config');
 const { readJson } = require('./store');
 const { pendingSites } = require('./trash');
+const { isUploadedAsset, deleteUploadedAsset } = require('./uploads');
 const logger = require('./logger');
 
 // Leaves recent files alone: a logo fetched in a still-open dialog, or one
@@ -59,6 +60,20 @@ async function removeOrphanUploads({ uploadDir = UPLOAD_DIR, sitesFile = SITES_F
   return removed;
 }
 
+// Deletes an uploaded logo once nothing uses it any more: no site (two sites
+// can share a logo, e.g. by pasting the same /uploads path) and no item waiting
+// in its undo window. Call it after the change that stopped using the logo has
+// been saved.
+async function deleteAssetIfUnused(imageUrl, { sitesFile = SITES_FILE } = {}) {
+  if (!isUploadedAsset(imageUrl)) {
+    return;
+  }
+  const sites = await readJson(sitesFile);
+  if (![...sites, ...pendingSites()].some((site) => site?.imageUrl === imageUrl)) {
+    await deleteUploadedAsset(imageUrl);
+  }
+}
+
 // Runs the cleanup now, then once a day, without keeping the process alive.
 function scheduleOrphanUploadsCleanup() {
   const run = () =>
@@ -67,4 +82,4 @@ function scheduleOrphanUploadsCleanup() {
   setInterval(run, INTERVAL_MS).unref();
 }
 
-module.exports = { removeOrphanUploads, scheduleOrphanUploadsCleanup, MIN_AGE_MS };
+module.exports = { removeOrphanUploads, deleteAssetIfUnused, scheduleOrphanUploadsCleanup, MIN_AGE_MS };

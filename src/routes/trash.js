@@ -4,7 +4,7 @@ const { SITES_FILE } = require('../config');
 const { ensureAuthenticated } = require('../middleware/auth');
 const { verifyCsrfToken } = require('../middleware/csrf');
 const { updateJson } = require('../lib/store');
-const { deleteUploadedAsset } = require('../lib/uploads');
+const { deleteAssetIfUnused } = require('../lib/uploadsCleanup');
 const { pop } = require('../lib/trash');
 
 const router = express.Router();
@@ -25,10 +25,10 @@ router.post('/:token/restore', ensureAuthenticated, verifyCsrfToken, async (req,
         replaced = sites;
         return payload.items;
       });
-      const restoredLogos = new Set(payload.items.map((site) => site.imageUrl));
-      await Promise.all(
-        replaced.filter((site) => !restoredLogos.has(site.imageUrl)).map((site) => deleteUploadedAsset(site.imageUrl)),
-      );
+      // Their logos go too, unless the restored list still uses them.
+      for (const site of replaced) {
+        await deleteAssetIfUnused(site.imageUrl);
+      }
     } else {
       // Expired, already used, or unknown: nothing to restore, just go back.
       return res.redirect('/admin');

@@ -74,7 +74,7 @@
               <% if (hasLogo) { %>
                 <img class="shortcut-thumb__image" src="<%= site.imageUrl %>" alt="" loading="lazy" />
               <% } %>
-              <span class="shortcut-thumb__fallback"><%= site.name.charAt(0).toUpperCase() %></span>
+              <span class="shortcut-thumb__fallback"><%= (site.name || '?').charAt(0).toUpperCase() %></span>
             </span>
             <span class="admin-item__text">
               <span class="admin-item__title"><%= site.name %></span>

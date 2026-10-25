@@ -16,6 +16,7 @@ const { importRemoteImage } = require('../lib/remoteImage');
 const { normalizeTargetUrl, normalizeImageUrl, isUrlReachable } = require('../lib/urlUtils');
 const { FieldError, readSiteFields } = require('../lib/siteFields');
 const { stash } = require('../lib/trash');
+const { deleteAssetIfUnused } = require('../lib/uploadsCleanup');
 const logger = require('../lib/logger');
 
 const router = express.Router();
@@ -120,7 +121,9 @@ router.post('/:id', ensureAuthenticated, upload.single('imageFile'), verifyCsrfT
 
     // Snapshot read for the fallbacks and the reachability check, run before
     // touching the file; the write below re-reads under the lock, so a
-    // concurrent delete is still detected.
+    // concurrent delete is still detected. Only a new address is checked: a
+    // site that is down, or that only the browsers can reach, can still be
+    // renamed or described.
     const currentSite = (await readJson(SITES_FILE)).find((site) => site.id === req.params.id);
     if (!currentSite) {
       throw new NotFoundError();
@@ -134,7 +137,7 @@ router.post('/:id', ensureAuthenticated, upload.single('imageFile'), verifyCsrfT
       imageUrl = parseUrl(normalizeImageUrl, fields.imageUrl);
     }
 
-    if (!(await isUrlReachable(targetUrl))) {
+    if (targetUrl !== currentSite.targetUrl && !(await isUrlReachable(targetUrl))) {
       throw invalid('errors.siteUnreachable');
     }
     imageUrl = await localizeLogo(imageUrl, createdFiles);
@@ -156,10 +159,10 @@ router.post('/:id', ensureAuthenticated, upload.single('imageFile'), verifyCsrfT
       return sites;
     });
 
-    // Saved: the new files are now in use, and a replaced local logo isn't.
+    // Saved: the new files are now in use, and a replaced local logo may not be.
     createdFiles.length = 0;
     if (imageUrl !== currentSite.imageUrl) {
-      await deleteUploadedAsset(currentSite.imageUrl);
+      await deleteAssetIfUnused(currentSite.imageUrl);
     }
 
     res.redirect('/admin?status=updated');
@@ -188,7 +191,7 @@ router.post('/:id/delete', ensureAuthenticated, verifyCsrfToken, async (req, res
   // The logo is only actually removed once the undo window expires unused,
   // so "Undo" can still bring the site back with it.
   const undoToken = stash({ type: 'site', item: deletedSite }, (payload) => {
-    deleteUploadedAsset(payload.item.imageUrl).catch((error) => {
+    deleteAssetIfUnused(payload.item.imageUrl).catch((error) => {
       logger.error({ err: error }, 'Unable to clean up asset after undo window expired');
     });
   });

@@ -1,7 +1,7 @@
 // Add/edit/import dialogs of the admin area.
 
 import { confirmDialog } from './dialogs.js';
-import { dirtyForms, restoreSubmitButton } from './forms.js';
+import { dirtyForms, isLoginRedirect, restoreSubmitButton } from './forms.js';
 import { clientTranslations } from './i18n.js';
 
 // Add/edit forms live in native <dialog> modals ([data-modal-open="id"]
@@ -115,6 +115,14 @@ export async function submitModalForm(event, modal, form) {
 
   try {
     const response = await fetch(form.action, { method: 'POST', body, credentials: 'same-origin' });
+
+    // An expired session answers with the login page: keep the dialog and
+    // its values instead of following it.
+    if (isLoginRedirect(response)) {
+      showModalError(modal, clientTranslations.sessionExpired || '');
+      restoreSubmitButton(submitter);
+      return;
+    }
 
     if (response.ok) {
       window.location.href = response.redirected ? response.url : window.location.href;

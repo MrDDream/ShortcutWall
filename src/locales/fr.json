@@ -123,7 +123,10 @@
     "importInvalidSite": "Site invalide dans la sauvegarde : « {name} » (nom ou URL manquant ou incorrect).",
     "importTooLarge": "Fichier trop volumineux (20 Mo maximum).",
     "invalidField": "Un des champs est invalide.",
-    "fieldTooLong": "Un des champs dépasse la longueur autorisée (nom : 100, description : 300, URL : 2048 caractères)."
+    "fieldTooLong": "Un des champs dépasse la longueur autorisée (nom : 100, description : 300, URL : 2048 caractères).",
+    "fileTooLarge": "Fichier trop volumineux (5 Mo maximum).",
+    "importEmpty": "Cette sauvegarde ne contient aucun site : rien n’a été remplacé.",
+    "sessionExpired": "Votre session a expiré. Reconnectez-vous pour continuer (copiez vos modifications avant si besoin)."
   },
   "language": {
     "name": {

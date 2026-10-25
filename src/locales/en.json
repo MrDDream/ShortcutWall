@@ -123,7 +123,10 @@
     "importInvalidSite": "Invalid site in the backup: “{name}” (missing or incorrect name or URL).",
     "importTooLarge": "File too large (20 MB maximum).",
     "invalidField": "One of the fields is invalid.",
-    "fieldTooLong": "One of the fields is too long (name: 100, description: 300, URL: 2048 characters)."
+    "fieldTooLong": "One of the fields is too long (name: 100, description: 300, URL: 2048 characters).",
+    "fileTooLarge": "File too large (5 MB maximum).",
+    "importEmpty": "This backup contains no website: nothing was replaced.",
+    "sessionExpired": "Your session has expired. Sign in again to continue (copy your changes first if you need them)."
   },
   "language": {
     "name": {

@@ -28,6 +28,11 @@ export function setupFormSubmitFeedback() {
   });
 }
 
+// True when a fetch was redirected to the login page: the session expired.
+export function isLoginRedirect(response) {
+  return response.redirected && new URL(response.url).pathname === '/admin/login';
+}
+
 export function restoreSubmitButton(button) {
   if (!button) {
     return;
@@ -129,6 +134,11 @@ export function setupFaviconButtons() {
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: new URLSearchParams({ url: url.toString(), _csrf: csrfToken }),
         });
+
+        if (isLoginRedirect(response)) {
+          showFeedback(clientTranslations.sessionExpired);
+          return;
+        }
 
         const result = await response.json();
 
