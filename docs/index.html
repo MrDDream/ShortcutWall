@@ -1074,8 +1074,8 @@
       <!-- Hero -->
       <div class="hero container">
         <a class="pill" href="https://github.com/MrDDream/ShortcutWall/releases/latest">
-          <strong>v1.2.0</strong>
-          <span data-i18n="hero.pill">Now with sites on your local network</span>
+          <strong data-latest-version>v1.2.2</strong>
+          <span data-i18n="hero.pill">See what’s new →</span>
         </a>
         <h1 data-i18n-html="hero.title">Every website you need, <span class="gradient-text">on one wall.</span></h1>
         <p class="hero__lead" data-i18n="hero.lead">
@@ -1250,7 +1250,8 @@
               </div>
               <h3 data-i18n="f3.title">Automatic logos</h3>
               <p data-i18n="f3.text">
-                Finds the best icon a site offers, stores it in the app and shrinks it to 256 px. No broken images.
+                Finds the best icon a site offers, SVG included, and stores it in the app at 256 px. No broken images,
+                no hotlinking.
               </p>
             </article>
             <article class="feature">
@@ -1358,7 +1359,7 @@
                 place.
               </p>
               <ul class="checklist">
-                <li data-i18n="t1.l1">The best icon of the site, checked and resized</li>
+                <li data-i18n="t1.l1">The best icon of the site, SVG included, checked and resized</li>
                 <li data-i18n="t1.l2">Or upload your own image, PNG, JPEG or WebP</li>
                 <li data-i18n="t1.l3">Errors show in the dialog, your input is kept</li>
               </ul>
@@ -1645,6 +1646,20 @@ printf <span class="s">'ADMIN_USER=admin\nADMIN_PASS=%s\nSESSION_SECRET=%s\n'</s
           }
         }
 
+        // The badge follows new releases: the version written in the page stays
+        // if GitHub's API can't be reached.
+        fetch('https://api.github.com/repos/MrDDream/ShortcutWall/releases/latest')
+          .then(function (response) {
+            return response.ok ? response.json() : null;
+          })
+          .then(function (release) {
+            const version = release && /^v?(\d+\.\d+\.\d+)$/.exec(release.tag_name || '');
+            if (version) {
+              document.querySelector('[data-latest-version]').textContent = 'v' + version[1];
+            }
+          })
+          .catch(function () {});
+
         // Theme toggle
         document.querySelector('[data-theme-toggle]').addEventListener('click', function () {
           const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
@@ -1698,7 +1713,7 @@ printf <span class="s">'ADMIN_USER=admin\nADMIN_PASS=%s\nSESSION_SECRET=%s\n'</s
           'nav.features': 'Fonctionnalités',
           'nav.tour': 'Visite',
           'nav.install': 'Installation',
-          'hero.pill': 'Maintenant avec les sites de votre réseau local',
+          'hero.pill': 'Voir les nouveautés →',
           'hero.title': 'Tous vos sites utiles, <span class="gradient-text">sur un seul mur.</span>',
           'hero.lead':
             'ShortcutWall est une page auto-hébergée de raccourcis web avec leur logo, et une administration simple pour les gérer. Une image Docker, prête en une minute.',
@@ -1718,7 +1733,7 @@ printf <span class="s">'ADMIN_USER=admin\nADMIN_PASS=%s\nSESSION_SECRET=%s\n'</s
             'Touche <span class="inline-code">/</span> pour chercher dans les noms, descriptions et domaines ; tri A–Z ou du plus récent.',
           'f3.title': 'Logos automatiques',
           'f3.text':
-            'Trouve la meilleure icône du site, la stocke dans l’app et la réduit à 256 px. Plus d’image cassée.',
+            'Trouve la meilleure icône du site, SVG compris, et la stocke dans l’app en 256 px. Plus d’image cassée ni de lien vers le site d’origine.',
           'f4.title': 'Sites internes aussi',
           'f4.text': 'Votre box, NAS ou Proxmox du réseau local ou d’un VPN, certificats auto-signés compris.',
           'f5.title': 'Administration en pop-ups',
@@ -1734,7 +1749,7 @@ printf <span class="s">'ADMIN_USER=admin\nADMIN_PASS=%s\nSESSION_SECRET=%s\n'</s
           't1.title': 'Ajoutez un site en quelques secondes',
           't1.lead':
             'Saisissez l’adresse, cliquez sur « Récupérer le favicon », c’est fait. Tout se passe dans une pop-up, sans perdre le fil.',
-          't1.l1': 'La meilleure icône du site, vérifiée et redimensionnée',
+          't1.l1': 'La meilleure icône du site, SVG compris, vérifiée et redimensionnée',
           't1.l2': 'Ou téléversez votre propre image, PNG, JPEG ou WebP',
           't1.l3': 'Les erreurs s’affichent dans la pop-up, votre saisie est conservée',
           't2.eyebrow': 'Réseau local',
